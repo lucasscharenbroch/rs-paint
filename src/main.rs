@@ -2,9 +2,9 @@ mod image;
 
 use gtk::cairo::ffi::cairo_format_stride_for_width;
 use gtk::cairo::ImageSurface;
-use gtk::cairo::Format;
 use gtk::prelude::*;
 use gtk::{glib, Application, ApplicationWindow, Button, DrawingArea};
+use image::mk_test_image;
 
 const APP_ID: &str = "org.gtk_rs.HelloWorld2";
 
@@ -23,6 +23,7 @@ fn build_ui(app: &Application) {
 
     let drawing_area = DrawingArea::new();
 
+
     // Create a button with label and margins
     let button = Button::builder()
         .label("Press me!")
@@ -32,15 +33,9 @@ fn build_ui(app: &Application) {
         .margin_end(12)
         .build();
 
-
-
     drawing_area.set_draw_func(|_area, cr, width, height| {
-        let image: image::Image = image::mk_test_image();
-        let height = image.pixels.len();
-        let width = image.pixels[0].len();
-
-        let surface: ImageSurface = ImageSurface::create_for_data(image.to_u8_vec(), Format::ARgb32, width as i32, height as i32, 4 * width as i32).unwrap();
-        cr.set_source_surface(surface, 0.0, 0.0);
+        let image = mk_test_image();
+        cr.set_source_surface(image.to_surface(), 0.0, 0.0);
         cr.paint();
 
         cr.scale(width as f64, height as f64);
