@@ -35,7 +35,9 @@ fn build_ui(app: &Application) {
 
     drawing_area.set_draw_func(|_area, cr, width, height| {
         let image = mk_test_image();
-        cr.set_source_surface(image.to_surface(), 0.0, 0.0);
+        let x_offset = std::cmp::max(0, (width - image.width()) / 2);
+        let y_offset = std::cmp::max(0, (height - image.height()) / 2);
+        cr.set_source_surface(image.to_surface(), x_offset as f64, y_offset as f64);
         cr.paint();
 
         cr.scale(width as f64, height as f64);

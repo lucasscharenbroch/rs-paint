@@ -44,4 +44,12 @@ impl Image {
 
         ImageSurface::create_for_data(self.to_u8_vec(), Format::ARgb32, width as i32, height as i32, 4 * width as i32).unwrap()
     }
+
+    pub fn width(&self) -> i32 {
+        self.pixels[0].len() as i32
+    }
+
+    pub fn height(&self) -> i32 {
+        self.pixels.len() as i32
+    }
 }
