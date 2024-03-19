@@ -1,7 +1,7 @@
 use gtk::prelude::*;
 use gtk::{glib, Application, ApplicationWindow, Button, DrawingArea, Box, Orientation, Frame};
 use gtk::cairo::Context;
-use super::image::{Image, mk_test_image};
+use super::image::{Image, mk_test_image, mk_transparent_pattern};
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
@@ -27,10 +27,15 @@ impl UiState {
     fn draw_image_canvas(&self, area: &DrawingArea, cr: &Context, width: i32, height: i32) {
         let x_offset = std::cmp::max(0, (width - self.image.width()) / 2);
         let y_offset = std::cmp::max(0, (height - self.image.height()) / 2);
-        let scale_factor = 16.0;
+        let scale_factor = 4.0;
+        cr.translate(x_offset as f64, y_offset as f64);
         cr.scale(scale_factor, scale_factor);
 
         let image_surface_pattern = self.image.to_surface_pattern();
+        let transparent_pattern = mk_transparent_pattern();
+
+        cr.set_source(transparent_pattern);
+        cr.paint();
         cr.set_source(image_surface_pattern);
         cr.paint();
 

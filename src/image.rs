@@ -1,4 +1,4 @@
-use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter};
+use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter, Mesh, MeshCorner};
 use gtk::cairo;
 use gtk::glib::translate::ToGlibPtr;
 
@@ -29,19 +29,44 @@ const GREEN: Pixel = Pixel {
     a: 255,
 };
 
+const GRAY: Pixel = Pixel {
+    r: 211,
+    g: 211,
+    b: 211,
+    a: 255,
+};
+
+const DARK_GRAY: Pixel = Pixel {
+    r: 229,
+    g: 229,
+    b: 229,
+    a: 255,
+};
+
 pub fn mk_test_image() -> Image {
     let mut pixels = vec![vec![BLUE; 400]; 400];
-        for i in 0..400 {
-            for j in 0..400 {
-                if i % 2 == 0 || j % 2 == 0 {
-                    pixels[i][j] = GREEN;
-                }
+
+    for i in 0..400 {
+        for j in 0..400 {
+            if i % 2 == 0 || j % 2 == 0 {
+                pixels[i][j] = GREEN;
             }
         }
+    }
 
     return Image {
         pixels
     };
+}
+
+pub fn mk_transparent_pattern() -> SurfacePattern {
+    let img = Image {
+        pixels: vec![vec![GRAY, DARK_GRAY], vec![DARK_GRAY, GRAY]],
+    };
+
+    let res = img.to_surface_pattern();
+    res.set_extend(cairo::Extend::Repeat);
+    res
 }
 
 impl Image {
