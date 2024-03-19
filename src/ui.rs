@@ -25,25 +25,28 @@ impl UiState {
     }
 
     fn draw_image_canvas(&self, area: &DrawingArea, cr: &Context, width: i32, height: i32) {
-        let image = mk_test_image();
-        let x_offset = std::cmp::max(0, (width - image.width()) / 2);
-        let y_offset = std::cmp::max(0, (height - image.height()) / 2);
-        cr.set_source_surface(image.to_surface(), x_offset as f64, y_offset as f64);
+        let x_offset = std::cmp::max(0, (width - self.image.width()) / 2);
+        let y_offset = std::cmp::max(0, (height - self.image.height()) / 2);
+        let scale_factor = 16.0;
+        cr.scale(scale_factor, scale_factor);
+
+        let image_surface_pattern = self.image.to_surface_pattern();
+        cr.set_source(image_surface_pattern);
         cr.paint();
 
+        /*
         cr.scale(width as f64, height as f64);
         cr.set_line_width(0.1);
         cr.set_source_rgb(0.0, 0.0, 0.0);
         cr.rectangle(0.25, 0.25, 0.5, 0.5);
         cr.stroke();
+        */
     }
 
     fn build_ui(&self, app: &Application) {
         let state = Rc::new(RefCell::new(self.clone()));
 
-        let drawing_area = DrawingArea::builder()
-            .content_height(100)
-            .build();
+        let drawing_area = DrawingArea::new();
 
         drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height|
                                                                 state.borrow().draw_image_canvas(area, cr, width, height)));
