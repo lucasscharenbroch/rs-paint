@@ -1,11 +1,10 @@
 use gtk::prelude::*;
-use gtk::{glib, Application, ApplicationWindow, Button, DrawingArea};
+use gtk::{glib, Application, ApplicationWindow, Button, DrawingArea, Box, Orientation, Frame};
 use gtk::cairo::Context;
 use super::image::{Image, mk_test_image};
 use std::rc::Rc;
 use std::cell::RefCell;
-
-const APP_ID: &str = "rs-paint";
+use glib_macros::clone;
 
 #[derive(Clone)]
 pub struct UiState {
@@ -20,7 +19,7 @@ impl UiState {
     }
 
     pub fn run(self) -> glib::ExitCode {
-        let app = Application::builder().application_id(APP_ID).build();
+        let app = Application::builder().build();
         app.connect_activate(move |app| self.build_ui(app));
         app.run()
     }
@@ -42,31 +41,21 @@ impl UiState {
     fn build_ui(&self, app: &Application) {
         let state = Rc::new(RefCell::new(self.clone()));
 
-        let button = Button::builder()
-            .label("Press me!")
-            .margin_top(12)
-            .margin_bottom(12)
-            .margin_start(12)
-            .margin_end(12)
+        let drawing_area = DrawingArea::builder()
+            .content_height(100)
             .build();
 
-        let drawing_area = DrawingArea::new();
+        drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height|
+                                                                state.borrow().draw_image_canvas(area, cr, width, height)));
 
-        drawing_area.set_draw_func(move |area, cr, width, height|
-                                   state.borrow().draw_image_canvas(area, cr, width, height));
-
-        // Connect to "clicked" signal of `button`
-        button.connect_clicked(|button| {
-            // Set the label to "Hello World!" after the button has been clicked on
-            button.set_label("Hello World!");
-        });
+        let main_frame = Frame::new(None);
+        main_frame.set_child(Some(&drawing_area));
 
         // Create a window
         let window = ApplicationWindow::builder()
             .application(app)
-            .title("My GTK App")
-            .child(&button)
-            .child(&drawing_area)
+            .title("RS-Paint")
+            .child(&main_frame)
             .build();
 
         // Present window
