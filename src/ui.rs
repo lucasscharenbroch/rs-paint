@@ -1,12 +1,13 @@
-use gtk::{prelude::*};
+use gtk::{prelude::*, EventControllerScrollFlags};
 use gtk::gdk::{Key, ModifierType};
-use gtk::{glib, Application, ApplicationWindow, Button, DrawingArea, ScrolledWindow, EventControllerKey};
+use gtk::{glib, Application, ApplicationWindow, Button, DrawingArea, ScrolledWindow, EventControllerKey, EventControllerScroll};
 use gtk::cairo::Context;
 use super::image::{Image, mk_test_image, mk_transparent_pattern};
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 use gtk::cairo;
+use gtk::glib::signal::Propagation;
 
 #[derive(Clone)]
 pub struct UiState {
@@ -106,6 +107,16 @@ impl UiState {
         }
     }
 
+    fn handle_scroll(&mut self, event_controller: &EventControllerScroll, x: f64, y: f64) -> Propagation {
+        if event_controller.current_event_state() == ModifierType::CONTROL_MASK {
+            self.image_zoom -= y;
+            self.update_image_canvas_sz();
+            Propagation::Stop
+        } else {
+            Propagation::Proceed
+        }
+    }
+
     fn build_ui(&self, app: &Application) {
         let state = Rc::new(RefCell::new(self.clone()));
 
@@ -118,9 +129,19 @@ impl UiState {
             .hscrollbar_policy(gtk::PolicyType::Always)
             .vscrollbar_policy(gtk::PolicyType::Always)
             .child(&self.drawing_area)
+            .kinetic_scrolling(false)
+            .overlay_scrolling(false)
             .build();
 
-        // Create a window
+        main_frame.set_kinetic_scrolling(false);
+
+        let scroll_controller = EventControllerScroll::new(EventControllerScrollFlags::VERTICAL);
+        scroll_controller.connect_scroll(clone!(@strong state => move |ecs, dx, dy| {
+            state.borrow_mut().handle_scroll(ecs, dx, dy)
+        }));
+
+        main_frame.add_controller(scroll_controller);
+
         let window = ApplicationWindow::builder()
             .application(app)
             .title("RS-Paint")
@@ -135,6 +156,7 @@ impl UiState {
         }));
 
         window.add_controller(key_controller);
+
 
         // Present window
         window.present();
