@@ -24,28 +24,39 @@ impl UiState {
         app.run()
     }
 
-    fn draw_image_canvas(&self, area: &DrawingArea, cr: &Context, width: i32, height: i32) {
-        let x_offset = std::cmp::max(0, (width - self.image.width()) / 2);
-        let y_offset = std::cmp::max(0, (height - self.image.height()) / 2);
-        let scale_factor = 4.0;
-        cr.translate(x_offset as f64, y_offset as f64);
-        cr.scale(scale_factor, scale_factor);
+    fn draw_image_canvas(&self, area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
+        // let x_offset = std::cmp::max(0, (width - self.image.width()) / 2);
+        // let y_offset = std::cmp::max(0, (height - self.image.height()) / 2);
+
+        // cr.translate(x_offset as f64, y_offset as f64);
+        // cr.scale(scale_factor, scale_factor);
+
+        let zoom = 4.5;
+        let img_width = self.image.pixels.len() as f64;
+        let img_height = self.image.pixels[0].len() as f64;
 
         let image_surface_pattern = self.image.to_surface_pattern();
         let transparent_pattern = mk_transparent_pattern();
 
-        cr.set_source(transparent_pattern);
-        cr.paint();
-        cr.set_source(image_surface_pattern);
-        cr.paint();
+        cr.scale(zoom, zoom);
 
-        /*
-        cr.scale(width as f64, height as f64);
-        cr.set_line_width(0.1);
+        const TRANSPARENT_CHECKER_SZ: f64 = 10.0;
+        let trans_scale = TRANSPARENT_CHECKER_SZ / zoom;
+        cr.scale(trans_scale, trans_scale);
+        cr.rectangle(0.0, 0.0, img_width / trans_scale, img_height / trans_scale);
+        cr.set_source(transparent_pattern);
+        cr.fill();
+        cr.scale(1.0 / trans_scale, 1.0 / trans_scale);
+
+        cr.rectangle(0.0, 0.0, img_width, img_height);
+        cr.set_source(image_surface_pattern);
+        cr.fill();
+
+        const BORDER_WIDTH: f64 = 3.0;
+        cr.rectangle(0.0, 0.0, img_width, img_height);
         cr.set_source_rgb(0.0, 0.0, 0.0);
-        cr.rectangle(0.25, 0.25, 0.5, 0.5);
+        cr.set_line_width(BORDER_WIDTH / zoom);
         cr.stroke();
-        */
     }
 
     fn build_ui(&self, app: &Application) {
