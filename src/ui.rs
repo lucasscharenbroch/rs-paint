@@ -14,6 +14,7 @@ pub struct UiState {
     image: Image,
     image_zoom: f64,
     drawing_area: DrawingArea,
+    main_frame: ScrolledWindow,
 }
 
 impl UiState {
@@ -22,6 +23,7 @@ impl UiState {
             image: mk_test_image(),
             image_zoom: 2.0,
             drawing_area: DrawingArea::new(),
+            main_frame: ScrolledWindow::new(),
         }
     }
 
@@ -108,6 +110,10 @@ impl UiState {
     }
 
     fn handle_scroll(&mut self, event_controller: &EventControllerScroll, x: f64, y: f64) -> Propagation {
+        println!("{x} {y}");
+        println!("kinetic? {}", self.main_frame.is_kinetic_scrolling());
+
+        /*
         if event_controller.current_event_state() == ModifierType::CONTROL_MASK {
             self.image_zoom -= y;
             self.update_image_canvas_sz();
@@ -115,6 +121,8 @@ impl UiState {
         } else {
             Propagation::Proceed
         }
+        */
+            Propagation::Proceed
     }
 
     fn build_ui(&self, app: &Application) {
@@ -125,40 +133,57 @@ impl UiState {
             state.borrow().draw_image_canvas(area, cr, width, height);
         }));
 
+        self.main_frame.set_hscrollbar_policy(gtk::PolicyType::Always);
+        self.main_frame.set_vscrollbar_policy(gtk::PolicyType::Always);
+        self.main_frame.set_child(Some(&self.drawing_area));
+        self.main_frame.set_kinetic_scrolling(false);
+        self.main_frame.set_overlay_scrolling(true);
+        /*
         let main_frame = ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Always)
             .vscrollbar_policy(gtk::PolicyType::Always)
             .child(&self.drawing_area)
             .kinetic_scrolling(false)
-            .overlay_scrolling(false)
+            .overlay_scrolling(true)
             .build();
+        */
 
-        main_frame.set_kinetic_scrolling(false);
+        self.main_frame.set_kinetic_scrolling(false);
 
-        let scroll_controller = EventControllerScroll::new(EventControllerScrollFlags::VERTICAL);
+        let scroll_controller = EventControllerScroll::new(EventControllerScrollFlags::VERTICAL | EventControllerScrollFlags::KINETIC | EventControllerScrollFlags::DISCRETE);
         scroll_controller.connect_scroll(clone!(@strong state => move |ecs, dx, dy| {
             state.borrow_mut().handle_scroll(ecs, dx, dy)
         }));
 
-        main_frame.add_controller(scroll_controller);
+        scroll_controller.connect_scroll_end(|_| {
+            println!("end scroll");
+        });
+
+        scroll_controller.connect_decelerate(|controller, _, _| {
+            println!("decel");
+        });
+
+        self.main_frame.add_controller(scroll_controller);
 
         let window = ApplicationWindow::builder()
             .application(app)
             .title("RS-Paint")
-            .child(&main_frame)
+            .child(&self.main_frame)
             .build();
 
         let key_controller = EventControllerKey::new();
 
         key_controller.connect_key_pressed(clone!(@strong state => move |_, key, _, modifier| {
             state.borrow_mut().handle_keypress(key, modifier);
-            gtk::glib::signal::Propagation::Proceed
+            Propagation::Proceed
         }));
 
         window.add_controller(key_controller);
 
+        // main_frame.set_kinetic_scrolling(false);
+        println!("kinetic? {}", self.main_frame.is_kinetic_scrolling());
+        println!("overlay? {}", self.main_frame.is_overlay_scrolling());
 
-        // Present window
         window.present();
     }
 }
