@@ -68,13 +68,13 @@ impl Canvas {
     }
 
     fn inc_pan(&mut self, dx: f64, dy: f64) {
-        const PAN_FACTOR: f64 = 6.0;
+        const PAN_FACTOR: f64 = 10.0;
 
-        self.pan = (self.pan.0 + dx * self.zoom * PAN_FACTOR,
-                    self.pan.1 + dy * self.zoom * PAN_FACTOR);
+        self.pan = (self.pan.0 + dx / self.zoom * PAN_FACTOR,
+                    self.pan.1 + dy / self.zoom * PAN_FACTOR);
     }
 
-    fn draw(&self, area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
+    fn draw(&self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
         let img_width = self.image.pixels.len() as f64;
         let img_height = self.image.pixels[0].len() as f64;
         let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
