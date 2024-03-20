@@ -58,10 +58,10 @@ impl UiState {
         if modifier == ModifierType::CONTROL_MASK {
             if key == Key::equal {
                 self.canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
-                self.canvas_p.borrow().queue_redraw();
+                self.canvas_p.borrow_mut().update();
             } else if(key == Key::minus) {
                 self.canvas_p.borrow_mut().inc_zoom(-ZOOM_INC);
-                self.canvas_p.borrow().queue_redraw();
+                self.canvas_p.borrow_mut().update();
             }
         }
     }

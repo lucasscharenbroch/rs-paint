@@ -2,7 +2,7 @@ use super::super::image::{Image, mk_transparent_pattern};
 use super::UiState;
 
 use gtk::prelude::*;
-use gtk::{Frame};
+use gtk::{Grid, Scrollbar, Orientation, Adjustment};
 use gtk::gdk::{ModifierType};
 use gtk::{DrawingArea, EventControllerScroll, EventControllerScrollFlags, EventControllerMotion};
 use gtk::cairo::Context;
@@ -19,15 +19,27 @@ pub struct Canvas {
     pan: (f64, f64),
     cursor_pos: (f64, f64),
     drawing_area: DrawingArea,
-    frame: Frame,
+    grid: Grid,
+    v_scrollbar: Scrollbar,
+    h_scrollbar: Scrollbar,
 }
 
 impl Canvas {
     pub fn new(image: Image) -> Rc<RefCell<Canvas>> {
-        let drawing_area =  DrawingArea::new();
-        let frame =  Frame::builder()
-            .child(&drawing_area)
+        let grid = Grid::new();
+
+        let drawing_area =  DrawingArea::builder()
+            .vexpand(true)
+            .hexpand(true)
             .build();
+
+        grid.attach(&drawing_area, 0, 0, 1, 1);
+
+        let v_scrollbar = Scrollbar::new(Orientation::Vertical, Adjustment::NONE);
+        let h_scrollbar = Scrollbar::new(Orientation::Horizontal, Adjustment::NONE);
+
+        grid.attach(&v_scrollbar, 1, 0, 1, 1);
+        grid.attach(&h_scrollbar, 0, 1, 1, 1);
 
         let state = Rc::new(RefCell::new(Canvas {
             image,
@@ -35,7 +47,9 @@ impl Canvas {
             pan: (0.0, 0.0),
             cursor_pos: (0.0, 0.0),
             drawing_area,
-            frame,
+            grid,
+            v_scrollbar,
+            h_scrollbar,
         }));
 
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
@@ -47,20 +61,22 @@ impl Canvas {
             state.borrow_mut().handle_scroll(ecs, dx, dy)
         }));
 
-        state.borrow_mut().frame.add_controller(scroll_controller);
+        state.borrow_mut().grid.add_controller(scroll_controller);
 
         let motion_controller = EventControllerMotion::new();
         motion_controller.connect_motion(clone!(@strong state => move |_, x, y| {
             state.borrow_mut().update_cursor_pos(x, y);
         }));
 
-        state.borrow_mut().frame.add_controller(motion_controller);
+        state.borrow_mut().grid.add_controller(motion_controller);
+
+        state.borrow_mut().update_scrollbars();
 
         state
     }
 
-    pub fn widget(&self) -> &Frame {
-        &self.frame
+    pub fn widget(&self) -> &Grid {
+        &self.grid
     }
 
     pub fn inc_zoom(&mut self, inc: f64) {
@@ -93,6 +109,7 @@ impl Canvas {
 
         self.pan.0 += target_x / old_zoom - target_x / self.zoom;
         self.pan.1 += target_y / old_zoom - target_y / self.zoom;
+        self.clamp_pan();
     }
 
     fn inc_pan(&mut self, dx: f64, dy: f64) {
@@ -100,6 +117,27 @@ impl Canvas {
 
         self.pan = (self.pan.0 + dx / self.zoom * PAN_FACTOR,
                     self.pan.1 + dy / self.zoom * PAN_FACTOR);
+
+        self.clamp_pan();
+    }
+
+    fn clamp_pan(&mut self) {
+        let (max_x, max_y) = self.get_max_pan();
+        if self.pan.0 < -max_x {
+            self.pan.0 = -max_x;
+        } else if self.pan.0 > max_x {
+            self.pan.0 = max_x;
+        }
+
+        if self.pan.1 < -max_y {
+            self.pan.1 = -max_y;
+        } else if self.pan.1 > max_y {
+            self.pan.1 = max_y;
+        }
+    }
+
+    fn get_max_pan(&self) -> (f64, f64) {
+        (self.image.pixels[0].len() as f64, self.image.pixels.len() as f64)
     }
 
     fn draw(&self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
@@ -135,7 +173,32 @@ impl Canvas {
         cr.stroke();
     }
 
-    pub fn queue_redraw(&self) {
+    fn update_scrollbars(&mut self) {
+        let v_window = self.image.pixels.len() as f64 / self.zoom;
+        let h_window = self.image.pixels[0].len() as f64 / self.zoom;
+        let (h_max, v_max) = self.get_max_pan();
+        let h_max = h_max + h_window / 2.0;
+        let v_max = v_max + v_window / 2.0;
+        let v_value = self.pan.1 - v_window / 2.0;
+        let h_value = self.pan.0 - h_window / 2.0;
+
+        self.h_scrollbar.set_adjustment(Some(&Adjustment::builder()
+                                                .lower(-h_max)
+                                                .upper(h_max)
+                                                .value(h_value)
+                                                .page_size(h_window)
+                                                .build()));
+
+        self.v_scrollbar.set_adjustment(Some(&Adjustment::builder()
+                                                .lower(-v_max)
+                                                .upper(v_max)
+                                                .value(v_value)
+                                                .page_size(v_window)
+                                                .build()));
+    }
+
+    pub fn update(&mut self) {
+        self.update_scrollbars();
         self.drawing_area.queue_draw();
     }
 
@@ -146,7 +209,7 @@ impl Canvas {
             self.inc_pan(-dx, -dy);
         }
 
-        self.queue_redraw();
+        self.update();
 
         Propagation::Stop
     }
