@@ -52,21 +52,12 @@ impl Canvas {
         &self.frame
     }
 
-    fn update_image_canvas_sz(&mut self) {
-        const CANVAS_SZ_MULT: f64 = 1.3;
-
-        let image_width = self.image.pixels.len() as f64 * self.zoom * CANVAS_SZ_MULT;
-        let image_height = self.image.pixels[0].len() as f64 * self.zoom * CANVAS_SZ_MULT;
-
-        self.drawing_area.set_content_height(image_height as i32);
-        self.drawing_area.set_content_width(image_width as i32);
-    }
-
     pub fn inc_zoom(&mut self, inc: f64) {
-        const MAX_ZOOM: f64 = 25.0;
+        const MAX_ZOOM: f64 = 500.0;
         const MIN_ZOOM: f64 = 0.1;
+        const ZOOM_FACTOR: f64 = 0.2;
 
-        self.zoom += inc;
+        self.zoom += inc * self.zoom * ZOOM_FACTOR;
         if(self.zoom > MAX_ZOOM) {
             self.zoom = MAX_ZOOM;
         } else if(self.zoom < MIN_ZOOM) {
@@ -113,8 +104,7 @@ impl Canvas {
     fn handle_scroll(&mut self, event_controller: &EventControllerScroll, x: f64, y: f64) -> Propagation {
         if event_controller.current_event_state() == ModifierType::CONTROL_MASK {
             self.inc_zoom(y);
-            self.update_image_canvas_sz();
-
+            self.queue_redraw();
             Propagation::Stop
         } else {
             Propagation::Proceed
