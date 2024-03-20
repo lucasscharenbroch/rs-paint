@@ -81,8 +81,6 @@ impl Canvas {
     }
 
     fn inc_zoom_around_cursor(&mut self, inc: f64) {
-        // calculate center of screen position on image
-
         let old_zoom = self.zoom;
 
         self.inc_zoom(inc);
@@ -93,8 +91,8 @@ impl Canvas {
         let target_x = (canvas_width / 2.0) - cursor_x;
         let target_y = (canvas_height / 2.0) - cursor_y;
 
-        self.pan.0 += target_x * (self.zoom - old_zoom) / (self.zoom * old_zoom);
-        self.pan.1 += target_y * (self.zoom - old_zoom) / (self.zoom * old_zoom);
+        self.pan.0 += target_x / old_zoom - target_x / self.zoom;
+        self.pan.1 += target_y / old_zoom - target_y / self.zoom;
     }
 
     fn inc_pan(&mut self, dx: f64, dy: f64) {
