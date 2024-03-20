@@ -16,6 +16,7 @@ use glib_macros::clone;
 pub struct Canvas {
     image: Image,
     zoom: f64,
+    pan: (f64, f64),
     drawing_area: DrawingArea,
     frame: Frame,
 }
@@ -30,6 +31,7 @@ impl Canvas {
         let state = Rc::new(RefCell::new(Canvas {
             image,
             zoom: 1.0,
+            pan: (0.0, 0.0),
             drawing_area,
             frame,
         }));
@@ -65,6 +67,13 @@ impl Canvas {
         }
     }
 
+    fn inc_pan(&mut self, dx: f64, dy: f64) {
+        const PAN_FACTOR: f64 = 6.0;
+
+        self.pan = (self.pan.0 + dx * self.zoom * PAN_FACTOR,
+                    self.pan.1 + dy * self.zoom * PAN_FACTOR);
+    }
+
     fn draw(&self, area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
         let img_width = self.image.pixels.len() as f64;
         let img_height = self.image.pixels[0].len() as f64;
@@ -76,6 +85,7 @@ impl Canvas {
 
         cr.translate(x_offset as f64, y_offset as f64);
         cr.scale(self.zoom, self.zoom);
+        cr.translate(self.pan.0, self.pan.1);
         cr.set_line_join(cairo::LineJoin::Bevel);
 
         const TRANSPARENT_CHECKER_SZ: f64 = 10.0;
@@ -101,13 +111,15 @@ impl Canvas {
         self.drawing_area.queue_draw();
     }
 
-    fn handle_scroll(&mut self, event_controller: &EventControllerScroll, x: f64, y: f64) -> Propagation {
+    fn handle_scroll(&mut self, event_controller: &EventControllerScroll, dx: f64, dy: f64) -> Propagation {
         if event_controller.current_event_state() == ModifierType::CONTROL_MASK {
-            self.inc_zoom(y);
+            self.inc_zoom(dy);
             self.queue_redraw();
-            Propagation::Stop
         } else {
-            Propagation::Proceed
+            self.inc_pan(-dx, -dy);
+            self.queue_redraw();
         }
+
+        Propagation::Stop
     }
 }
