@@ -88,6 +88,10 @@ impl Canvas {
 
         state.borrow_mut().scrollbar_update_handlers = Some((h_sb_handler, v_sb_handler));
 
+        state.borrow_mut().drawing_area.connect_resize(clone!(@strong state => move |_, _, _| {
+            state.borrow_mut().update();
+        }));
+
         state.borrow_mut().update_scrollbars();
 
         state
@@ -140,13 +144,13 @@ impl Canvas {
     }
 
     fn set_h_pan(&mut self, val: f64) {
-        let h_window = self.image.pixels[0].len() as f64;
+        let h_window = self.drawing_area.width() as f64 / self.zoom;
         self.pan.0 = val + h_window / 2.0;
         self.clamp_pan();
     }
 
     fn set_v_pan(&mut self, val: f64) {
-        let v_window = self.image.pixels.len() as f64;
+        let v_window = self.drawing_area.height() as f64 / self.zoom;
         self.pan.1 = val + v_window / 2.0;
         self.clamp_pan();
     }
@@ -167,8 +171,20 @@ impl Canvas {
     }
 
     fn get_max_pan(&self) -> (f64, f64) {
-        (self.image.pixels[0].len() as f64, self.image.pixels.len() as f64)
+        let img_width = self.image.pixels[0].len() as f64;
+        let img_height = self.image.pixels.len() as f64;
+
+        let win_width = self.drawing_area.width() as f64;
+        let win_height = self.drawing_area.height() as f64;
+
+        const FREE_SLACK: f64 = 300.0;
+
+        let x_slack = FREE_SLACK + self.zoom * img_width - win_width;
+        let y_slack = FREE_SLACK + self.zoom * img_height - win_height;
+
+        (x_slack.max(0.0) / 2.0 / self.zoom, y_slack.max(0.0) / 2.0 / self.zoom)
     }
+
 
     fn draw(&self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
         let img_width = self.image.pixels.len() as f64;
@@ -204,21 +220,21 @@ impl Canvas {
     }
 
     fn update_scrollbars(&mut self) {
-        let v_window = self.image.pixels.len() as f64 / self.zoom;
-        let h_window = self.image.pixels[0].len() as f64 / self.zoom;
+        let v_window = self.drawing_area.height() as f64 / self.zoom;
+        let h_window = self.drawing_area.width() as f64 / self.zoom;
         let (h_max, v_max) = self.get_max_pan();
         let h_max = h_max + h_window / 2.0;
         let v_max = v_max + v_window / 2.0;
-        let v_value = self.pan.1 - v_window / 2.0;
         let h_value = self.pan.0 - h_window / 2.0;
+        let v_value = self.pan.1 - v_window / 2.0;
 
         if let Some((ref h_sb_handler_id, ref v_sb_handler_id)) = self.scrollbar_update_handlers {
             self.h_scrollbar.adjustment().block_signal(h_sb_handler_id);
             self.v_scrollbar.adjustment().block_signal(v_sb_handler_id);
         }
 
-        let mut h_adj = self.h_scrollbar.adjustment();
-        let mut v_adj = self.v_scrollbar.adjustment();
+        let h_adj = self.h_scrollbar.adjustment();
+        let v_adj = self.v_scrollbar.adjustment();
 
         h_adj.set_lower(-h_max);
         h_adj.set_upper(h_max);
