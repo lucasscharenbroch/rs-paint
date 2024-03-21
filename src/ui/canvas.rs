@@ -145,13 +145,13 @@ impl Canvas {
 
     fn set_h_pan(&mut self, val: f64) {
         let h_window = self.drawing_area.width() as f64 / self.zoom;
-        self.pan.0 = val + h_window / 2.0;
+        self.pan.0 = -val - h_window / 2.0;
         self.clamp_pan();
     }
 
     fn set_v_pan(&mut self, val: f64) {
         let v_window = self.drawing_area.height() as f64 / self.zoom;
-        self.pan.1 = val + v_window / 2.0;
+        self.pan.1 = -val - v_window / 2.0;
         self.clamp_pan();
     }
 
@@ -225,8 +225,8 @@ impl Canvas {
         let (h_max, v_max) = self.get_max_pan();
         let h_max = h_max + h_window / 2.0;
         let v_max = v_max + v_window / 2.0;
-        let h_value = self.pan.0 - h_window / 2.0;
-        let v_value = self.pan.1 - v_window / 2.0;
+        let h_value = -self.pan.0 - h_window / 2.0;
+        let v_value = -self.pan.1 - v_window / 2.0;
 
         if let Some((ref h_sb_handler_id, ref v_sb_handler_id)) = self.scrollbar_update_handlers {
             self.h_scrollbar.adjustment().block_signal(h_sb_handler_id);
