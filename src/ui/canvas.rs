@@ -10,9 +10,9 @@ use gtk::cairo;
 use gtk::glib::signal::Propagation;
 use std::rc::Rc;
 use std::cell::{Ref, RefCell};
+use gtk::glib::{SignalHandlerId};
 use glib_macros::clone;
 
-#[derive(Clone)]
 pub struct Canvas {
     image: Image,
     zoom: f64,
@@ -22,6 +22,7 @@ pub struct Canvas {
     grid: Grid,
     v_scrollbar: Scrollbar,
     h_scrollbar: Scrollbar,
+    scrollbar_update_handlers: Option<(SignalHandlerId, SignalHandlerId)>,
 }
 
 impl Canvas {
@@ -50,11 +51,23 @@ impl Canvas {
             grid,
             v_scrollbar,
             h_scrollbar,
+            scrollbar_update_handlers: None,
         }));
 
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
             state.borrow().draw(area, cr, width, height);
         }));
+
+        // mouse movement
+
+        let motion_controller = EventControllerMotion::new();
+        motion_controller.connect_motion(clone!(@strong state => move |_, x, y| {
+            state.borrow_mut().update_cursor_pos(x, y);
+        }));
+
+        state.borrow_mut().grid.add_controller(motion_controller);
+
+        // scroll
 
         let scroll_controller = EventControllerScroll::new(EventControllerScrollFlags::BOTH_AXES);
         scroll_controller.connect_scroll(clone!(@strong state => move |ecs, dx, dy| {
@@ -63,12 +76,17 @@ impl Canvas {
 
         state.borrow_mut().grid.add_controller(scroll_controller);
 
-        let motion_controller = EventControllerMotion::new();
-        motion_controller.connect_motion(clone!(@strong state => move |_, x, y| {
-            state.borrow_mut().update_cursor_pos(x, y);
+        let h_sb_handler = state.borrow_mut().h_scrollbar.adjustment().connect_value_changed(clone!(@strong state => move |adjustment| {
+            state.borrow_mut().set_h_pan(adjustment.value());
+            state.borrow_mut().update();
         }));
 
-        state.borrow_mut().grid.add_controller(motion_controller);
+        let v_sb_handler = state.borrow_mut().v_scrollbar.adjustment().connect_value_changed(clone!(@strong state => move |adjustment| {
+            state.borrow_mut().set_v_pan(adjustment.value());
+            state.borrow_mut().update();
+        }));
+
+        state.borrow_mut().scrollbar_update_handlers = Some((h_sb_handler, v_sb_handler));
 
         state.borrow_mut().update_scrollbars();
 
@@ -118,6 +136,18 @@ impl Canvas {
         self.pan = (self.pan.0 + dx / self.zoom * PAN_FACTOR,
                     self.pan.1 + dy / self.zoom * PAN_FACTOR);
 
+        self.clamp_pan();
+    }
+
+    fn set_h_pan(&mut self, val: f64) {
+        let h_window = self.image.pixels[0].len() as f64;
+        self.pan.0 = val + h_window / 2.0;
+        self.clamp_pan();
+    }
+
+    fn set_v_pan(&mut self, val: f64) {
+        let v_window = self.image.pixels.len() as f64;
+        self.pan.1 = val + v_window / 2.0;
         self.clamp_pan();
     }
 
@@ -182,19 +212,28 @@ impl Canvas {
         let v_value = self.pan.1 - v_window / 2.0;
         let h_value = self.pan.0 - h_window / 2.0;
 
-        self.h_scrollbar.set_adjustment(Some(&Adjustment::builder()
-                                                .lower(-h_max)
-                                                .upper(h_max)
-                                                .value(h_value)
-                                                .page_size(h_window)
-                                                .build()));
+        if let Some((ref h_sb_handler_id, ref v_sb_handler_id)) = self.scrollbar_update_handlers {
+            self.h_scrollbar.adjustment().block_signal(h_sb_handler_id);
+            self.v_scrollbar.adjustment().block_signal(v_sb_handler_id);
+        }
 
-        self.v_scrollbar.set_adjustment(Some(&Adjustment::builder()
-                                                .lower(-v_max)
-                                                .upper(v_max)
-                                                .value(v_value)
-                                                .page_size(v_window)
-                                                .build()));
+        let mut h_adj = self.h_scrollbar.adjustment();
+        let mut v_adj = self.v_scrollbar.adjustment();
+
+        h_adj.set_lower(-h_max);
+        h_adj.set_upper(h_max);
+        h_adj.set_value(h_value);
+        h_adj.set_page_size(h_window);
+
+        v_adj.set_lower(-v_max);
+        v_adj.set_upper(v_max);
+        v_adj.set_value(v_value);
+        v_adj.set_page_size(v_window);
+
+        if let Some((ref h_sb_handler_id, ref v_sb_handler_id)) = self.scrollbar_update_handlers {
+            self.h_scrollbar.adjustment().unblock_signal(h_sb_handler_id);
+            self.v_scrollbar.adjustment().unblock_signal(v_sb_handler_id);
+        }
     }
 
     pub fn update(&mut self) {

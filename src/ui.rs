@@ -11,7 +11,6 @@ use std::cell::RefCell;
 use glib_macros::clone;
 use gtk::glib::signal::Propagation;
 
-#[derive(Clone)]
 pub struct UiState {
     canvas_p: Rc<RefCell<Canvas>>,
     window: ApplicationWindow,
