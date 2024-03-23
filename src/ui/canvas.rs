@@ -212,10 +212,17 @@ impl Canvas {
         cr.set_source(image_surface_pattern);
         cr.fill();
 
-        const BORDER_WIDTH: f64 = 3.0;
+        const BORDER_WIDTH: f64 = 1.5;
+        const DASH_LENGTH: f64 = 6.0;
+        cr.set_line_width(BORDER_WIDTH / self.zoom);
+
+        cr.set_dash(&[DASH_LENGTH / self.zoom, DASH_LENGTH / self.zoom], 0.0);
         cr.rectangle(0.0, 0.0, img_width, img_height);
         cr.set_source_rgb(0.0, 0.0, 0.0);
-        cr.set_line_width(BORDER_WIDTH / self.zoom);
+        cr.stroke();
+
+        cr.set_dash(&[DASH_LENGTH / self.zoom, DASH_LENGTH / self.zoom], DASH_LENGTH / self.zoom);
+        cr.set_source_rgb(1.0, 1.0, 1.0);
         cr.stroke();
     }
 
