@@ -1,14 +1,10 @@
+use super::mode::MouseMode;
+
 use gtk::prelude::*;
 use gtk::{Box, Orientation, ToggleButton};
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum MouseMode {
-    Cursor,
-    Pencil,
-}
 
 pub struct Toolbar {
     tbox: Box,
@@ -22,7 +18,7 @@ struct MouseModeButton {
 }
 
 impl Toolbar {
-    pub fn new() -> Rc<RefCell<Toolbar>> {
+    pub fn new_p() -> Rc<RefCell<Toolbar>> {
         let tbox =  Box::new(Orientation::Horizontal, 10);
         let initial_mode = MouseMode::Cursor;
 

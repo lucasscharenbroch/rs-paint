@@ -26,7 +26,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn new(image: Image) -> Rc<RefCell<Canvas>> {
+    pub fn new_p(image: Image) -> Rc<RefCell<Canvas>> {
         let grid = Grid::new();
 
         let drawing_area =  DrawingArea::builder()
@@ -61,6 +61,7 @@ impl Canvas {
         // mouse movement
 
         let motion_controller = EventControllerMotion::new();
+
         motion_controller.connect_motion(clone!(@strong state => move |_, x, y| {
             state.borrow_mut().update_cursor_pos(x, y);
         }));
@@ -101,6 +102,14 @@ impl Canvas {
         &self.grid
     }
 
+    pub fn drawing_area(&self) -> &DrawingArea {
+        &self.drawing_area
+    }
+
+    pub fn cursor_pos(&self) -> &(f64, f64) {
+        &self.cursor_pos
+    }
+
     pub fn inc_zoom(&mut self, inc: f64) {
         const MAX_ZOOM: f64 = 500.0;
         const MIN_ZOOM: f64 = 0.1;
@@ -135,7 +144,7 @@ impl Canvas {
     }
 
     fn inc_pan(&mut self, dx: f64, dy: f64) {
-        const PAN_FACTOR: f64 = 10.0;
+        const PAN_FACTOR: f64 = 50.0;
 
         self.pan = (self.pan.0 + dx / self.zoom * PAN_FACTOR,
                     self.pan.1 + dy / self.zoom * PAN_FACTOR);
