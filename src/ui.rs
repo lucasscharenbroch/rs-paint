@@ -1,11 +1,13 @@
 mod canvas;
+mod toolbar;
 
 use canvas::Canvas;
+use toolbar::Toolbar;
 use super::image::{mk_test_image};
 
 use gtk::prelude::*;
 use gtk::gdk::{Key, ModifierType};
-use gtk::{glib, Application, ApplicationWindow, Button, Frame, EventControllerKey, EventControllerScroll};
+use gtk::{Application, ApplicationWindow, EventControllerKey, Grid};
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
@@ -13,6 +15,7 @@ use gtk::glib::signal::Propagation;
 
 pub struct UiState {
     canvas_p: Rc<RefCell<Canvas>>,
+    toolbar_p: Rc<RefCell<Toolbar>>,
     window: ApplicationWindow,
 }
 
@@ -32,12 +35,17 @@ impl UiState {
     fn new() -> Rc<RefCell<UiState>> {
         let state = Rc::new(RefCell::new(UiState {
             canvas_p: Canvas::new(mk_test_image()),
+            toolbar_p: Toolbar::new(),
             window: ApplicationWindow::builder()
                 .title("RS-Paint")
                 .build(),
         }));
 
-        state.borrow().window.set_child(Some(state.borrow().canvas_p.borrow().widget()));
+        let grid = Grid::new();
+        grid.attach(state.borrow().toolbar_p.borrow().widget(), 0, 0, 1, 1);
+        grid.attach(state.borrow().canvas_p.borrow().widget(), 0, 1, 1, 1);
+
+        state.borrow().window.set_child(Some(&grid));
 
         let key_controller = EventControllerKey::new();
 
