@@ -265,10 +265,10 @@ impl Canvas {
     }
 
     fn handle_scroll(&mut self, event_controller: &EventControllerScroll, dx: f64, dy: f64) -> Propagation {
-        if event_controller.current_event_state() == ModifierType::CONTROL_MASK {
-            self.inc_zoom_around_cursor(dy);
-        } else {
-            self.inc_pan(-dx, -dy);
+        match event_controller.current_event_state() {
+            ModifierType::CONTROL_MASK => self.inc_zoom_around_cursor(-dy),
+            ModifierType::SHIFT_MASK => self.inc_pan(-dy, -dx),
+            _ => self.inc_pan(-dx, -dy),
         }
 
         self.update();
