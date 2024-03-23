@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum MouseMode {
     Cursor,
     Pencil,
@@ -18,16 +18,17 @@ pub struct Toolbar {
 
 struct MouseModeButton {
     mode: MouseMode,
-    button: ToggleButton,
+    widget: ToggleButton,
 }
 
 impl Toolbar {
     pub fn new() -> Rc<RefCell<Toolbar>> {
         let tbox =  Box::new(Orientation::Horizontal, 10);
+        let initial_mode = MouseMode::Cursor;
 
         let state = Rc::new(RefCell::new(Toolbar {
             tbox,
-            mouse_mode: MouseMode::Cursor,
+            mouse_mode: initial_mode,
             mouse_mode_buttons: vec![],
         }));
 
@@ -47,23 +48,30 @@ impl Toolbar {
                         state.borrow_mut().mouse_mode = mode.clone();
                         for other_button in state.borrow().mouse_mode_buttons.iter() {
                             if other_button.mode != *mode {
-                                other_button.button.set_active(false);
+                                other_button.widget.set_active(false);
                             }
                         }
                     } else {
                         // the only way to deactivate is to activate a different modal button
-                        b.activate();
+                        b.set_active(true);
                     }
                 }));
 
                 state.borrow_mut().tbox.append(&button);
 
                 MouseModeButton {
-                    button,
+                    widget: button,
                     mode: mode.clone(),
                 }
             })
             .collect::<Vec<_>>();
+
+        // activate initial_mode button
+        state.borrow_mut().mouse_mode_buttons.iter().for_each(|b| {
+            if b.mode == initial_mode {
+                b.widget.set_active(true);
+            }
+        });
 
         state
     }
