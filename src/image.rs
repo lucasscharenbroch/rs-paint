@@ -70,8 +70,6 @@ pub struct Image {
     pixels: Vec<Pixel>,
     width: usize,
     height: usize,
-    pattern: Option<(SurfacePattern, u32)>,
-    pattern_update_counter: u32,
 }
 
 pub fn mk_test_image() -> Image {
@@ -112,20 +110,12 @@ impl Image {
             width: pixels[0].len(),
             height: pixels.len(),
             pixels: pixels.into_iter().flatten().collect::<Vec<_>>(),
-            pattern: None,
-            pattern_update_counter: 0,
         }
     }
 
     pub fn to_surface_pattern(&mut self) -> SurfacePattern {
-        if let Some((ref pat, updated)) = self.pattern {
-            if updated == self.pattern_update_counter {
-                return pat.clone();
-            }
-        }
-
         unsafe {
-            let (before, u8_slice, after) = self.pixels.align_to_mut::<u8>();
+            let (_, u8_slice, _) = self.pixels.align_to_mut::<u8>();
 
             let image_surface = ImageSurface::create_for_data_unsafe(u8_slice.as_mut_ptr(),
                                                                             Format::ARgb32,
@@ -136,16 +126,12 @@ impl Image {
             let surface_pattern = SurfacePattern::create(image_surface);
             surface_pattern.set_filter(Filter::Fast);
 
-            self.pattern = Some((surface_pattern.clone(), self.pattern_update_counter));
-
             surface_pattern
         }
     }
 
     // draw `other` at (x, y)
     pub fn sample(&mut self, other: &Image, x: i32, y: i32) {
-        self.pattern_update_counter += 1;
-
         for i in 0..other.height() {
             for j in 0..other.width() {
                 let ip = i as i32 + y;
