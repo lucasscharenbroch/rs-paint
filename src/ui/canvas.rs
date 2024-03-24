@@ -143,7 +143,7 @@ impl Canvas {
         self.clamp_pan();
     }
 
-    fn inc_pan(&mut self, dx: f64, dy: f64) {
+    pub fn inc_pan(&mut self, dx: f64, dy: f64) {
         const PAN_FACTOR: f64 = 50.0;
 
         self.pan = (self.pan.0 + dx / self.zoom * PAN_FACTOR,

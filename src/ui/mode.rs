@@ -40,10 +40,10 @@ impl MouseMode {
         MouseMode::Pencil(PencilState::default())
     }
 
-    fn get_state(&self) -> Box<dyn MouseModeState> {
+    fn get_state(&mut self) -> &mut dyn MouseModeState {
         match self {
-            MouseMode::Cursor(s) => Box::new(*s),
-            MouseMode::Pencil(s) => Box::new(*s),
+            MouseMode::Cursor(ref mut s) => s,
+            MouseMode::Pencil(ref mut s) => s,
         }
     }
 
