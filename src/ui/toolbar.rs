@@ -72,8 +72,8 @@ impl Toolbar {
         state
     }
 
-    pub fn mouse_mode(&self) -> &MouseMode {
-        &self.mouse_mode
+    pub fn mouse_mode(&mut self) -> &mut MouseMode {
+        &mut self.mouse_mode
     }
 
     pub fn widget(&self) -> &Box {

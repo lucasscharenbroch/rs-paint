@@ -13,12 +13,12 @@ impl PencilState {
 
 impl super::MouseModeState for PencilState {
 
-    fn handle_drag_start(&self, _canvas: &mut Canvas) {
+    fn handle_drag_start(&mut self, _canvas: &mut Canvas) {
     }
 
-    fn handle_drag_update(&self, canvas: &mut Canvas) {
+    fn handle_drag_update(&mut self, canvas: &mut Canvas) {
     }
 
-    fn handle_drag_end(&self, canvas: &mut Canvas) {
+    fn handle_drag_end(&mut self, canvas: &mut Canvas) {
     }
 }

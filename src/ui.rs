@@ -65,17 +65,17 @@ impl UiState {
         let drag_controller = GestureDrag::new();
         drag_controller.connect_begin(clone!(@strong state => move |_, _| {
             let state = state.borrow();
-            state.toolbar_p.borrow().mouse_mode().handle_drag_start(&mut state.canvas_p.borrow_mut());
+            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_start(&mut state.canvas_p.borrow_mut());
         }));
 
         drag_controller.connect_drag_update(clone!(@strong state => move |_, _, _| {
             let state = state.borrow();
-            state.toolbar_p.borrow().mouse_mode().handle_drag_update(&mut state.canvas_p.borrow_mut());
+            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_update(&mut state.canvas_p.borrow_mut());
         }));
 
         drag_controller.connect_drag_end(clone!(@strong state => move |_, _, _| {
             let state = state.borrow();
-            state.toolbar_p.borrow().mouse_mode().handle_drag_end(&mut state.canvas_p.borrow_mut());
+            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_end(&mut state.canvas_p.borrow_mut());
         }));
 
         state.borrow().canvas_p.borrow().drawing_area().add_controller(drag_controller);

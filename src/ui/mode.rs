@@ -12,9 +12,9 @@ pub enum MouseMode {
 }
 
 trait MouseModeState {
-    fn handle_drag_start(&self, canvas: &mut Canvas);
-    fn handle_drag_update(&self, canvas: &mut Canvas);
-    fn handle_drag_end(&self, canvas: &mut Canvas);
+    fn handle_drag_start(&mut self, canvas: &mut Canvas);
+    fn handle_drag_update(&mut self, canvas: &mut Canvas);
+    fn handle_drag_end(&mut self, canvas: &mut Canvas);
 }
 
 impl PartialEq<MouseMode> for MouseMode {
@@ -47,15 +47,15 @@ impl MouseMode {
         }
     }
 
-    pub fn handle_drag_start(&self, canvas: &mut Canvas) {
+    pub fn handle_drag_start(&mut self, canvas: &mut Canvas) {
         self.get_state().handle_drag_start(canvas);
     }
 
-    pub fn handle_drag_update(&self, canvas: &mut Canvas) {
+    pub fn handle_drag_update(&mut self, canvas: &mut Canvas) {
         self.get_state().handle_drag_update(canvas);
     }
 
-    pub fn handle_drag_end(&self, canvas: &mut Canvas) {
+    pub fn handle_drag_end(&mut self, canvas: &mut Canvas) {
         self.get_state().handle_drag_end(canvas);
     }
 }
