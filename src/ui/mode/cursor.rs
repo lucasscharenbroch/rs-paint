@@ -2,11 +2,25 @@ use super::Canvas;
 
 // Cursor Mode: drag => pan
 
-pub fn handle_drag_start(_canvas: &mut Canvas) {
+#[derive(Clone, Copy)]
+pub struct CursorState {
 }
 
-pub fn handle_drag_update(canvas: &mut Canvas) {
+impl CursorState {
+    pub const fn default() -> CursorState {
+        CursorState {
+        }
+    }
 }
 
-pub fn handle_drag_end(canvas: &mut Canvas) {
+impl super::MouseModeState for CursorState {
+
+    fn handle_drag_start(&self, _canvas: &mut Canvas) {
+    }
+
+    fn handle_drag_update(&self, canvas: &mut Canvas) {
+    }
+
+    fn handle_drag_end(&self, canvas: &mut Canvas) {
+    }
 }

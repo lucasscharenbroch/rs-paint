@@ -20,7 +20,7 @@ struct MouseModeButton {
 impl Toolbar {
     pub fn new_p() -> Rc<RefCell<Toolbar>> {
         let tbox =  Box::new(Orientation::Horizontal, 10);
-        let initial_mode = MouseMode::Cursor;
+        let initial_mode = MouseMode::cursor();
 
         let state = Rc::new(RefCell::new(Toolbar {
             tbox,
@@ -29,8 +29,8 @@ impl Toolbar {
         }));
 
         const button_info: &'static [(&'static str, MouseMode)] = &[
-            ("Cursor", MouseMode::Cursor),
-            ("Pencil", MouseMode::Pencil),
+            ("Cursor", MouseMode::cursor()),
+            ("Pencil", MouseMode::pencil()),
         ];
 
         state.borrow_mut().mouse_mode_buttons = button_info.iter()
