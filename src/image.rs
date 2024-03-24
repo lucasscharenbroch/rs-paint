@@ -19,8 +19,7 @@ impl Pixel {
             g: (above.g as f64 * o + below.g as f64 * t) as u8,
             b: (above.b as f64 * o + below.b as f64 * t) as u8,
             a: std::cmp::max(above.a, below.a),
-        };
-        BLACK
+        }
     }
 }
 
@@ -90,11 +89,11 @@ pub fn mk_test_image() -> Image {
 pub fn mk_test_brush() -> Image {
     Image {
         pixels: vec![
-            vec![TRANS, TRANS, BLACK, TRANS, TRANS],
             vec![TRANS, BLACK, BLACK, BLACK, TRANS],
             vec![BLACK, BLACK, BLACK, BLACK, BLACK],
+            vec![BLACK, BLACK, BLACK, BLACK, BLACK],
+            vec![BLACK, BLACK, BLACK, BLACK, BLACK],
             vec![TRANS, BLACK, BLACK, BLACK, TRANS],
-            vec![TRANS, TRANS, BLACK, TRANS, TRANS],
         ],
     }
 }
@@ -144,7 +143,7 @@ impl Image {
                 let ip = ip as usize;
                 let jp = jp as usize;
 
-                self.pixels[ip][jp] = Pixel::blend_onto(&self.pixels[ip][jp], &other.pixels[i][j]);
+                self.pixels[ip][jp] = Pixel::blend_onto(&other.pixels[i][j], &self.pixels[ip][jp]);
             }
         }
     }
