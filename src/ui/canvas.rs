@@ -114,8 +114,8 @@ impl Canvas {
     pub fn cursor_pos_pix(&self) -> (f64, f64) {
         let area_width = self.drawing_area.width();
         let area_height = self.drawing_area.height();
-        let img_width = self.image.pixels.len() as f64;
-        let img_height = self.image.pixels[0].len() as f64;
+        let img_width = self.image.width() as f64;
+        let img_height = self.image.height() as f64;
         let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
         let y_offset = (area_height as f64 - img_height * self.zoom) / 2.0;
 
@@ -198,8 +198,8 @@ impl Canvas {
     }
 
     fn get_max_pan(&self) -> (f64, f64) {
-        let img_width = self.image.pixels[0].len() as f64;
-        let img_height = self.image.pixels.len() as f64;
+        let img_width = self.image.width() as f64;
+        let img_height = self.image.height() as f64;
 
         let win_width = self.drawing_area.width() as f64;
         let win_height = self.drawing_area.height() as f64;
@@ -214,8 +214,8 @@ impl Canvas {
 
 
     fn draw(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
-        let img_width = self.image.pixels.len() as f64;
-        let img_height = self.image.pixels[0].len() as f64;
+        let img_width = self.image.width() as f64;
+        let img_height = self.image.height() as f64;
         let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
         let y_offset = (area_height as f64 - img_height * self.zoom) / 2.0;
 
@@ -304,7 +304,6 @@ impl Canvas {
     }
 
     pub fn image(&mut self) -> &mut Image {
-        self.image.signal_modified();
         &mut self.image
         // TODO handle undo
     }
