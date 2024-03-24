@@ -55,7 +55,7 @@ impl Canvas {
         }));
 
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
-            state.borrow().draw(area, cr, width, height);
+            state.borrow_mut().draw(area, cr, width, height);
         }));
 
         // mouse movement
@@ -213,7 +213,7 @@ impl Canvas {
     }
 
 
-    fn draw(&self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
+    fn draw(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
         let img_width = self.image.pixels.len() as f64;
         let img_height = self.image.pixels[0].len() as f64;
         let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
@@ -304,6 +304,7 @@ impl Canvas {
     }
 
     pub fn image(&mut self) -> &mut Image {
+        self.image.signal_modified();
         &mut self.image
         // TODO handle undo
     }

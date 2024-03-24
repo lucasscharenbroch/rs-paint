@@ -26,6 +26,8 @@ impl Pixel {
 #[derive(Clone)]
 pub struct Image {
     pub pixels: Vec<Vec<Pixel>>,
+    pattern: Option<(SurfacePattern, u32)>,
+    pattern_update_counter: u32,
 }
 
 const TRANS: Pixel = Pixel {
@@ -82,7 +84,9 @@ pub fn mk_test_image() -> Image {
     }
 
     return Image {
-        pixels
+        pixels,
+        pattern: None,
+        pattern_update_counter: 0,
     };
 }
 
@@ -95,12 +99,16 @@ pub fn mk_test_brush() -> Image {
             vec![BLACK, BLACK, BLACK, BLACK, BLACK],
             vec![TRANS, BLACK, BLACK, BLACK, TRANS],
         ],
+        pattern: None,
+        pattern_update_counter: 0,
     }
 }
 
 pub fn mk_transparent_pattern() -> SurfacePattern {
-    let img = Image {
+    let mut img = Image {
         pixels: vec![vec![GRAY, DARK_GRAY], vec![DARK_GRAY, GRAY]],
+        pattern: None,
+        pattern_update_counter: 0,
     };
 
     let res = img.to_surface_pattern();
@@ -119,13 +127,22 @@ impl Image {
             .collect::<Vec<_>>()
     }
 
-    pub fn to_surface_pattern(&self) -> SurfacePattern {
+    pub fn to_surface_pattern(&mut self) -> SurfacePattern {
+        if let Some((ref pat, updated)) = self.pattern {
+            if updated == self.pattern_update_counter {
+                return pat.clone();
+            }
+        }
+
         let height = self.pixels.len();
         let width = self.pixels[0].len();
         let image_surface = ImageSurface::create_for_data(self.to_u8_vec(), Format::ARgb32, width as i32, height as i32, 4 * width as i32).unwrap();
 
         let surface_pattern = SurfacePattern::create(image_surface);
         surface_pattern.set_filter(Filter::Fast);
+
+        self.pattern = Some((surface_pattern.clone(), self.pattern_update_counter));
+
         surface_pattern
     }
 
@@ -154,5 +171,9 @@ impl Image {
 
     pub fn height(&self) -> i32 {
         self.pixels.len() as i32
+    }
+
+    pub fn signal_modified(&mut self) {
+        self.pattern_update_counter += 1;
     }
 }
