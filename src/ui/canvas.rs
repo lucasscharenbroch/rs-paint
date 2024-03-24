@@ -110,6 +110,24 @@ impl Canvas {
         &self.cursor_pos
     }
 
+    // give the cursor_pos in terms of pixels in the image
+    pub fn cursor_pos_pix(&self) -> (f64, f64) {
+        let area_width = self.drawing_area.width();
+        let area_height = self.drawing_area.height();
+        let img_width = self.image.pixels.len() as f64;
+        let img_height = self.image.pixels[0].len() as f64;
+        let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
+        let y_offset = (area_height as f64 - img_height * self.zoom) / 2.0;
+
+        let (x, y) = self.cursor_pos;
+
+        let (top_left_x, top_left_y) = (x_offset + self.zoom * self.pan.0,
+                                        y_offset + self.zoom * self.pan.1);
+
+        ((x - top_left_x) / self.zoom,
+         (y - top_left_y) / self.zoom)
+    }
+
     pub fn inc_zoom(&mut self, inc: f64) {
         const MAX_ZOOM: f64 = 500.0;
         const MIN_ZOOM: f64 = 0.1;
