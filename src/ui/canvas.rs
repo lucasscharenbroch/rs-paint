@@ -302,4 +302,9 @@ impl Canvas {
 
         Propagation::Stop
     }
+
+    pub fn image(&mut self) -> &mut Image {
+        &mut self.image
+        // TODO handle undo
+    }
 }
