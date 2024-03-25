@@ -87,12 +87,24 @@ impl UiState {
         const ZOOM_INC: f64 = 1.0;
 
         if modifier == ModifierType::CONTROL_MASK {
-            if key == Key::equal {
-                self.canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
-                self.canvas_p.borrow_mut().update();
-            } else if(key == Key::minus) {
-                self.canvas_p.borrow_mut().inc_zoom(-ZOOM_INC);
-                self.canvas_p.borrow_mut().update();
+            match key {
+                Key::equal => {
+                    self.canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
+                    self.canvas_p.borrow_mut().update();
+                },
+                Key::minus => {
+                    self.canvas_p.borrow_mut().inc_zoom(-ZOOM_INC);
+                    self.canvas_p.borrow_mut().update();
+                },
+                Key::z => {
+                    self.canvas_p.borrow_mut().undo();
+                    self.canvas_p.borrow_mut().update();
+                },
+                Key::y => {
+                    self.canvas_p.borrow_mut().redo();
+                    self.canvas_p.borrow_mut().update();
+                },
+                _ => (),
             }
         }
     }

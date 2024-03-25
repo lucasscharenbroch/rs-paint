@@ -22,7 +22,7 @@ impl ImageDiff {
     }
 }
 
-struct ImageHistory {
+pub struct ImageHistory {
     now: Image,
     last_save: Image,
     undo_stack: Vec<ImageDiff>, // TODO change to tree
@@ -39,7 +39,11 @@ impl ImageHistory {
         }
     }
 
-    pub fn now(&mut self) -> &mut Image {
+    pub fn now(&self) -> &Image {
+        &self.now
+    }
+
+    pub fn now_mut(&mut self) -> &mut Image {
         &mut self.now
     }
 

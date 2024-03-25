@@ -111,6 +111,7 @@ impl super::MouseModeState for PencilState {
     }
 
     fn handle_drag_end(&mut self, canvas: &mut Canvas) {
-        self.handle_drag_update(canvas)
+        self.handle_drag_update(canvas);
+        canvas.save_state_for_undo();
     }
 }

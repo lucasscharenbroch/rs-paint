@@ -1,4 +1,5 @@
 use super::super::image::{Image, mk_transparent_pattern};
+use super::super::undo::{ImageHistory};
 
 use gtk::prelude::*;
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
@@ -13,7 +14,7 @@ use gtk::glib::{SignalHandlerId};
 use glib_macros::clone;
 
 pub struct Canvas {
-    image: Image,
+    image_hist: ImageHistory,
     zoom: f64,
     pan: (f64, f64),
     cursor_pos: (f64, f64),
@@ -42,7 +43,7 @@ impl Canvas {
         grid.attach(&h_scrollbar, 0, 1, 1, 1);
 
         let state = Rc::new(RefCell::new(Canvas {
-            image,
+            image_hist: ImageHistory::new(image),
             zoom: 1.0,
             pan: (0.0, 0.0),
             cursor_pos: (0.0, 0.0),
@@ -113,8 +114,8 @@ impl Canvas {
     pub fn cursor_pos_pix(&self) -> (f64, f64) {
         let area_width = self.drawing_area.width();
         let area_height = self.drawing_area.height();
-        let img_width = self.image.width() as f64;
-        let img_height = self.image.height() as f64;
+        let img_width = self.image_hist.now().width() as f64;
+        let img_height = self.image_hist.now().height() as f64;
         let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
         let y_offset = (area_height as f64 - img_height * self.zoom) / 2.0;
 
@@ -197,8 +198,8 @@ impl Canvas {
     }
 
     fn get_max_pan(&self) -> (f64, f64) {
-        let img_width = self.image.width() as f64;
-        let img_height = self.image.height() as f64;
+        let img_width = self.image_hist.now().width() as f64;
+        let img_height = self.image_hist.now().height() as f64;
 
         let win_width = self.drawing_area.width() as f64;
         let win_height = self.drawing_area.height() as f64;
@@ -213,12 +214,12 @@ impl Canvas {
 
 
     fn draw(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
-        let img_width = self.image.width() as f64;
-        let img_height = self.image.height() as f64;
+        let img_width = self.image_hist.now().width() as f64;
+        let img_height = self.image_hist.now().height() as f64;
         let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
         let y_offset = (area_height as f64 - img_height * self.zoom) / 2.0;
 
-        let image_surface_pattern = self.image.to_surface_pattern();
+        let image_surface_pattern = self.image_hist.now_mut().to_surface_pattern();
         let transparent_pattern = mk_transparent_pattern();
 
         cr.translate(x_offset as f64, y_offset as f64);
@@ -303,7 +304,19 @@ impl Canvas {
     }
 
     pub fn image(&mut self) -> &mut Image {
-        &mut self.image
+        self.image_hist.now_mut()
         // TODO handle undo
+    }
+
+    pub fn undo(&mut self) {
+        self.image_hist.undo();
+    }
+
+    pub fn redo(&mut self) {
+        self.image_hist.redo();
+    }
+
+    pub fn save_state_for_undo(&mut self) {
+        self.image_hist.push_state();
     }
 }
