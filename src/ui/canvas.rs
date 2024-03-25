@@ -1,5 +1,4 @@
 use super::super::image::{Image, mk_transparent_pattern};
-use super::UiState;
 
 use gtk::prelude::*;
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};

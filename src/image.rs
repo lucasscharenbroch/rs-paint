@@ -1,6 +1,5 @@
-use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter, Mesh, MeshCorner};
+use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter};
 use gtk::cairo;
-use gtk::glib::translate::ToGlibPtr;
 
 #[derive(Clone)]
 pub struct Pixel {

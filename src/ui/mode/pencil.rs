@@ -53,10 +53,10 @@ fn dfs_pix_where(
 // given a continuous line segment, return the set of
 // discrete pixels that intersect it
 fn pixels_on_segment((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> HashSet<(usize, usize)> {
-    let max_x = x0.max(x1) + 1.0;
-    let min_x = x0.min(x1) - 1.0;
-    let max_y = y0.max(y1) + 1.0;
-    let min_y = y0.min(y1) - 1.0;
+    let max_x = x0.max(x1) + 0.5;
+    let min_x = x0.min(x1) - 0.5;
+    let max_y = y0.max(y1) + 0.5;
+    let min_y = y0.min(y1) - 0.5;
 
     let pt_direction = move |(px, py): (f64, f64)| -> bool {
         // dot-product of normal-vector of segment <y1 - y0, -(x1 - x0)>
