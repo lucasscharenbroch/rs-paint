@@ -2,6 +2,7 @@ use super::Canvas;
 use super::super::super::image::{mk_test_brush};
 
 use std::collections::HashSet;
+use gtk::gdk::{ModifierType};
 
 #[derive(Clone, Copy)]
 pub struct PencilState {
@@ -101,11 +102,11 @@ fn pixels_on_segment((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> HashSet<(usi
 }
 
 impl super::MouseModeState for PencilState {
-    fn handle_drag_start(&mut self, canvas: &mut Canvas) {
+    fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
         self.last_cursor_pos_pix = canvas.cursor_pos_pix();
     }
 
-    fn handle_drag_update(&mut self, canvas: &mut Canvas) {
+    fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
         let line_pt0= self.last_cursor_pos_pix;
         let line_pt1 = canvas.cursor_pos_pix();
         self.last_cursor_pos_pix = line_pt1;
@@ -115,8 +116,12 @@ impl super::MouseModeState for PencilState {
         canvas.update();
     }
 
-    fn handle_drag_end(&mut self, canvas: &mut Canvas) {
-        self.handle_drag_update(canvas);
+    fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+        self.handle_drag_update(mod_keys, canvas);
         canvas.save_state_for_undo();
+    }
+
+    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+        // TODO
     }
 }

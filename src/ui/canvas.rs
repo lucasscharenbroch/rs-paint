@@ -4,7 +4,7 @@ use super::super::undo::{ImageHistory};
 use gtk::prelude::*;
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
 use gtk::gdk::{ModifierType};
-use gtk::{DrawingArea, EventControllerScroll, EventControllerScrollFlags, EventControllerMotion};
+use gtk::{DrawingArea, EventControllerScroll, EventControllerScrollFlags};
 use gtk::cairo::Context;
 use gtk::cairo;
 use gtk::glib::signal::Propagation;
@@ -57,16 +57,6 @@ impl Canvas {
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
             state.borrow_mut().draw(area, cr, width, height);
         }));
-
-        // mouse movement
-
-        let motion_controller = EventControllerMotion::new();
-
-        motion_controller.connect_motion(clone!(@strong state => move |_, x, y| {
-            state.borrow_mut().update_cursor_pos(x, y);
-        }));
-
-        state.borrow_mut().grid.add_controller(motion_controller);
 
         // scroll
 
@@ -141,7 +131,7 @@ impl Canvas {
         }
     }
 
-    fn update_cursor_pos(&mut self, x: f64, y: f64) {
+    pub fn update_cursor_pos(&mut self, x: f64, y: f64) {
         self.cursor_pos = (x, y);
     }
 

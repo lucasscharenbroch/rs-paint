@@ -1,5 +1,7 @@
 use super::Canvas;
 
+use gtk::gdk::{ModifierType};
+
 // Cursor Mode: drag => pan
 
 #[derive(Clone, Copy)]
@@ -16,11 +18,11 @@ impl CursorState {
 }
 
 impl super::MouseModeState for CursorState {
-    fn handle_drag_start(&mut self, canvas: &mut Canvas) {
+    fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
         self.last_cursor_pos = *canvas.cursor_pos();
     }
 
-    fn handle_drag_update(&mut self, canvas: &mut Canvas) {
+    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
         let (x, y) = self.last_cursor_pos;
         let (xp, yp) = canvas.cursor_pos();
         let (dx, dy) = (xp - x, yp - y);
@@ -32,7 +34,10 @@ impl super::MouseModeState for CursorState {
         self.last_cursor_pos = *canvas.cursor_pos();
     }
 
-    fn handle_drag_end(&mut self, canvas: &mut Canvas) {
-        self.handle_drag_update(canvas)
+    fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+        self.handle_drag_update(mod_keys, canvas)
+    }
+
+    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
     }
 }

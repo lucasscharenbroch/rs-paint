@@ -8,7 +8,7 @@ use super::image::{mk_test_image};
 
 use gtk::prelude::*;
 use gtk::gdk::{Key, ModifierType};
-use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator, GestureDrag};
+use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator, GestureDrag, EventControllerMotion};
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
@@ -63,22 +63,35 @@ impl UiState {
         // drag
 
         let drag_controller = GestureDrag::new();
-        drag_controller.connect_begin(clone!(@strong state => move |_, _| {
+        drag_controller.connect_begin(clone!(@strong state => move |dc, _| {
             let state = state.borrow();
-            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_start(&mut state.canvas_p.borrow_mut());
+            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_start(&dc.current_event_state(), &mut state.canvas_p.borrow_mut());
         }));
 
-        drag_controller.connect_drag_update(clone!(@strong state => move |_, _, _| {
+        drag_controller.connect_drag_update(clone!(@strong state => move |dc, _, _| {
             let state = state.borrow();
-            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_update(&mut state.canvas_p.borrow_mut());
+            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_update(&dc.current_event_state(), &mut state.canvas_p.borrow_mut());
         }));
 
-        drag_controller.connect_drag_end(clone!(@strong state => move |_, _, _| {
+        drag_controller.connect_drag_end(clone!(@strong state => move |dc, _, _| {
             let state = state.borrow();
-            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_end(&mut state.canvas_p.borrow_mut());
+            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_end(&dc.current_event_state(), &mut state.canvas_p.borrow_mut());
         }));
 
         state.borrow().canvas_p.borrow().drawing_area().add_controller(drag_controller);
+
+        // mouse movement
+
+        let motion_controller = EventControllerMotion::new();
+
+        motion_controller.connect_motion(clone!(@strong state => move |ecm, x, y| {
+            let mut state = state.borrow_mut();
+
+            state.canvas_p.borrow_mut().update_cursor_pos(x, y);
+            state.toolbar_p.borrow_mut().mouse_mode().handle_motion(&ecm.current_event_state(), &mut state.canvas_p.borrow_mut());
+        }));
+
+        state.borrow().canvas_p.borrow().drawing_area().add_controller(motion_controller);
 
         state
     }
