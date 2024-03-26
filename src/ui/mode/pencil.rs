@@ -5,14 +5,22 @@ use std::collections::HashSet;
 use gtk::gdk::{ModifierType};
 
 #[derive(Clone, Copy)]
+enum PencilMode {
+    TraceCursor,
+    DrawLineCooldown,
+}
+
+#[derive(Clone, Copy)]
 pub struct PencilState {
     last_cursor_pos_pix: (f64, f64),
+    mode: PencilMode,
 }
 
 impl PencilState {
     pub const fn default() -> PencilState {
         PencilState {
             last_cursor_pos_pix: (0.0, 0.0),
+            mode: PencilMode::TraceCursor,
         }
     }
 
@@ -23,7 +31,16 @@ impl PencilState {
         target_pixels.iter().for_each(|&(x, y)| {
             canvas.image().sample(&brush, x as i32 - 3, y as i32 - 3);
         });
+    }
 
+    fn draw_to_cursor(&mut self, canvas: &mut Canvas) {
+        let line_pt0 = self.last_cursor_pos_pix;
+        let line_pt1 = canvas.cursor_pos_pix();
+        self.last_cursor_pos_pix = line_pt1;
+
+        self.draw_line_between(line_pt0, line_pt1, canvas);
+
+        canvas.update();
     }
 }
 
@@ -103,17 +120,21 @@ fn pixels_on_segment((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> HashSet<(usi
 
 impl super::MouseModeState for PencilState {
     fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+        if mod_keys.intersects(ModifierType::SHIFT_MASK) {
+            self.draw_to_cursor(canvas);
+            self.mode = PencilMode::DrawLineCooldown;
+        } else {
+            self.mode = PencilMode::TraceCursor;
+        }
+
         self.last_cursor_pos_pix = canvas.cursor_pos_pix();
     }
 
-    fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        let line_pt0= self.last_cursor_pos_pix;
-        let line_pt1 = canvas.cursor_pos_pix();
-        self.last_cursor_pos_pix = line_pt1;
-
-        self.draw_line_between(line_pt0, line_pt1, canvas);
-
-        canvas.update();
+    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
+        match self.mode {
+            PencilMode::DrawLineCooldown => (), // line already drawn
+            PencilMode::TraceCursor => self.draw_to_cursor(canvas),
+        }
     }
 
     fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
