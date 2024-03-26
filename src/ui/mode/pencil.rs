@@ -14,6 +14,16 @@ impl PencilState {
             last_cursor_pos_pix: (0.0, 0.0),
         }
     }
+
+    fn draw_line_between(&self, line_pt0: (f64, f64), line_pt1: (f64, f64), canvas: &mut Canvas) {
+        let target_pixels = pixels_on_segment(line_pt0, line_pt1);
+        let brush = mk_test_brush();
+
+        target_pixels.iter().for_each(|&(x, y)| {
+            canvas.image().sample(&brush, x as i32 - 3, y as i32 - 3);
+        });
+
+    }
 }
 
 fn dfs_pix_where(
@@ -53,10 +63,10 @@ fn dfs_pix_where(
 // given a continuous line segment, return the set of
 // discrete pixels that intersect it
 fn pixels_on_segment((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> HashSet<(usize, usize)> {
-    let max_x = x0.max(x1) + 0.5;
-    let min_x = x0.min(x1) - 0.5;
-    let max_y = y0.max(y1) + 0.5;
-    let min_y = y0.min(y1) - 0.5;
+    let max_x = x0.max(x1).floor();
+    let min_x = x0.min(x1).floor();
+    let max_y = y0.max(y1).floor();
+    let min_y = y0.min(y1).floor();
 
     let pt_direction = move |(px, py): (f64, f64)| -> bool {
         // dot-product of normal-vector of segment <y1 - y0, -(x1 - x0)>
@@ -100,12 +110,7 @@ impl super::MouseModeState for PencilState {
         let line_pt1 = canvas.cursor_pos_pix();
         self.last_cursor_pos_pix = line_pt1;
 
-        let target_pixels = pixels_on_segment(line_pt0, line_pt1);
-        let brush = mk_test_brush();
-
-        target_pixels.iter().for_each(|&(x, y)| {
-            canvas.image().sample(&brush, x as i32 - 3, y as i32 - 3);
-        });
+        self.draw_line_between(line_pt0, line_pt1, canvas);
 
         canvas.update();
     }
