@@ -23,6 +23,7 @@ pub struct Canvas {
     v_scrollbar: Scrollbar,
     h_scrollbar: Scrollbar,
     scrollbar_update_handlers: Option<(SignalHandlerId, SignalHandlerId)>,
+    draw_hooks: Vec<Box<dyn Fn(&Context)>>,
 }
 
 impl Canvas {
@@ -52,6 +53,7 @@ impl Canvas {
             v_scrollbar,
             h_scrollbar,
             scrollbar_update_handlers: None,
+            draw_hooks: vec![],
         }));
 
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
@@ -98,6 +100,10 @@ impl Canvas {
 
     pub fn cursor_pos(&self) -> &(f64, f64) {
         &self.cursor_pos
+    }
+
+    pub fn zoom(&self) -> &f64 {
+        &self.zoom
     }
 
     // give the cursor_pos in terms of pixels in the image
@@ -241,6 +247,11 @@ impl Canvas {
         cr.set_dash(&[DASH_LENGTH / self.zoom, DASH_LENGTH / self.zoom], DASH_LENGTH / self.zoom);
         cr.set_source_rgb(1.0, 1.0, 1.0);
         cr.stroke();
+
+        cr.set_dash(&[], 0.0);
+
+        self.draw_hooks.iter().for_each(|f| f(cr));
+        self.draw_hooks = vec![];
     }
 
     fn update_scrollbars(&mut self) {
@@ -279,6 +290,11 @@ impl Canvas {
     pub fn update(&mut self) {
         self.update_scrollbars();
         self.drawing_area.queue_draw();
+    }
+
+    pub fn update_with(&mut self, draw_hook: Box<dyn Fn(&Context)>) {
+        self.draw_hooks.push(draw_hook);
+        self.update();
     }
 
     fn handle_scroll(&mut self, event_controller: &EventControllerScroll, dx: f64, dy: f64) -> Propagation {

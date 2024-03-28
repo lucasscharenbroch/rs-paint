@@ -3,6 +3,7 @@ use super::super::super::image::{mk_test_brush};
 
 use std::collections::HashSet;
 use gtk::gdk::{ModifierType};
+use gtk::cairo::{Context, LineCap};
 
 #[derive(Clone, Copy)]
 enum PencilMode {
@@ -41,6 +42,32 @@ impl PencilState {
         self.draw_line_between(line_pt0, line_pt1, canvas);
 
         canvas.update();
+    }
+
+    fn straight_line_visual_cue_fn(&mut self, canvas: &Canvas) -> Box<dyn Fn(&Context)> {
+        let zoom = *canvas.zoom();
+
+        let (x0, y0) = self.last_cursor_pos_pix;
+        let (x1, y1) = canvas.cursor_pos_pix();
+
+        Box::new(move |cr| {
+            const LINE_WIDTH: f64 = 5.0;
+            const LINE_BORDER_FACTOR: f64 = 0.6;
+
+            cr.set_line_cap(LineCap::Round);
+            cr.set_line_width(LINE_WIDTH / zoom);
+
+            cr.set_source_rgba(0.0, 0.0, 0.0, 0.75);
+            cr.move_to(x0, y0);
+            cr.line_to(x1, y1);
+            cr.stroke();
+
+            cr.set_line_width(LINE_WIDTH / zoom * LINE_BORDER_FACTOR);
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.75);
+            cr.move_to(x0, y0);
+            cr.line_to(x1, y1);
+            cr.stroke();
+        })
     }
 }
 
@@ -143,6 +170,10 @@ impl super::MouseModeState for PencilState {
     }
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        // TODO
+        if mod_keys.intersects(ModifierType::SHIFT_MASK) {
+            canvas.update_with(self.straight_line_visual_cue_fn(canvas));
+        } else {
+            canvas.update();
+        }
     }
 }
