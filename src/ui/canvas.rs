@@ -311,7 +311,6 @@ impl Canvas {
 
     pub fn image(&mut self) -> &mut Image {
         self.image_hist.now_mut()
-        // TODO handle undo
     }
 
     pub fn undo(&mut self) {

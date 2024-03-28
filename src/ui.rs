@@ -53,9 +53,18 @@ impl UiState {
 
         let key_controller = EventControllerKey::new();
 
-        key_controller.connect_key_pressed(clone!(@strong state => move |_, key, _, modifier| {
-            state.borrow_mut().handle_keypress(key, modifier);
+        key_controller.connect_key_pressed(clone!(@strong state => move |_, key, _, mod_keys| {
+            state.borrow_mut().handle_keypress(key, mod_keys);
             Propagation::Proceed
+        }));
+
+        key_controller.connect_modifiers(clone!(@strong state => move |_, mod_keys| {
+            state.borrow_mut().handle_mod_keys_update(mod_keys);
+            Propagation::Proceed
+        }));
+
+        key_controller.connect_key_released(clone!(@strong state => move |ev, k, _, mod_keys| {
+            state.borrow_mut().handle_mod_keys_update(mod_keys);
         }));
 
         state.borrow().window.add_controller(key_controller);
@@ -96,10 +105,11 @@ impl UiState {
         state
     }
 
-    fn handle_keypress(&mut self, key: Key, modifier: ModifierType) {
+    fn handle_keypress(&mut self, key: Key, mod_keys: ModifierType) {
         const ZOOM_INC: f64 = 1.0;
 
-        if modifier == ModifierType::CONTROL_MASK {
+        // control-key bindings
+        if mod_keys == ModifierType::CONTROL_MASK {
             match key {
                 Key::equal => {
                     self.canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
@@ -120,5 +130,9 @@ impl UiState {
                 _ => (),
             }
         }
+    }
+
+    fn handle_mod_keys_update(&mut self, mod_keys: ModifierType) {
+        self.toolbar_p.borrow_mut().mouse_mode().handle_mod_key_update(&mod_keys, &mut self.canvas_p.borrow_mut());
     }
 }

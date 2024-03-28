@@ -51,7 +51,7 @@ impl PencilState {
         let (x1, y1) = canvas.cursor_pos_pix();
 
         Box::new(move |cr| {
-            const LINE_WIDTH: f64 = 5.0;
+            const LINE_WIDTH: f64 = 3.0;
             const LINE_BORDER_FACTOR: f64 = 0.6;
 
             cr.set_line_cap(LineCap::Round);
@@ -171,6 +171,17 @@ impl super::MouseModeState for PencilState {
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
         if mod_keys.intersects(ModifierType::SHIFT_MASK) {
+            canvas.update_with(self.straight_line_visual_cue_fn(canvas));
+        } else {
+            canvas.update();
+        }
+    }
+
+    fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+        // mod_keys.intersects(SHIFT_MASK) is true when shift was just released,
+        // and false when shift was just pressed.
+        // v
+        if !mod_keys.intersects(ModifierType::SHIFT_MASK) {
             canvas.update_with(self.straight_line_visual_cue_fn(canvas));
         } else {
             canvas.update();

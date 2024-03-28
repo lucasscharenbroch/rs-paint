@@ -40,4 +40,7 @@ impl super::MouseModeState for CursorState {
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
     }
+
+    fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    }
 }

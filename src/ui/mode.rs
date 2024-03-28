@@ -5,7 +5,7 @@ use cursor::CursorState;
 use pencil::PencilState;
 use super::canvas::Canvas;
 
-use gtk::gdk::{ModifierType};
+use gtk::gdk::ModifierType;
 
 #[derive(Clone, Copy)]
 pub enum MouseMode {
@@ -18,6 +18,7 @@ trait MouseModeState {
     fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
     fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
+    fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
 }
 
 impl PartialEq<MouseMode> for MouseMode {
@@ -64,5 +65,9 @@ impl MouseMode {
 
     pub fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
         self.get_state().handle_motion(mod_keys, canvas);
+    }
+
+    pub fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+        self.get_state().handle_mod_key_update(mod_keys, canvas);
     }
 }
