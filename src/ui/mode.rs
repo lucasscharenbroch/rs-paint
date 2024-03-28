@@ -1,8 +1,11 @@
 mod cursor;
 mod pencil;
+mod rectangle_select;
 
 use cursor::CursorState;
 use pencil::PencilState;
+use self::rectangle_select::RectangleSelectState;
+
 use super::canvas::Canvas;
 
 use gtk::gdk::ModifierType;
@@ -11,6 +14,7 @@ use gtk::gdk::ModifierType;
 pub enum MouseMode {
     Cursor(cursor::CursorState),
     Pencil(pencil::PencilState),
+    RectangleSelect(rectangle_select::RectangleSelectState),
 }
 
 trait MouseModeState {
@@ -26,6 +30,7 @@ impl PartialEq<MouseMode> for MouseMode {
         match (self, other) {
             (MouseMode::Cursor(_), MouseMode::Cursor(_)) => true,
             (MouseMode::Pencil(_), MouseMode::Pencil(_)) => true,
+            (MouseMode::RectangleSelect(_), MouseMode::RectangleSelect(_)) => true,
             _ => false,
         }
     }
@@ -44,10 +49,15 @@ impl MouseMode {
         MouseMode::Pencil(PencilState::default())
     }
 
+    pub const fn rectangle_select() -> MouseMode {
+        MouseMode::RectangleSelect(RectangleSelectState::default())
+    }
+
     fn get_state(&mut self) -> &mut dyn MouseModeState {
         match self {
             MouseMode::Cursor(ref mut s) => s,
             MouseMode::Pencil(ref mut s) => s,
+            MouseMode::RectangleSelect(ref mut s) => s,
         }
     }
 

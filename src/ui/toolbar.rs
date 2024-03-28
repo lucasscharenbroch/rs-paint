@@ -31,6 +31,7 @@ impl Toolbar {
         const button_info: &'static [(&'static str, MouseMode)] = &[
             ("Cursor", MouseMode::cursor()),
             ("Pencil", MouseMode::pencil()),
+            ("Rectangle Select", MouseMode::rectangle_select()),
         ];
 
         state.borrow_mut().mouse_mode_buttons = button_info.iter()

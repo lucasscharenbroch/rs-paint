@@ -1,6 +1,6 @@
 use super::Canvas;
 
-use gtk::gdk::{ModifierType};
+use gtk::gdk::ModifierType;
 
 // Cursor Mode: drag => pan
 
