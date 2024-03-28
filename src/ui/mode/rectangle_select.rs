@@ -24,30 +24,14 @@ impl RectangleSelectState {
             const LINE_WIDTH: f64 = 6.0;
             const LINE_BORDER_FACTOR: f64 = 0.4;
 
-            let line_width = LINE_WIDTH / zoom;
-            let line_widthp = line_width / 2.0;
-
             // anchor
-            let ax = if cx > ax { ax.floor() } else { ax.ceil() };
-            let ay = if cy > ay { ay.floor() } else { ay.ceil() };
+            let x = if cx > ax { ax.floor() } else { ax.ceil() };
+            let y = if cy > ay { ay.floor() } else { ay.ceil() };
 
-            // target
-            let tx = if cx > ax { cx.ceil() - ax } else { cx.floor() - ax };
-            let ty = if cy > ay { cy.ceil() - ay } else { cy.floor() - ay };
+            let w = if cx > x { cx.ceil() - x } else { cx.floor() - x };
+            let h = if cy > y { cy.ceil() - y } else { cy.floor() - y };
 
-            let (x, w) = if tx < ax {
-                (ax + line_widthp, tx - line_widthp)
-            } else {
-                (ax - line_widthp, tx + line_widthp)
-            };
-
-            let (y, h) = if ty < ay {
-                (ay + line_widthp, ty - line_widthp)
-            } else {
-                (ay - line_widthp, ty + line_widthp)
-            };
-
-            cr.set_line_width(line_width);
+            cr.set_line_width(LINE_WIDTH / zoom);
 
             cr.rectangle(x, y, w, h);
             cr.set_source_rgba(0.25, 0.25, 0.25, 0.75);
