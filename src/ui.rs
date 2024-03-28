@@ -97,6 +97,13 @@ impl UiState {
 
         state.borrow().canvas_p.borrow().drawing_area().add_controller(motion_controller);
 
+        // drawing
+
+        state.borrow().canvas_p.borrow_mut().set_draw_hook(Box::new(clone!(@strong state => move |cr| {
+            let state = state.borrow();
+            state.toolbar_p.borrow_mut().mouse_mode().draw(&state.canvas_p.borrow(), cr);
+        })));
+
         state
     }
 

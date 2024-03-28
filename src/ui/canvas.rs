@@ -23,7 +23,8 @@ pub struct Canvas {
     v_scrollbar: Scrollbar,
     h_scrollbar: Scrollbar,
     scrollbar_update_handlers: Option<(SignalHandlerId, SignalHandlerId)>,
-    draw_hooks: Vec<Box<dyn Fn(&Context)>>,
+    single_shot_draw_hooks: Vec<Box<dyn Fn(&Context)>>,
+    draw_hook: Option<Box<dyn Fn(&Context)>>,
 }
 
 impl Canvas {
@@ -53,11 +54,19 @@ impl Canvas {
             v_scrollbar,
             h_scrollbar,
             scrollbar_update_handlers: None,
-            draw_hooks: vec![],
+            single_shot_draw_hooks: vec![],
+            draw_hook: None,
         }));
 
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
             state.borrow_mut().draw(area, cr, width, height);
+
+            // run hooks
+
+            state.borrow().draw_hook.iter().for_each(|f| f(cr));
+
+            state.borrow().single_shot_draw_hooks.iter().for_each(|f| f(cr));
+            state.borrow_mut().single_shot_draw_hooks = vec![];
         }));
 
         // scroll
@@ -249,9 +258,6 @@ impl Canvas {
         cr.stroke();
 
         cr.set_dash(&[], 0.0);
-
-        self.draw_hooks.iter().for_each(|f| f(cr));
-        self.draw_hooks = vec![];
     }
 
     fn update_scrollbars(&mut self) {
@@ -293,8 +299,12 @@ impl Canvas {
     }
 
     pub fn update_with(&mut self, draw_hook: Box<dyn Fn(&Context)>) {
-        self.draw_hooks.push(draw_hook);
+        self.single_shot_draw_hooks.push(draw_hook);
         self.update();
+    }
+
+    pub fn set_draw_hook(&mut self, draw_hook: Box<dyn Fn(&Context)>) {
+        self.draw_hook = Some(draw_hook);
     }
 
     fn handle_scroll(&mut self, event_controller: &EventControllerScroll, dx: f64, dy: f64) -> Propagation {

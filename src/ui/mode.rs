@@ -2,13 +2,14 @@ mod cursor;
 mod pencil;
 mod rectangle_select;
 
+use super::canvas::Canvas;
+
 use cursor::CursorState;
 use pencil::PencilState;
 use self::rectangle_select::RectangleSelectState;
-
-use super::canvas::Canvas;
-
+use gtk::cairo::Context;
 use gtk::gdk::ModifierType;
+
 
 #[derive(Clone, Copy)]
 pub enum MouseMode {
@@ -23,6 +24,7 @@ trait MouseModeState {
     fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
     fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
+    fn draw(&self, canvas: &Canvas, cr: &Context);
 }
 
 impl PartialEq<MouseMode> for MouseMode {
@@ -79,5 +81,9 @@ impl MouseMode {
 
     pub fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
         self.get_state().handle_mod_key_update(mod_keys, canvas);
+    }
+
+    pub fn draw(&mut self, canvas: &Canvas, context: &Context) {
+        self.get_state().draw(canvas, context);
     }
 }

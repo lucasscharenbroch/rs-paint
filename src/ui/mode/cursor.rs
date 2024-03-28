@@ -1,6 +1,7 @@
 use super::Canvas;
 
 use gtk::gdk::ModifierType;
+use gtk::cairo::Context;
 
 // Cursor Mode: drag => pan
 
@@ -42,5 +43,8 @@ impl super::MouseModeState for CursorState {
     }
 
     fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    }
+
+    fn draw(&self, canvas: &Canvas, cr: &Context) {
     }
 }

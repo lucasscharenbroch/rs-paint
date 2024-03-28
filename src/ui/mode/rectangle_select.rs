@@ -1,3 +1,5 @@
+use std::arch::x86_64;
+
 use super::Canvas;
 
 use gtk::gdk::ModifierType;
@@ -73,12 +75,22 @@ impl super::MouseModeState for RectangleSelectState {
     }
 
     fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        canvas.update_with(self.visual_cue_fn(canvas));
+        if let Self::Selecting(ax, ay) = self {
+            let (x, y, w, h) = Self::calc_xywh(*ax, *ay, canvas);
+            *self = Self::Selected(x, y, w, h);
+        }
+        canvas.update();
     }
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
     }
 
     fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    }
+
+    fn draw(&self, canvas: &Canvas, cr: &Context) {
+        if let Self::Selected(x, y, w, h) = self {
+            Self::visual_box_around(*x, *y, *w, *h, *canvas.zoom())(cr);
+        }
     }
 }
