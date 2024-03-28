@@ -22,15 +22,38 @@ impl RectangleSelectState {
 
         Box::new(move |cr| {
             const LINE_WIDTH: f64 = 6.0;
-            const LINE_BORDER_FACTOR: f64 = 0.6;
+            const LINE_BORDER_FACTOR: f64 = 0.4;
 
-            cr.set_line_width(LINE_WIDTH / zoom);
+            let line_width = LINE_WIDTH / zoom;
+            let line_widthp = line_width / 2.0;
 
-            cr.rectangle(ax.floor(), ay.floor(), (cx - ax).ceil(), (cy - ay).ceil());
-            cr.set_source_rgba(0.0, 0.0, 0.0, 0.75);
+            // anchor
+            let ax = if cx > ax { ax.floor() } else { ax.ceil() };
+            let ay = if cy > ay { ay.floor() } else { ay.ceil() };
+
+            // target
+            let tx = if cx > ax { cx.ceil() - ax } else { cx.floor() - ax };
+            let ty = if cy > ay { cy.ceil() - ay } else { cy.floor() - ay };
+
+            let (x, w) = if tx < ax {
+                (ax + line_widthp, tx - line_widthp)
+            } else {
+                (ax - line_widthp, tx + line_widthp)
+            };
+
+            let (y, h) = if ty < ay {
+                (ay + line_widthp, ty - line_widthp)
+            } else {
+                (ay - line_widthp, ty + line_widthp)
+            };
+
+            cr.set_line_width(line_width);
+
+            cr.rectangle(x, y, w, h);
+            cr.set_source_rgba(0.25, 0.25, 0.25, 0.75);
             cr.stroke();
 
-            cr.rectangle(ax.floor(), ay.floor(), (cx - ax).ceil(), (cy - ay).ceil());
+            cr.rectangle(x, y, w, h);
             cr.set_line_width(LINE_WIDTH / zoom * LINE_BORDER_FACTOR);
             cr.set_source_rgba(1.0, 1.0, 1.0, 0.75);
             cr.stroke();

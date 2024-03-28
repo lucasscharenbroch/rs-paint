@@ -52,12 +52,12 @@ impl PencilState {
 
         Box::new(move |cr| {
             const LINE_WIDTH: f64 = 3.0;
-            const LINE_BORDER_FACTOR: f64 = 0.6;
+            const LINE_BORDER_FACTOR: f64 = 0.4;
 
             cr.set_line_cap(LineCap::Round);
             cr.set_line_width(LINE_WIDTH / zoom);
 
-            cr.set_source_rgba(0.0, 0.0, 0.0, 0.75);
+            cr.set_source_rgba(0.25, 0.25, 0.25, 0.75);
             cr.move_to(x0, y0);
             cr.line_to(x1, y1);
             cr.stroke();
