@@ -58,13 +58,8 @@ impl UiState {
             Propagation::Proceed
         }));
 
-        key_controller.connect_modifiers(clone!(@strong state => move |_, mod_keys| {
-            state.borrow_mut().handle_mod_keys_update(mod_keys);
-            Propagation::Proceed
-        }));
-
-        key_controller.connect_key_released(clone!(@strong state => move |ev, k, _, mod_keys| {
-            state.borrow_mut().handle_mod_keys_update(mod_keys);
+        key_controller.connect_key_released(clone!(@strong state => move |_, key, _, mod_keys| {
+            state.borrow_mut().handle_keyrelease(key, mod_keys);
         }));
 
         state.borrow().window.add_controller(key_controller);
@@ -105,6 +100,29 @@ impl UiState {
         state
     }
 
+    // hack a mod-key-update handler:
+    // (.connect_modifier reports the updated mod keys one event late)
+    // this is called by handle_keypress and handle_keyrelease
+    fn handle_mod_keys_update(&mut self, mod_keys: ModifierType) {
+        self.toolbar_p.borrow_mut().mouse_mode().handle_mod_key_update(&mod_keys, &mut self.canvas_p.borrow_mut());
+    }
+
+    // apply `key` to `mod_keys`, if it's a mod key
+    fn try_update_mod_keys(key: Key, mod_keys: ModifierType, is_down: bool) -> Option<ModifierType> {
+        let join = |m: ModifierType, b: ModifierType| Some(if is_down {
+            m.union(b)
+        } else {
+            m.difference(b)
+        });
+
+        match key {
+            Key::Shift_L | Key::Shift_R => join(mod_keys, ModifierType::SHIFT_MASK),
+            Key::Control_L | Key::Control_R => join(mod_keys, ModifierType::CONTROL_MASK),
+            Key::Alt_L | Key::Alt_R => join(mod_keys, ModifierType::ALT_MASK),
+            _ => None,
+        }
+    }
+
     fn handle_keypress(&mut self, key: Key, mod_keys: ModifierType) {
         const ZOOM_INC: f64 = 1.0;
 
@@ -130,9 +148,16 @@ impl UiState {
                 _ => (),
             }
         }
+
+        if let Some(mod_keys) = Self::try_update_mod_keys(key, mod_keys, true) {
+            self.handle_mod_keys_update(mod_keys);
+        }
+
     }
 
-    fn handle_mod_keys_update(&mut self, mod_keys: ModifierType) {
-        self.toolbar_p.borrow_mut().mouse_mode().handle_mod_key_update(&mod_keys, &mut self.canvas_p.borrow_mut());
+    fn handle_keyrelease(&mut self, key: Key, mod_keys: ModifierType) {
+        if let Some(mod_keys) = Self::try_update_mod_keys(key, mod_keys, false) {
+            self.handle_mod_keys_update(mod_keys);
+        }
     }
 }
