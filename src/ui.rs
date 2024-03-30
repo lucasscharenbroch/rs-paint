@@ -105,6 +105,12 @@ impl UiState {
             state.toolbar_p.borrow_mut().mouse_mode().draw(&state.canvas_p.borrow(), cr);
         })));
 
+        // mouse-mode-change
+
+        state.borrow_mut().toolbar_p.borrow_mut().set_mode_change_hook(Box::new(clone!(@strong state => move |_toolbar: &Toolbar| {
+            state.borrow_mut().canvas_p.borrow_mut().update();
+        })));
+
         state
     }
 

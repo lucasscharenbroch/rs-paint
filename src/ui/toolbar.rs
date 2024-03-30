@@ -1,15 +1,18 @@
 use super::mode::MouseMode;
+use super::canvas::Canvas;
 
 use gtk::prelude::*;
 use gtk::{Box, Orientation, ToggleButton};
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::boxed;
 use glib_macros::clone;
 
 pub struct Toolbar {
     tbox: Box,
     mouse_mode: MouseMode,
     mouse_mode_buttons: Vec<MouseModeButton>,
+    mode_change_hook: Option<boxed::Box<dyn Fn(&Toolbar)>>,
 }
 
 struct MouseModeButton {
@@ -26,6 +29,7 @@ impl Toolbar {
             tbox,
             mouse_mode: initial_mode,
             mouse_mode_buttons: vec![],
+            mode_change_hook: None,
         }));
 
         const button_info: &'static [(&'static str, MouseMode)] = &[
@@ -47,6 +51,10 @@ impl Toolbar {
                             if other_button.mode != *mode {
                                 other_button.widget.set_active(false);
                             }
+                        }
+
+                        if let Some(ref f) = state.borrow().mode_change_hook {
+                            f(&state.borrow());
                         }
                     } else {
                         // the only way to deactivate is to activate a different modal button
@@ -79,5 +87,9 @@ impl Toolbar {
 
     pub fn widget(&self) -> &Box {
         &self.tbox
+    }
+
+    pub fn set_mode_change_hook(&mut self, f: boxed::Box<dyn Fn(&Toolbar)>) {
+        self.mode_change_hook = Some(f);
     }
 }
