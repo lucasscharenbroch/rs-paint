@@ -27,6 +27,10 @@ impl RectangleSelectState {
         let w = if cx > x { cx.ceil() - x } else { cx.floor() - x };
         let h = if cy > y { cy.ceil() - y } else { cy.floor() - y };
 
+        // normalize negative values
+        let (x, w) = if w < 0.0 { (x + w, -w) } else { (x, w) };
+        let (y, h) = if h < 0.0 { (y + h, -h) } else { (y, h) };
+
         (x, y, w, h)
     }
 
@@ -58,8 +62,6 @@ impl RectangleSelectState {
                 Self::visual_box_around(x, y, w, h, zoom)
             }
         }
-
-
     }
 }
 
