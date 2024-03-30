@@ -36,14 +36,13 @@ impl RectangleSelectState {
             const LINE_BORDER_FACTOR: f64 = 0.4;
 
             cr.set_line_width(LINE_WIDTH / zoom);
-
-            cr.rectangle(x, y, w, h);
             cr.set_source_rgba(0.25, 0.25, 0.25, 0.75);
+            cr.rectangle(x, y, w, h);
             cr.stroke();
 
-            cr.rectangle(x, y, w, h);
             cr.set_line_width(LINE_WIDTH / zoom * LINE_BORDER_FACTOR);
             cr.set_source_rgba(1.0, 1.0, 1.0, 0.75);
+            cr.rectangle(x, y, w, h);
             cr.stroke();
         })
     }

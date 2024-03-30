@@ -65,7 +65,7 @@ impl Canvas {
             state.borrow_mut().draw(area, cr, width, height);
 
             // draw selection
-            state.borrow().selection.draw_outline(cr);
+            state.borrow().selection.draw_outline(&state.borrow(), cr);
 
             // run hooks
             state.borrow().draw_hook.iter().for_each(|f| f(cr));
