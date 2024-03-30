@@ -31,6 +31,20 @@ impl RectangleSelectState {
         let (x, w) = if w < 0.0 { (x + w, -w) } else { (x, w) };
         let (y, h) = if h < 0.0 { (y + h, -h) } else { (y, h) };
 
+        // pull coordinates into image bounds
+        let max_x = canvas.image_width() as f64;
+        let max_y = canvas.image_height() as f64;
+        let (x, w) = if x < 0.0 || x > max_x {
+            let xp = x.max(0.0).min(max_x);
+            (xp, w - (x - xp).abs())
+        } else { (x, w) };
+        let (y, h) = if y < 0.0 || y > max_y {
+            let yp = y.max(0.0).min(max_y);
+            (yp, h - (y - yp).abs())
+        } else { (y, h) };
+        let w = w.min(max_x - x);
+        let h = h.min(max_y - y);
+
         (x, y, w, h)
     }
 
