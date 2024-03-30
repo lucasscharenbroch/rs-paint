@@ -1,5 +1,6 @@
 use super::super::image::{Image, mk_transparent_pattern};
-use super::super::undo::{ImageHistory};
+use super::super::undo::ImageHistory;
+use super::selection::Selection;
 
 use gtk::prelude::*;
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
@@ -20,6 +21,7 @@ pub struct Canvas {
     cursor_pos: (f64, f64),
     drawing_area: DrawingArea,
     grid: Grid,
+    selection: Selection,
     v_scrollbar: Scrollbar,
     h_scrollbar: Scrollbar,
     scrollbar_update_handlers: Option<(SignalHandlerId, SignalHandlerId)>,
@@ -51,6 +53,7 @@ impl Canvas {
             cursor_pos: (0.0, 0.0),
             drawing_area,
             grid,
+            selection: Selection::NoSelection,
             v_scrollbar,
             h_scrollbar,
             scrollbar_update_handlers: None,
@@ -61,10 +64,11 @@ impl Canvas {
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
             state.borrow_mut().draw(area, cr, width, height);
 
+            // draw selection
+            state.borrow().selection.draw_outline(cr);
+
             // run hooks
-
             state.borrow().draw_hook.iter().for_each(|f| f(cr));
-
             state.borrow().single_shot_draw_hooks.iter().for_each(|f| f(cr));
             state.borrow_mut().single_shot_draw_hooks = vec![];
         }));
@@ -109,6 +113,10 @@ impl Canvas {
 
     pub fn cursor_pos(&self) -> &(f64, f64) {
         &self.cursor_pos
+    }
+
+    pub fn set_selection(&mut self, selection: Selection) {
+        self.selection = selection;
     }
 
     pub fn zoom(&self) -> &f64 {

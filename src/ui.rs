@@ -1,6 +1,7 @@
 mod canvas;
 mod toolbar;
 mod mode;
+mod selection;
 
 use canvas::Canvas;
 use toolbar::Toolbar;

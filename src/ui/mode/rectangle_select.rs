@@ -1,4 +1,4 @@
-use std::arch::x86_64;
+use crate::ui::selection::Selection;
 
 use super::Canvas;
 
@@ -68,6 +68,7 @@ impl super::MouseModeState for RectangleSelectState {
     fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
         let (ax, ay) = canvas.cursor_pos_pix();
         *self = Self::Selecting(ax, ay);
+        canvas.set_selection(Selection::NoSelection);
     }
 
     fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
@@ -78,6 +79,7 @@ impl super::MouseModeState for RectangleSelectState {
         if let Self::Selecting(ax, ay) = self {
             let (x, y, w, h) = Self::calc_xywh(*ax, *ay, canvas);
             *self = Self::Selected(x, y, w, h);
+            canvas.set_selection(Selection::Rectangle(x as usize, y as usize, w as usize, h as usize));
         }
         canvas.update();
     }
