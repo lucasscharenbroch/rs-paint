@@ -2,6 +2,7 @@ mod canvas;
 mod toolbar;
 mod mode;
 mod selection;
+mod menu;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
@@ -23,8 +24,15 @@ pub struct UiState {
 
 impl UiState {
     pub fn run_main_ui() -> gtk::glib::ExitCode {
+        let app = Application::builder()
+            .build();
+
+        let menu = menu::mk_menu();
+
+        app.register(None::<&gtk::gio::Cancellable>);
+        app.set_menubar(Some(&menu));
+
         let state = Self::new();
-        let app = Application::builder().build();
 
         app.connect_activate(clone!(@strong state => move |app| {
             state.borrow().window.set_application(Some(app));
@@ -39,6 +47,7 @@ impl UiState {
             canvas_p: Canvas::new_p(mk_test_image()),
             toolbar_p: Toolbar::new_p(),
             window: ApplicationWindow::builder()
+                .show_menubar(true)
                 .title("RS-Paint")
                 .build(),
         }));
