@@ -27,10 +27,11 @@ impl UiState {
         let app = Application::builder()
             .build();
 
-        let menu = menu::mk_menu();
+        let (menu, menu_actions) = menu::mk_menu();
 
         app.register(None::<&gtk::gio::Cancellable>);
         app.set_menubar(Some(&menu));
+        menu_actions.iter().for_each(|a| app.add_action(a));
 
         let state = Self::new();
 
@@ -38,6 +39,7 @@ impl UiState {
             state.borrow().window.set_application(Some(app));
             state.borrow().window.present();
         }));
+
 
         app.run()
     }
