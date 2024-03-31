@@ -1,33 +1,48 @@
 use gtk::gio::{Menu, SimpleAction};
 
+struct MenuBuilder {
+    menu: Menu,
+    actions: Vec<SimpleAction>,
+}
+
+impl MenuBuilder {
+    fn new() -> Self {
+        MenuBuilder {
+            menu: Menu::new(),
+            actions: vec![],
+        }
+    }
+
+    fn submenu(mut self, label: &str, other: MenuBuilder) -> MenuBuilder {
+        let (other_menu, mut other_actions) = other.build();
+        self.menu.append_submenu(Some(label), &other_menu);
+        self.actions.append(&mut other_actions);
+        self
+    }
+
+    fn item(mut self, label: &str, action_name: &str, action_fn: Box<dyn Fn()>) -> MenuBuilder {
+        self.menu.append(Some(label), Some(("app.".to_string() + action_name).as_str()));
+        let action = SimpleAction::new(action_name, None);
+        action.connect_activate(move |_, _| action_fn());
+        self.actions.push(action);
+        self
+    }
+
+    fn build(self) -> (Menu, Vec<SimpleAction>) {
+        (self.menu, self.actions)
+    }
+}
+
 pub fn mk_menu() -> (Menu, Vec<SimpleAction>) {
-    let menu = Menu::new();
+    MenuBuilder::new()
+        .submenu("File",
+            MenuBuilder::new()
+                .item("New", "new", Box::new(|| println!("new")))
+                .item("Import", "import", Box::new(|| println!("import")))
+                .item("Export", "export", Box::new(|| println!("export"))))
+        .submenu("Help",
 
-    let file = Menu::new();
-    file.append(Some("New"), Some("app.new"));
-    file.append(Some("Import"), Some("app.import"));
-    file.append(Some("Export"), Some("app.export"));
-
-    let help = Menu::new();
-    help.append(Some("About"), Some("app.about"));
-
-    menu.append_submenu(Some("File"), &file);
-    menu.append_submenu(Some("Help"), &help);
-
-    // actions
-    let new_action = SimpleAction::new("new", None);
-    new_action.connect_activate(|_, _| println!("new"));
-
-    let import_action = SimpleAction::new("import", None);
-    import_action.connect_activate(|_, _| println!("import"));
-
-    let export_action = SimpleAction::new("export", None);
-    export_action.connect_activate(|_, _| println!("export"));
-
-    let about_action = SimpleAction::new("about", None);
-    about_action.connect_activate(|_, _| println!("about"));
-
-    let actions = vec![new_action, import_action, export_action, about_action];
-
-    (menu, actions)
+            MenuBuilder::new()
+                .item("About", "about", Box::new(|| println!("about"))))
+        .build()
 }
