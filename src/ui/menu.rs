@@ -1,4 +1,11 @@
+use super::dialog::run_about_dialog;
+use super::UiState;
+
 use gtk::gio::{Menu, SimpleAction};
+use std::rc::Rc;
+use std::cell::RefCell;
+use glib_macros::clone;
+
 
 struct MenuBuilder {
     menu: Menu,
@@ -33,7 +40,7 @@ impl MenuBuilder {
     }
 }
 
-pub fn mk_menu() -> (Menu, Vec<SimpleAction>) {
+pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
     MenuBuilder::new()
         .submenu("File",
             MenuBuilder::new()
@@ -43,6 +50,6 @@ pub fn mk_menu() -> (Menu, Vec<SimpleAction>) {
         .submenu("Help",
 
             MenuBuilder::new()
-                .item("About", "about", Box::new(|| println!("about"))))
+                .item("About", "about", Box::new(clone!(@strong ui_state => move || run_about_dialog(&ui_state.borrow().window)))))
         .build()
 }

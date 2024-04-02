@@ -28,19 +28,18 @@ impl UiState {
     pub fn run_main_ui() -> gtk::glib::ExitCode {
         let app = Application::builder()
             .build();
-
-        let (menu, menu_actions) = menu::mk_menu();
-
-        app.register(None::<&gtk::gio::Cancellable>);
-        app.set_menubar(Some(&menu));
-        menu_actions.iter().for_each(|a| app.add_action(a));
-
         let state = Self::new();
 
         app.connect_activate(clone!(@strong state => move |app| {
             state.borrow().window.set_application(Some(app));
             state.borrow().window.present();
         }));
+
+        let (menu, menu_actions) = menu::mk_menu(state.clone());
+
+        app.register(None::<&gtk::gio::Cancellable>);
+        app.set_menubar(Some(&menu));
+        menu_actions.iter().for_each(|a| app.add_action(a));
 
 
         app.run()
@@ -172,7 +171,7 @@ impl UiState {
                     self.canvas_p.borrow_mut().redo();
                     self.canvas_p.borrow_mut().update();
                 },
-                Key::x => {
+                Key::a => {
                     run_about_dialog(&self.window);
                 }
                 _ => (),
