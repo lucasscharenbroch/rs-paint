@@ -3,10 +3,12 @@ mod toolbar;
 mod mode;
 mod selection;
 mod menu;
+mod dialog;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
 use super::image::{mk_test_image};
+use dialog::run_about_dialog;
 
 use gtk::prelude::*;
 use gtk::gdk::{Key, ModifierType};
@@ -170,6 +172,9 @@ impl UiState {
                     self.canvas_p.borrow_mut().redo();
                     self.canvas_p.borrow_mut().update();
                 },
+                Key::x => {
+                    run_about_dialog(&self.window);
+                }
                 _ => (),
             }
         }
