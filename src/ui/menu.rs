@@ -1,4 +1,5 @@
 use super::dialog::run_about_dialog;
+use super::io::import;
 use super::UiState;
 
 use gtk::gio::{Menu, SimpleAction};
@@ -45,7 +46,7 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
         .submenu("File",
             MenuBuilder::new()
                 .item("New", "new", Box::new(|| println!("new")))
-                .item("Import", "import", Box::new(|| println!("import")))
+                .item("Import", "import", Box::new(clone!(@strong ui_state => move || import(&mut ui_state.borrow_mut()))))
                 .item("Export", "export", Box::new(|| println!("export"))))
         .submenu("Help",
 

@@ -4,6 +4,7 @@ mod mode;
 mod selection;
 mod menu;
 mod dialog;
+mod io;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
