@@ -1,6 +1,5 @@
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer};
 use gtk::glib::object::IsA;
-use glib_macros::clone;
 
 fn run_window_with(parent: &impl IsA<Window>, title: &str, content: &impl IsA<Widget>) {
     let dialog_window = Window::builder()

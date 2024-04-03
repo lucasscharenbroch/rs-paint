@@ -11,7 +11,7 @@ pub struct CursorState {
 }
 
 impl CursorState {
-    pub const fn default() -> CursorState {
+    pub fn default(_canvas: &Canvas) -> CursorState {
         CursorState {
             last_cursor_pos: (0.0, 0.0),
         }

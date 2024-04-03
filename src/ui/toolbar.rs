@@ -21,9 +21,9 @@ struct MouseModeButton {
 }
 
 impl Toolbar {
-    pub fn new_p() -> Rc<RefCell<Toolbar>> {
+    pub fn new_p(canvas_p: Rc<RefCell<Canvas>>) -> Rc<RefCell<Toolbar>> {
         let tbox =  Box::new(Orientation::Horizontal, 10);
-        let initial_mode = MouseMode::cursor();
+        let initial_mode = MouseMode::cursor(&canvas_p.borrow());
 
         let state = Rc::new(RefCell::new(Toolbar {
             tbox,
@@ -32,23 +32,24 @@ impl Toolbar {
             mode_change_hook: None,
         }));
 
-        const button_info: &'static [(&'static str, MouseMode)] = &[
-            ("Cursor", MouseMode::cursor()),
-            ("Pencil", MouseMode::pencil()),
-            ("Rectangle Select", MouseMode::rectangle_select()),
+        let button_info: Vec<(&str, fn(&Canvas) -> MouseMode)> = vec![
+            ("Cursor", MouseMode::cursor),
+            ("Pencil", MouseMode::pencil),
+            ("Rectangle Select", MouseMode::rectangle_select),
         ];
 
-        state.borrow_mut().mouse_mode_buttons = button_info.iter()
-            .map(|(text, mode)| {
+        state.borrow_mut().mouse_mode_buttons = button_info.into_iter()
+            .map(|(text, mode_constructor)| {
                 let button = ToggleButton::builder()
-                    .label(*text)
+                    .label(text)
                     .build();
 
-                button.connect_clicked(clone!(@strong state => move |b| {
+                button.connect_clicked(clone!(@strong state, @strong canvas_p => move |b| {
                     if b.is_active() {
+                        let mode = mode_constructor(&canvas_p.borrow());
                         state.borrow_mut().mouse_mode = mode.clone();
                         for other_button in state.borrow().mouse_mode_buttons.iter() {
-                            if other_button.mode != *mode {
+                            if other_button.mode != mode {
                                 other_button.widget.set_active(false);
                             }
                         }
@@ -66,7 +67,7 @@ impl Toolbar {
 
                 MouseModeButton {
                     widget: button,
-                    mode: mode.clone(),
+                    mode: mode_constructor(&canvas_p.borrow()),
                 }
             })
             .collect::<Vec<_>>();

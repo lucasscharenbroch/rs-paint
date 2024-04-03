@@ -50,6 +50,7 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
         .submenu("Help",
 
             MenuBuilder::new()
-                .item("About", "about", Box::new(clone!(@strong ui_state => move || run_about_dialog(&ui_state.borrow().window)))))
+                .item("About", "about",
+                      Box::new(clone!(@strong ui_state => move || run_about_dialog(&ui_state.borrow().window)))))
         .build()
 }

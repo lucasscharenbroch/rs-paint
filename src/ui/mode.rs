@@ -43,16 +43,16 @@ impl PartialEq<MouseMode> for MouseMode {
 }
 
 impl MouseMode {
-    pub const fn cursor() -> MouseMode {
-        MouseMode::Cursor(CursorState::default())
+    pub fn cursor(canvas: &Canvas) -> MouseMode {
+        MouseMode::Cursor(CursorState::default(canvas))
     }
 
-    pub const fn pencil() -> MouseMode {
-        MouseMode::Pencil(PencilState::default())
+    pub fn pencil(canvas: &Canvas) -> MouseMode {
+        MouseMode::Pencil(PencilState::default(canvas))
     }
 
-    pub const fn rectangle_select() -> MouseMode {
-        MouseMode::RectangleSelect(RectangleSelectState::default())
+    pub fn rectangle_select(canvas: &Canvas) -> MouseMode {
+        MouseMode::RectangleSelect(RectangleSelectState::default(canvas))
     }
 
     fn get_state(&mut self) -> &mut dyn MouseModeState {

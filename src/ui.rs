@@ -46,9 +46,11 @@ impl UiState {
     }
 
     fn new() -> Rc<RefCell<UiState>> {
+        let canvas_p = Canvas::new_p(mk_test_image());
+
         let state = Rc::new(RefCell::new(UiState {
-            canvas_p: Canvas::new_p(mk_test_image()),
-            toolbar_p: Toolbar::new_p(),
+            toolbar_p: Toolbar::new_p(canvas_p.clone()),
+            canvas_p,
             window: ApplicationWindow::builder()
                 .show_menubar(true)
                 .title("RS-Paint")

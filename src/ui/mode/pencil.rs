@@ -18,7 +18,7 @@ pub struct PencilState {
 }
 
 impl PencilState {
-    pub const fn default() -> PencilState {
+    pub fn default(_canvas: &Canvas) -> PencilState {
         PencilState {
             last_cursor_pos_pix: (0.0, 0.0),
             mode: PencilMode::TraceCursor,

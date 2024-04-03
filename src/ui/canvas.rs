@@ -119,6 +119,10 @@ impl Canvas {
         self.selection = selection;
     }
 
+    pub fn selection(&self) -> &Selection {
+        &self.selection
+    }
+
     pub fn zoom(&self) -> &f64 {
         &self.zoom
     }

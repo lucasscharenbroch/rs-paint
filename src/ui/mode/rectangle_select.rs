@@ -14,8 +14,12 @@ pub enum RectangleSelectState {
 }
 
 impl RectangleSelectState {
-    pub const fn default() -> RectangleSelectState {
-        Self::Unselected
+    pub fn default(canvas: &Canvas) -> RectangleSelectState {
+        match canvas.selection() {
+            Selection::Rectangle(x, y, w, h) => Self::Selected(*x as f64, *y as f64, *w as f64, *h as f64),
+            _ => Self::Unselected
+        }
+
     }
 
     fn calc_xywh(ax: f64, ay: f64, canvas: &Canvas) -> (f64, f64, f64, f64) {
