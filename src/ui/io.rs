@@ -1,9 +1,12 @@
+use gtk::prelude::*;
 use gtk::FileFilter;
 use gtk::gio::ListStore;
+use std::rc::Rc;
+use std::cell::RefCell;
+use glib_macros::clone;
 
 use super::{dialog::choose_file, UiState};
-
-// File Filters
+use crate::image::Image;
 
 fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
     let list = ListStore::new::<FileFilter>();
@@ -30,7 +33,7 @@ fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
     list
 }
 
-pub fn import(ui_state: &mut UiState) {
+pub fn import(ui_state: Rc<RefCell<UiState>>) {
     let extensions = vec![
         vec!["png"],
         vec!["jpg", "jpeg"],
@@ -38,7 +41,21 @@ pub fn import(ui_state: &mut UiState) {
 
     let valid_filetypes = mk_file_filter_list(extensions);
 
-    choose_file(&ui_state.window, "Choose an image to import", "Import", &valid_filetypes, |res| {
-        println!("got file: {:?}", res)
-    })
+    choose_file(&ui_state.borrow().window, "Choose an image to import", "Import", &valid_filetypes, 
+                clone!(@strong ui_state => move |res| {
+        if let Ok(res) = res {
+            match Image::from_file(res.path().unwrap().as_path()) {
+                Ok(img) => {
+                    let ui = ui_state.borrow_mut();
+                    let mut canvas = ui.canvas_p.borrow_mut();
+                    *canvas.image() = img;
+                    canvas.save_state_for_undo();
+                    canvas.update();
+                },
+                Err(e) => {
+                    panic!("Error loading file: {:?}", e);
+                }
+            }
+        }
+    }))
 }

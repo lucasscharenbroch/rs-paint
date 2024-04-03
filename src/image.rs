@@ -1,3 +1,10 @@
+extern crate image as image_lib;
+
+use image_lib::io::Reader as ImageReader;
+use image_lib::{DynamicImage, ImageError};
+use std::io::Error;
+use std::path::Path;
+
 use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter};
 use gtk::cairo;
 
@@ -120,7 +127,7 @@ impl Image {
                                                                             Format::ARgb32,
                                                                             self.width as i32,
                                                                             self.height as i32,
-                                                                            4 * self.width as i32) .unwrap();
+                                                                            4 * self.width as i32).unwrap();
 
             let surface_pattern = SurfacePattern::create(image_surface);
             surface_pattern.set_filter(Filter::Fast);
@@ -157,5 +164,35 @@ impl Image {
 
     pub fn height(&self) -> i32 {
         self.height as i32
+    }
+}
+
+// i/o
+impl Image {
+    pub fn from_file(path: &Path) -> Result<Image, Error> {
+        match ImageReader::open(path)?.decode() {
+            Ok(dyn_img) => {
+                let rgba = dyn_img.to_rgba8();
+                let pixels = rgba.enumerate_pixels().map(|(x, y, rgba)| {
+                    Pixel {
+                        r: rgba.0[0],
+                        g: rgba.0[1],
+                        b: rgba.0[2],
+                        a: rgba.0[3],
+                    }
+                }).collect::<Vec<_>>();
+
+                let img = Image {
+                    height: dyn_img.height() as usize,
+                    width: dyn_img.width() as usize,
+                    pixels,
+                };
+
+                Ok(img)
+            },
+            Err(err) => {
+                panic!("Error when loading image: {:?}", err);
+            },
+        }
     }
 }
