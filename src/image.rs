@@ -55,7 +55,7 @@ pub struct Image {
     height: usize,
 }
 
-pub fn mk_test_image() -> Image {
+pub fn mk_test_image() -> UnifiedImage {
     let mut pixels = vec![vec![BLUE; 400]; 400];
 
     for i in 0..400 {
@@ -66,7 +66,7 @@ pub fn mk_test_image() -> Image {
         }
     }
 
-    Image::from_pixels(pixels)
+    UnifiedImage::from_image(Image::from_pixels(pixels))
 }
 
 pub fn mk_test_brush() -> Image {
@@ -172,6 +172,7 @@ impl DrawablePixel {
     }
 }
 
+#[derive(Clone)]
 pub struct DrawableImage {
     pixels: Vec<DrawablePixel>,
     width: usize,
@@ -215,6 +216,7 @@ impl DrawableImage {
 // Image has all the necessary information, but a DrawableImage
 // is kept to avoid re-computation on each draw.
 // All data is read from the Image, but writes are applied to both
+#[derive(Clone)]
 pub struct UnifiedImage {
     image: Image,
     drawable: DrawableImage,
@@ -229,6 +231,14 @@ impl UnifiedImage {
         UnifiedImage {
             image,
             drawable,
+            modified_pix: HashSet::new(),
+        }
+    }
+
+    pub fn from_image(image: Image) -> Self {
+        UnifiedImage {
+            drawable: DrawableImage::from_image(&image),
+            image,
             modified_pix: HashSet::new(),
         }
     }
@@ -269,12 +279,23 @@ impl UnifiedImage {
         self.image.height as i32
     }
 
-    pub fn get_drawable(&self) -> &DrawableImage {
+    pub fn image(&self) -> &Image {
+        &self.image
+    }
+
+    pub fn set_image(&mut self, image: &Image)  {
+        self.image = image.clone();
+        self.drawable = DrawableImage::from_image(image);
+        self.modified_pix.clear();
+    }
+
+    pub fn drawable(&mut self) -> &mut DrawableImage {
         for (i, j) in self.modified_pix.iter() {
-            self.drawable.pixels[*i as usize * self.image.width + *j as usize] = self.pix_at(*i, *j).to_drawable();
+            self.drawable.pixels[*i as usize * self.image.width + *j as usize] =
+                self.image.pixels[*i as usize * self.image.width + *j as usize].to_drawable();
         }
 
         self.modified_pix.clear();
-        &self.drawable
+        &mut self.drawable
     }
 }

@@ -1,4 +1,4 @@
-use super::super::image::{Image, DrawableImage, mk_transparent_checkerboard};
+use super::super::image::{UnifiedImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::undo::ImageHistory;
 use super::selection::Selection;
 
@@ -28,11 +28,10 @@ pub struct Canvas {
     single_shot_draw_hooks: Vec<Box<dyn Fn(&Context)>>,
     draw_hook: Option<Box<dyn Fn(&Context)>>,
     transparent_checkerboard: DrawableImage,
-    drawable_image: Option<DrawableImage>,
 }
 
 impl Canvas {
-    pub fn new_p(image: Image) -> Rc<RefCell<Canvas>> {
+    pub fn new_p(image: UnifiedImage) -> Rc<RefCell<Canvas>> {
         let grid = Grid::new();
 
         let drawing_area =  DrawingArea::builder()
@@ -62,7 +61,6 @@ impl Canvas {
             single_shot_draw_hooks: vec![],
             draw_hook: None,
             transparent_checkerboard: mk_transparent_checkerboard(),
-            drawable_image: None,
         }));
 
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
@@ -240,8 +238,7 @@ impl Canvas {
         let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
         let y_offset = (area_height as f64 - img_height * self.zoom) / 2.0;
 
-        self.drawable_image = Some(DrawableImage::from_image(&self.image_hist.now()));
-        let image_surface_pattern = self.drawable_image.as_mut().unwrap().to_surface_pattern();
+        let image_surface_pattern = self.image_hist.now_mut().drawable().to_surface_pattern();
         let transparent_pattern = self.transparent_checkerboard.to_repeated_surface_pattern();
 
         cr.translate(x_offset as f64, y_offset as f64);
@@ -336,11 +333,11 @@ impl Canvas {
         Propagation::Stop
     }
 
-    pub fn image(&mut self) -> &mut Image {
+    pub fn image(&mut self) -> &mut UnifiedImage {
         self.image_hist.now_mut()
     }
 
-    pub fn image_ref(&self) -> &Image {
+    pub fn image_ref(&self) -> &UnifiedImage {
         self.image_hist.now()
     }
 

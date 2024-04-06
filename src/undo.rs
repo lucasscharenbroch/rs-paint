@@ -1,4 +1,4 @@
-use super::image::Image;
+use super::image::{Image, UnifiedImage};
 
 struct ImageDiff { // TODO store diff, not full image
     old: Image,
@@ -6,31 +6,31 @@ struct ImageDiff { // TODO store diff, not full image
 }
 
 impl ImageDiff {
-    pub fn new(from: &Image, to: &Image) -> ImageDiff {
+    pub fn new(from: &UnifiedImage, to: &UnifiedImage) -> ImageDiff {
         ImageDiff {
-            old: from.clone(),
-            new: to.clone(),
+            old: from.image().clone(),
+            new: to.image().clone(),
         }
     }
 
-    pub fn apply_to(&self, image: &mut Image) {
-        *image = self.new.clone();
+    pub fn apply_to(&self, image: &mut UnifiedImage) {
+        image.set_image(&self.new);
     }
 
-    pub fn unapply_to(&self, image: &mut Image) {
-        *image = self.old.clone();
+    pub fn unapply_to(&self, image: &mut UnifiedImage) {
+        image.set_image(&self.old);
     }
 }
 
 pub struct ImageHistory {
-    now: Image,
-    last_save: Image,
-    undo_stack: Vec<ImageDiff>, // TODO change to tree
+    now: UnifiedImage,
+    last_save: UnifiedImage,
+    undo_stack: Vec<ImageDiff>,
     redo_stack: Vec<ImageDiff>,
 }
 
 impl ImageHistory {
-    pub fn new(initial_image: Image) -> ImageHistory {
+    pub fn new(initial_image: UnifiedImage) -> ImageHistory {
         ImageHistory {
             now: initial_image.clone(),
             last_save: initial_image,
@@ -39,11 +39,11 @@ impl ImageHistory {
         }
     }
 
-    pub fn now(&self) -> &Image {
+    pub fn now(&self) -> &UnifiedImage {
         &self.now
     }
 
-    pub fn now_mut(&mut self) -> &mut Image {
+    pub fn now_mut(&mut self) -> &mut UnifiedImage {
         &mut self.now
     }
 

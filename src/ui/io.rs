@@ -75,7 +75,7 @@ pub fn import(ui_state: Rc<RefCell<UiState>>) {
                 Ok(img) => {
                     let ui = ui_state.borrow_mut();
                     let mut canvas = ui.canvas_p.borrow_mut();
-                    *canvas.image() = img;
+                    canvas.image().set_image(&img);
                     canvas.save_state_for_undo();
                     canvas.update();
                 },
@@ -96,7 +96,7 @@ pub fn export(ui_state: Rc<RefCell<UiState>>) {
         if let Ok(res) = res {
             let path = res.path().unwrap();
             let path = path.as_path();
-            if let Err(e) = ui_state.borrow().canvas_p.borrow().image_ref().to_file(path) {
+            if let Err(e) = ui_state.borrow().canvas_p.borrow().image_ref().image().to_file(path) {
                 panic!("Error exporting file: {:?}", e);
             }
         }
