@@ -7,7 +7,7 @@ use image_lib::codecs::png::PngEncoder;
 use image_lib::codecs::webp::WebPEncoder;
 use image_lib::codecs::bmp::BmpEncoder;
 use image_lib::io::Reader as ImageReader;
-use image_lib::{DynamicImage, ImageError, RgbaImage, ImageEncoder};
+use image_lib::{DynamicImage, ImageError, RgbaImage, ImageEncoder, ImageFormat as ImgFmt};
 use std::io::Error;
 use std::path::Path;
 use std::fs::File;
@@ -210,18 +210,20 @@ impl Image {
             .and_then(|os| os.to_str())
             .map(|s| s.to_ascii_lowercase());
 
+        let format = match ext.as_ref().map(|s| s.as_str()) {
+            Some("png") => ImgFmt::Png,
+            Some("jpg") | Some("jpeg") => ImgFmt::Jpeg,
+            Some("gif") => ImgFmt::Gif,
+            Some("ico") => ImgFmt::Ico,
+            Some("webp") => ImgFmt::WebP,
+            Some("bmp") => ImgFmt::Bmp,
+            _ => panic!("Invalid file extension: {:?}", ext),
+        };
 
         unsafe {
             let (_, u8_slice, _) = self.pixels.align_to::<u8>();
             let rgba = RgbaImage::from_raw(self.width as u32, self.height as u32, u8_slice.to_vec()).unwrap();
-            match ext.as_ref().map(|s| s.as_str()) {
-                Some("png") => rgba.write_with_encoder(PngEncoder::new(out_file)),
-                Some("jpg") | Some("jpeg") => rgba.write_with_encoder(JpegEncoder::new(out_file)),
-                Some("ico") => rgba.write_with_encoder(IcoEncoder::new(out_file)),
-                Some("webp") => rgba.write_with_encoder(WebPEncoder::new_lossless(out_file)),
-                Some("bmp") => rgba.write_with_encoder(BmpEncoder::new(&mut out_file)),
-                _ => panic!("Invalid file extension: {:?}", ext),
-            }
+            rgba.save_with_format(path, format)
         }
     }
 }
