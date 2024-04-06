@@ -33,13 +33,28 @@ fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
     list
 }
 
-pub fn import(ui_state: Rc<RefCell<UiState>>) {
-    let extensions = vec![
+pub fn image_io_extensions() -> Vec<Vec<&'static str>> {
+    vec![
         vec!["png"],
         vec!["jpg", "jpeg"],
-    ];
+        vec!["gif"],
+        vec!["ico"],
+        vec!["webp"],
+        vec!["bmp"],
+        vec!["avif"],
+        vec!["tiff", "tif"],
+        vec!["dds"],
+        vec!["ff"],
+        vec!["hdr"],
+        vec!["exr"],
+        vec!["pnm"],
+        vec!["tga"],
+    ]
+}
 
-    let valid_filetypes = mk_file_filter_list(extensions);
+pub fn import(ui_state: Rc<RefCell<UiState>>) {
+
+    let valid_filetypes = mk_file_filter_list(image_io_extensions());
 
     choose_file(&ui_state.borrow().window, "Choose an image to import", "Import", &valid_filetypes, 
                 clone!(@strong ui_state => move |res| {
