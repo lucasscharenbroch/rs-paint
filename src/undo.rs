@@ -1,24 +1,58 @@
-use super::image::{Image, UnifiedImage};
+use super::image::{Image, UnifiedImage, Pixel};
 
-struct ImageDiff { // TODO store diff, not full image
-    old: Image,
-    new: Image,
+use std::{collections::HashSet};
+
+enum PixelVecDiff {
+    Diff(Vec<(usize, Pixel, Pixel)>), // [(pos, old_pix, new_pix)]
+    FullCopy(Vec<Pixel>, Vec<Pixel>), // (old_pix_vec, new_pix_vec)
+}
+
+struct ImageDiff {
+    old_dimensions: (usize, usize),
+    new_dimensions: (usize, usize),
+    changed_pix: PixelVecDiff,
 }
 
 impl ImageDiff {
-    pub fn new(from: &UnifiedImage, to: &UnifiedImage) -> ImageDiff {
+    pub fn new(from: &UnifiedImage, to: &UnifiedImage, (mod_pix, all_modified): (HashSet<(i32, i32)>, bool)) -> ImageDiff {
+        let old_dimensions = (from.width() as usize, from.height() as usize);
+        let new_dimensions = (to.width() as usize, to.height() as usize);
+
+        // it's probably faster to not bother with the hash set if enough pixels have been modified
+        const EXHAUSTIVE_CHECK_THRESHOLD: f64 = 0.25;
+        let hash_set_too_big_to_bother = (mod_pix.len() as f64 / (from.width() * from.height()) as f64) > EXHAUSTIVE_CHECK_THRESHOLD;
+
+        let changed_pix =
+            if all_modified || hash_set_too_big_to_bother || old_dimensions != new_dimensions {
+                PixelVecDiff::FullCopy(from.image().pixels().clone(), to.image().pixels().clone())
+            } else { // just consider pixel coordinates in the hash set
+                let width = from.width();
+                let from_pix = from.image().pixels();
+                let to_pix = to.image().pixels();
+
+                let diff_vec = mod_pix.iter()
+                    .map(|(r, c)| {
+                    let i = (r * width + c) as usize;
+                    (i, from_pix[i].clone(), to_pix[i].clone())
+                    })
+                    .collect::<Vec<_>>();
+
+                PixelVecDiff::Diff(diff_vec)
+            };
+
         ImageDiff {
-            old: from.image().clone(),
-            new: to.image().clone(),
+            old_dimensions,
+            new_dimensions,
+            changed_pix,
         }
     }
 
     pub fn apply_to(&self, image: &mut UnifiedImage) {
-        image.set_image(&self.new);
+        // image.set_image(&self.new, true);
     }
 
     pub fn unapply_to(&self, image: &mut UnifiedImage) {
-        image.set_image(&self.old);
+        // image.set_image(&self.old, true);
     }
 }
 
@@ -48,7 +82,8 @@ impl ImageHistory {
     }
 
     pub fn push_state(&mut self) {
-        self.undo_stack.push(ImageDiff::new(&self.last_save, &self.now));
+        let mod_pix_info = self.now.get_and_reset_modified();
+        self.undo_stack.push(ImageDiff::new(&self.last_save, &self.now, mod_pix_info));
         self.redo_stack = vec![];
         self.last_save = self.now.clone();
     }

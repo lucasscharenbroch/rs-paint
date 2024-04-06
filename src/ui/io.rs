@@ -75,7 +75,7 @@ pub fn import(ui_state: Rc<RefCell<UiState>>) {
                 Ok(img) => {
                     let ui = ui_state.borrow_mut();
                     let mut canvas = ui.canvas_p.borrow_mut();
-                    canvas.image().set_image(&img);
+                    canvas.image().set_image(&img, false);
                     canvas.save_state_for_undo();
                     canvas.update();
                 },

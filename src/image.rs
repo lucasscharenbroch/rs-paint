@@ -91,6 +91,10 @@ impl Image {
             pixels: pixels.into_iter().flatten().collect::<Vec<_>>(),
         }
     }
+
+    pub fn pixels(&self) -> &Vec<Pixel> {
+        &self.pixels
+    }
 }
 
 // i/o
@@ -220,7 +224,9 @@ impl DrawableImage {
 pub struct UnifiedImage {
     image: Image,
     drawable: DrawableImage,
-    modified_pix: HashSet<(i32, i32)>,
+    pix_modified_since_draw: HashSet<(i32, i32)>,
+    pix_modified_since_save: HashSet<(i32, i32)>,
+    all_pix_modified_since_save: bool,
 }
 
 impl UnifiedImage {
@@ -231,7 +237,9 @@ impl UnifiedImage {
         UnifiedImage {
             image,
             drawable,
-            modified_pix: HashSet::new(),
+            pix_modified_since_draw: HashSet::new(),
+            pix_modified_since_save: HashSet::new(),
+            all_pix_modified_since_save: false,
         }
     }
 
@@ -239,7 +247,9 @@ impl UnifiedImage {
         UnifiedImage {
             drawable: DrawableImage::from_image(&image),
             image,
-            modified_pix: HashSet::new(),
+            pix_modified_since_draw: HashSet::new(),
+            pix_modified_since_save: HashSet::new(),
+            all_pix_modified_since_save: false,
         }
     }
 
@@ -258,7 +268,7 @@ impl UnifiedImage {
     }
 
     pub fn pix_at(&mut self, r: i32, c: i32) -> &mut Pixel {
-        self.modified_pix.insert((r, c));
+        self.pix_modified_since_draw.insert((r, c));
         &mut self.image.pixels[r as usize * self.image.width + c as usize]
     }
 
@@ -266,7 +276,7 @@ impl UnifiedImage {
         if r < 0 || c < 0 || r as usize >= self.image.height || c as usize >= self.image.width {
             None
         } else {
-            self.modified_pix.insert((r, c));
+            self.pix_modified_since_draw.insert((r, c));
             Some(&mut self.image.pixels[r as usize * self.image.width + c as usize])
         }
     }
@@ -283,19 +293,36 @@ impl UnifiedImage {
         &self.image
     }
 
-    pub fn set_image(&mut self, image: &Image)  {
+    pub fn set_image(&mut self, image: &Image, clear_modified_pix: bool)  {
         self.image = image.clone();
         self.drawable = DrawableImage::from_image(image);
-        self.modified_pix.clear();
+        self.pix_modified_since_save.extend(self.pix_modified_since_draw.iter());
+        self.pix_modified_since_draw.clear();
+
+        if clear_modified_pix {
+            self.pix_modified_since_save.clear();
+        } else {
+            self.all_pix_modified_since_save = true;
+        }
     }
 
     pub fn drawable(&mut self) -> &mut DrawableImage {
-        for (i, j) in self.modified_pix.iter() {
+        for (i, j) in self.pix_modified_since_draw.iter() {
             self.drawable.pixels[*i as usize * self.image.width + *j as usize] =
                 self.image.pixels[*i as usize * self.image.width + *j as usize].to_drawable();
         }
 
-        self.modified_pix.clear();
+        self.pix_modified_since_draw.clear();
         &mut self.drawable
+    }
+
+    pub fn get_and_reset_modified(&mut self) -> (HashSet<(i32, i32)>, bool) {
+        self.pix_modified_since_save.extend(self.pix_modified_since_draw.iter());
+        let mut mod_pix = HashSet::new();
+        std::mem::swap(&mut mod_pix, &mut self.pix_modified_since_save);
+        let all_mod_since_save = self.all_pix_modified_since_save;
+        self.all_pix_modified_since_save = false;
+
+        (mod_pix, all_mod_since_save)
     }
 }
