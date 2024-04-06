@@ -335,6 +335,10 @@ impl Canvas {
         self.image_hist.now_mut()
     }
 
+    pub fn image_ref(&self) -> &Image {
+        self.image_hist.now()
+    }
+
     pub fn image_height(&self) -> i32 {
         self.image_hist.now().height()
     }

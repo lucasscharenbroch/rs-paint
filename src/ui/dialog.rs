@@ -32,6 +32,7 @@ pub fn choose_file<P: FnOnce(Result<File, Error>) + 'static>(
     parent: &impl IsA<Window>,
     title: &str, accept_label: &str,
     valid_filetypes: &impl IsA<gtk::gio::ListModel>,
+    make_target_file: bool,
     callback: P
 ) {
     let dialog = FileDialog::builder()
@@ -40,5 +41,9 @@ pub fn choose_file<P: FnOnce(Result<File, Error>) + 'static>(
         .filters(valid_filetypes)
         .build();
 
-    dialog.open(Some(parent), None::<&Cancellable>, callback);
+    if make_target_file {
+        dialog.save(Some(parent), None::<&Cancellable>, callback);
+    } else {
+        dialog.open(Some(parent), None::<&Cancellable>, callback);
+    }
 }

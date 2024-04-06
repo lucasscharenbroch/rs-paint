@@ -33,7 +33,7 @@ fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
     list
 }
 
-pub fn image_io_extensions() -> Vec<Vec<&'static str>> {
+pub fn image_import_formats() -> Vec<Vec<&'static str>> {
     vec![
         vec!["png"],
         vec!["jpg", "jpeg"],
@@ -52,14 +52,26 @@ pub fn image_io_extensions() -> Vec<Vec<&'static str>> {
     ]
 }
 
+pub fn image_export_formats() -> Vec<Vec<&'static str>> {
+    vec![
+        vec!["png"],
+        vec!["jpg", "jpeg"],
+        vec!["ico"],
+        vec!["webp"],
+        vec!["bmp"],
+    ]
+}
+
 pub fn import(ui_state: Rc<RefCell<UiState>>) {
+    let valid_filetypes = mk_file_filter_list(image_import_formats());
 
-    let valid_filetypes = mk_file_filter_list(image_io_extensions());
-
-    choose_file(&ui_state.borrow().window, "Choose an image to import", "Import", &valid_filetypes, 
+    choose_file(&ui_state.borrow().window, "Choose an image to import",
+                "Import", &valid_filetypes, false,
                 clone!(@strong ui_state => move |res| {
         if let Ok(res) = res {
-            match Image::from_file(res.path().unwrap().as_path()) {
+            let path = res.path().unwrap();
+            let path = path.as_path();
+            match Image::from_file(path) {
                 Ok(img) => {
                     let ui = ui_state.borrow_mut();
                     let mut canvas = ui.canvas_p.borrow_mut();
@@ -70,6 +82,22 @@ pub fn import(ui_state: Rc<RefCell<UiState>>) {
                 Err(e) => {
                     panic!("Error loading file: {:?}", e);
                 }
+            }
+        }
+    }))
+}
+
+pub fn export(ui_state: Rc<RefCell<UiState>>) {
+    let valid_filetypes = mk_file_filter_list(image_export_formats());
+
+    choose_file(&ui_state.borrow().window, "Export image",
+                "Export", &valid_filetypes, true,
+                clone!(@strong ui_state => move |res| {
+        if let Ok(res) = res {
+            let path = res.path().unwrap();
+            let path = path.as_path();
+            if let Err(e) = ui_state.borrow().canvas_p.borrow().image_ref().to_file(path) {
+                panic!("Error exporting file: {:?}", e);
             }
         }
     }))
