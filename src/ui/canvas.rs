@@ -1,4 +1,4 @@
-use super::super::image::{Image, mk_transparent_checkerboard};
+use super::super::image::{Image, DrawableImage, mk_transparent_checkerboard};
 use super::super::undo::ImageHistory;
 use super::selection::Selection;
 
@@ -27,7 +27,8 @@ pub struct Canvas {
     scrollbar_update_handlers: Option<(SignalHandlerId, SignalHandlerId)>,
     single_shot_draw_hooks: Vec<Box<dyn Fn(&Context)>>,
     draw_hook: Option<Box<dyn Fn(&Context)>>,
-    transparent_checkerboard: Image,
+    transparent_checkerboard: DrawableImage,
+    drawable_image: Option<DrawableImage>,
 }
 
 impl Canvas {
@@ -61,6 +62,7 @@ impl Canvas {
             single_shot_draw_hooks: vec![],
             draw_hook: None,
             transparent_checkerboard: mk_transparent_checkerboard(),
+            drawable_image: None,
         }));
 
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
@@ -238,7 +240,8 @@ impl Canvas {
         let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
         let y_offset = (area_height as f64 - img_height * self.zoom) / 2.0;
 
-        let image_surface_pattern = self.image_hist.now_mut().to_surface_pattern();
+        self.drawable_image = Some(DrawableImage::from_image(&self.image_hist.now()));
+        let image_surface_pattern = self.drawable_image.as_mut().unwrap().to_surface_pattern();
         let transparent_pattern = self.transparent_checkerboard.to_repeated_surface_pattern();
 
         cr.translate(x_offset as f64, y_offset as f64);

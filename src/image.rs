@@ -79,8 +79,8 @@ pub fn mk_test_brush() -> Image {
         ])
 }
 
-pub fn mk_transparent_checkerboard() -> Image {
-    Image::from_pixels(vec![vec![GRAY, DARK_GRAY], vec![DARK_GRAY, GRAY]])
+pub fn mk_transparent_checkerboard() -> DrawableImage {
+    DrawableImage::from_image(&Image::from_pixels(vec![vec![GRAY, DARK_GRAY], vec![DARK_GRAY, GRAY]]))
 }
 
 impl Image {
@@ -183,9 +183,9 @@ impl Image {
 // this is necessary for drawing in cairo
 
 #[derive(Clone)]
-pub struct DrawablePixel {
-    // order of first four fields corresponds to cairo::Format::ARgb32
-    // (this struct is used for direclty rendering the cairo pattern)
+struct DrawablePixel {
+    // order of the fields corresponds to cairo::Format::ARgb32
+    // (this struct is used for directly rendering the cairo pattern)
     b: u8,
     g: u8,
     r: u8,
@@ -204,7 +204,7 @@ impl DrawablePixel {
     }
 }
 
-struct DrawableImage {
+pub struct DrawableImage {
     pixels: Vec<DrawablePixel>,
     width: usize,
     height: usize,
