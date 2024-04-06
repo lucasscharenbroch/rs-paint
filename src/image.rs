@@ -11,6 +11,8 @@ use gtk::cairo;
 
 #[derive(Clone)]
 pub struct Pixel {
+    // order of first four fields corresponds to cairo::Format::ARgb32
+    // (this struct is used for direclty rendering the cairo pattern)
     b: u8,
     g: u8,
     r: u8,
@@ -18,59 +20,40 @@ pub struct Pixel {
 }
 
 impl Pixel {
+    pub const fn from_rgb(r: u8, g: u8, b: u8) -> Self {
+        Pixel { r, g, b, a: 255, }
+    }
+
+    pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self{
+        Pixel { r, g, b, a, }
+    }
+
+    pub fn from_rgba_pre_multiplied(r: u8, g: u8, b: u8, a: u8) -> Self{
+        let af = a as f64 / 255.0;
+        Pixel {
+            r: (r as f64 * af) as u8,
+            g: (g as f64 * af) as u8,
+            b: (b as f64 * af) as u8,
+            a,
+        }
+    }
+
     fn blend_onto(above: &Pixel, below: &Pixel) -> Pixel {
         let o = above.a as f64 / 255.0;
         let t = 1.0 - o;
-        Pixel {
-            r: (above.r as f64 * o + below.r as f64 * t) as u8,
-            g: (above.g as f64 * o + below.g as f64 * t) as u8,
-            b: (above.b as f64 * o + below.b as f64 * t) as u8,
-            a: std::cmp::max(above.a, below.a),
-        }
+        Pixel::from_rgba((above.r as f64 * o + below.r as f64 * t) as u8,
+                         (above.g as f64 * o + below.g as f64 * t) as u8,
+                         (above.b as f64 * o + below.b as f64 * t) as u8,
+                         std::cmp::max(above.a, below.a))
     }
 }
 
-const TRANS: Pixel = Pixel {
-    r: 0,
-    g: 0,
-    b: 0,
-    a: 0,
-};
-
-const BLACK: Pixel = Pixel {
-    r: 0,
-    g: 0,
-    b: 0,
-    a: 255,
-};
-
-const BLUE: Pixel = Pixel {
-    r: 0,
-    g: 0,
-    b: 255,
-    a: 255,
-};
-
-const GREEN: Pixel = Pixel {
-    r: 0,
-    g: 255,
-    b: 0,
-    a: 255,
-};
-
-const GRAY: Pixel = Pixel {
-    r: 211,
-    g: 211,
-    b: 211,
-    a: 255,
-};
-
-const DARK_GRAY: Pixel = Pixel {
-    r: 229,
-    g: 229,
-    b: 229,
-    a: 255,
-};
+const TRANS: Pixel = Pixel::from_rgba(0, 0, 0, 0);
+const BLACK: Pixel = Pixel::from_rgb(0, 0, 0);
+const BLUE: Pixel = Pixel::from_rgb(0, 0, 255);
+const GREEN: Pixel = Pixel::from_rgb(0, 255, 0);
+const GRAY: Pixel = Pixel::from_rgb(211, 211, 211);
+const DARK_GRAY: Pixel = Pixel::from_rgb(229, 229, 229);
 
 #[derive(Clone)]
 pub struct Image {
@@ -177,12 +160,7 @@ impl Image {
             Ok(dyn_img) => {
                 let rgba = dyn_img.to_rgba8();
                 let pixels = rgba.enumerate_pixels().map(|(x, y, rgba)| {
-                    Pixel {
-                        r: rgba.0[0],
-                        g: rgba.0[1],
-                        b: rgba.0[2],
-                        a: rgba.0[3],
-                    }
+                    Pixel::from_rgba(rgba.0[0], rgba.0[1], rgba.0[2], rgba.0[3])
                 }).collect::<Vec<_>>();
 
                 let img = Image {
