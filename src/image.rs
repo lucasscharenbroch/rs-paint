@@ -4,7 +4,7 @@ use image_lib::io::Reader as ImageReader;
 use image_lib::{DynamicImage, ImageError, RgbaImage, ImageFormat as ImgFmt};
 use std::io::Error;
 use std::path::Path;
-use std::fs::File;
+use std::collections::HashSet;
 
 use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter};
 use gtk::cairo;
@@ -91,36 +91,6 @@ impl Image {
             pixels: pixels.into_iter().flatten().collect::<Vec<_>>(),
         }
     }
-
-    // draw `other` at (x, y)
-    pub fn sample(&mut self, other: &Image, x: i32, y: i32) {
-        for i in 0..other.height() {
-            for j in 0..other.width() {
-                let ip = i as i32 + y;
-                let jp = j as i32 + x;
-
-                if let Some(p) = self.pix_at(ip, jp) {
-                    *p = Pixel::blend_onto(&other.pixels[(i * other.width() + j) as usize], &p);
-                }
-            }
-        }
-    }
-
-    pub fn pix_at(&mut self, r: i32, c: i32) -> Option<&mut Pixel> {
-        if r < 0 || c < 0 || r as usize >= self.height || c as usize >= self.width {
-            None
-        } else {
-            Some(&mut self.pixels[r as usize * self.width + c as usize])
-        }
-    }
-
-    pub fn width(&self) -> i32 {
-        self.width as i32
-    }
-
-    pub fn height(&self) -> i32 {
-        self.height as i32
-    }
 }
 
 // i/o
@@ -148,8 +118,6 @@ impl Image {
     }
 
     pub fn to_file(&self, path: &Path) -> Result<(), ImageError> {
-        let mut out_file = File::create(path).unwrap();
-
         let ext = path.extension()
             .and_then(|os| os.to_str())
             .map(|s| s.to_ascii_lowercase());
@@ -240,5 +208,73 @@ impl DrawableImage {
         let res = self.to_surface_pattern();
         res.set_extend(cairo::Extend::Repeat);
         res
+    }
+}
+
+// UnifiedImage = Image + DrawableImage
+// Image has all the necessary information, but a DrawableImage
+// is kept to avoid re-computation on each draw.
+// All data is read from the Image, but writes are applied to both
+pub struct UnifiedImage {
+    image: Image,
+    drawable: DrawableImage,
+    modified_pix: HashSet<(i32, i32)>,
+}
+
+impl UnifiedImage {
+    pub fn new(image: Image, drawable: DrawableImage) -> Self {
+        assert!(image.width == drawable.width);
+        assert!(image.height == drawable.height);
+
+        UnifiedImage {
+            image,
+            drawable,
+            modified_pix: HashSet::new(),
+        }
+    }
+
+    // draw `other` at (x, y)
+    pub fn sample(&mut self, other: &Image, x: i32, y: i32) {
+        for i in 0..other.height {
+            for j in 0..other.width {
+                let ip = i as i32 + y;
+                let jp = j as i32 + x;
+
+                if let Some(p) = self.try_pix_at(ip, jp) {
+                    *p = Pixel::blend_onto(&other.pixels[(i * other.width + j) as usize], &p);
+                }
+            }
+        }
+    }
+
+    pub fn pix_at(&mut self, r: i32, c: i32) -> &mut Pixel {
+        self.modified_pix.insert((r, c));
+        &mut self.image.pixels[r as usize * self.image.width + c as usize]
+    }
+
+    pub fn try_pix_at(&mut self, r: i32, c: i32) -> Option<&mut Pixel> {
+        if r < 0 || c < 0 || r as usize >= self.image.height || c as usize >= self.image.width {
+            None
+        } else {
+            self.modified_pix.insert((r, c));
+            Some(&mut self.image.pixels[r as usize * self.image.width + c as usize])
+        }
+    }
+
+    pub fn width(&self) -> i32 {
+        self.image.width as i32
+    }
+
+    pub fn height(&self) -> i32 {
+        self.image.height as i32
+    }
+
+    pub fn get_drawable(&self) -> &DrawableImage {
+        for (i, j) in self.modified_pix.iter() {
+            self.drawable.pixels[*i as usize * self.image.width + *j as usize] = self.pix_at(*i, *j).to_drawable();
+        }
+
+        self.modified_pix.clear();
+        &self.drawable
     }
 }
