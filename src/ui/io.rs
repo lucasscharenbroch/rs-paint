@@ -38,9 +38,9 @@ pub fn image_import_formats() -> Vec<Vec<&'static str>> {
         vec!["png"],
         vec!["jpg", "jpeg"],
         vec!["gif"],
-        vec!["ico"],
         vec!["webp"],
         vec!["bmp"],
+        vec!["ico"],
         vec!["avif"],
         vec!["tiff", "tif"],
         vec!["dds"],
@@ -57,7 +57,6 @@ pub fn image_export_formats() -> Vec<Vec<&'static str>> {
         vec!["png"],
         vec!["jpg", "jpeg"],
         vec!["gif"],
-        vec!["ico"],
         vec!["webp"],
         vec!["bmp"],
     ]

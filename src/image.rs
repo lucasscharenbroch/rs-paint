@@ -214,7 +214,6 @@ impl Image {
             Some("png") => ImgFmt::Png,
             Some("jpg") | Some("jpeg") => ImgFmt::Jpeg,
             Some("gif") => ImgFmt::Gif,
-            Some("ico") => ImgFmt::Ico,
             Some("webp") => ImgFmt::WebP,
             Some("bmp") => ImgFmt::Bmp,
             _ => panic!("Invalid file extension: {:?}", ext),
@@ -223,7 +222,14 @@ impl Image {
         unsafe {
             let (_, u8_slice, _) = self.pixels.align_to::<u8>();
             let rgba = RgbaImage::from_raw(self.width as u32, self.height as u32, u8_slice.to_vec()).unwrap();
-            rgba.save_with_format(path, format)
+            match format {
+                ImgFmt::Jpeg =>  {
+                    // jpg doesn't support alpha
+                    let rgb = DynamicImage::from(rgba).to_rgb8();
+                    rgb.save_with_format(path, format)
+                }
+                _ => rgba.save_with_format(path, format)
+            }
         }
     }
 }
