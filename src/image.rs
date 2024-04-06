@@ -11,11 +11,10 @@ use gtk::cairo;
 
 #[derive(Clone)]
 pub struct Pixel {
-    // order of first four fields corresponds to cairo::Format::ARgb32
-    // (this struct is used for direclty rendering the cairo pattern)
-    b: u8,
-    g: u8,
+    // the order of the fields is in the unsafe cast in Image::to_file
     r: u8,
+    g: u8,
+    b: u8,
     a: u8,
 }
 
@@ -28,14 +27,8 @@ impl Pixel {
         Pixel { r, g, b, a, }
     }
 
-    pub fn from_rgba_pre_multiplied(r: u8, g: u8, b: u8, a: u8) -> Self{
-        let af = a as f64 / 255.0;
-        Pixel {
-            r: (r as f64 * af) as u8,
-            g: (g as f64 * af) as u8,
-            b: (b as f64 * af) as u8,
-            a,
-        }
+    pub fn to_drawable(&self) -> DrawablePixel {
+        DrawablePixel::from_rgba(self.r, self.g, self.b, self.a)
     }
 
     fn blend_onto(above: &Pixel, below: &Pixel) -> Pixel {
@@ -97,29 +90,6 @@ impl Image {
             height: pixels.len(),
             pixels: pixels.into_iter().flatten().collect::<Vec<_>>(),
         }
-    }
-
-    pub fn to_surface_pattern(&mut self) -> SurfacePattern {
-        unsafe {
-            let (_, u8_slice, _) = self.pixels.align_to_mut::<u8>();
-
-            let image_surface = ImageSurface::create_for_data_unsafe(u8_slice.as_mut_ptr(),
-                                                                            Format::ARgb32,
-                                                                            self.width as i32,
-                                                                            self.height as i32,
-                                                                            4 * self.width as i32).unwrap();
-
-            let surface_pattern = SurfacePattern::create(image_surface);
-            surface_pattern.set_filter(Filter::Fast);
-
-            surface_pattern
-        }
-    }
-
-    pub fn to_repeated_surface_pattern(&mut self) -> SurfacePattern {
-        let res = self.to_surface_pattern();
-        res.set_extend(cairo::Extend::Repeat);
-        res
     }
 
     // draw `other` at (x, y)
@@ -205,5 +175,70 @@ impl Image {
                 _ => rgba.save_with_format(path, format)
             }
         }
+    }
+}
+
+// DrawablePixel / DrawableImage
+// same as Pixel/Image, but with pre-multiplied-alpha;
+// this is necessary for drawing in cairo
+
+#[derive(Clone)]
+pub struct DrawablePixel {
+    // order of first four fields corresponds to cairo::Format::ARgb32
+    // (this struct is used for direclty rendering the cairo pattern)
+    b: u8,
+    g: u8,
+    r: u8,
+    a: u8,
+}
+
+impl DrawablePixel {
+    pub fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self{
+        let af = a as f64 / 255.0;
+        DrawablePixel {
+            r: (r as f64 * af) as u8,
+            g: (g as f64 * af) as u8,
+            b: (b as f64 * af) as u8,
+            a,
+        }
+    }
+}
+
+struct DrawableImage {
+    pixels: Vec<DrawablePixel>,
+    width: usize,
+    height: usize,
+}
+
+impl DrawableImage {
+    pub fn from_image(image: &Image) -> Self {
+        DrawableImage {
+            width: image.width,
+            height: image.height,
+            pixels: image.pixels.iter().map(|p| p.to_drawable()).collect::<Vec<_>>(),
+        }
+    }
+
+    pub fn to_surface_pattern(&mut self) -> SurfacePattern {
+        unsafe {
+            let (_, u8_slice, _) = self.pixels.align_to_mut::<u8>();
+
+            let image_surface = ImageSurface::create_for_data_unsafe(u8_slice.as_mut_ptr(),
+                                                                            Format::ARgb32,
+                                                                            self.width as i32,
+                                                                            self.height as i32,
+                                                                            4 * self.width as i32).unwrap();
+
+            let surface_pattern = SurfacePattern::create(image_surface);
+            surface_pattern.set_filter(Filter::Fast);
+
+            surface_pattern
+        }
+    }
+
+    pub fn to_repeated_surface_pattern(&mut self) -> SurfacePattern {
+        let res = self.to_surface_pattern();
+        res.set_extend(cairo::Extend::Repeat);
+        res
     }
 }
