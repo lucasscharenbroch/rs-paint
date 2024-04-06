@@ -25,6 +25,7 @@ impl RectangleSelectState {
     fn calc_xywh(ax: f64, ay: f64, canvas: &Canvas) -> (f64, f64, f64, f64) {
         let (cx, cy) = canvas.cursor_pos_pix();
 
+        // round boundaries to nearest pixel
         let x = if cx > ax { ax.floor() } else { ax.ceil() };
         let y = if cy > ay { ay.floor() } else { ay.ceil() };
 
@@ -40,11 +41,11 @@ impl RectangleSelectState {
         let max_y = canvas.image_height() as f64;
         let (x, w) = if x < 0.0 || x > max_x {
             let xp = x.max(0.0).min(max_x);
-            (xp, w - (x - xp).abs())
+            (xp, (w - (x - xp).abs()).max(0.0))
         } else { (x, w) };
         let (y, h) = if y < 0.0 || y > max_y {
             let yp = y.max(0.0).min(max_y);
-            (yp, h - (y - yp).abs())
+            (yp, (h - (y - yp).abs()).max(0.0))
         } else { (y, h) };
         let w = w.min(max_x - x);
         let h = h.min(max_y - y);
