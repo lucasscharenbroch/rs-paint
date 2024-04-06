@@ -1,13 +1,7 @@
 extern crate image as image_lib;
 
-use image_lib::codecs::gif::GifEncoder;
-use image_lib::codecs::ico::IcoEncoder;
-use image_lib::codecs::jpeg::JpegEncoder;
-use image_lib::codecs::png::PngEncoder;
-use image_lib::codecs::webp::WebPEncoder;
-use image_lib::codecs::bmp::BmpEncoder;
 use image_lib::io::Reader as ImageReader;
-use image_lib::{DynamicImage, ImageError, RgbaImage, ImageEncoder, ImageFormat as ImgFmt};
+use image_lib::{DynamicImage, ImageError, RgbaImage, ImageFormat as ImgFmt};
 use std::io::Error;
 use std::path::Path;
 use std::fs::File;
@@ -109,12 +103,8 @@ pub fn mk_test_brush() -> Image {
         ])
 }
 
-pub fn mk_transparent_pattern() -> SurfacePattern {
-    let mut img = Image::from_pixels(vec![vec![GRAY, DARK_GRAY], vec![DARK_GRAY, GRAY]]);
-
-    let res = img.to_surface_pattern();
-    res.set_extend(cairo::Extend::Repeat);
-    res
+pub fn mk_transparent_checkerboard() -> Image {
+    Image::from_pixels(vec![vec![GRAY, DARK_GRAY], vec![DARK_GRAY, GRAY]])
 }
 
 impl Image {
@@ -141,6 +131,12 @@ impl Image {
 
             surface_pattern
         }
+    }
+
+    pub fn to_repeated_surface_pattern(&mut self) -> SurfacePattern {
+        let res = self.to_surface_pattern();
+        res.set_extend(cairo::Extend::Repeat);
+        res
     }
 
     // draw `other` at (x, y)
