@@ -19,6 +19,10 @@ pub struct PencilState {
 
 impl PencilState {
     pub fn default(_canvas: &Canvas) -> PencilState {
+        Self::default_no_canvas()
+    }
+
+    pub fn default_no_canvas() -> PencilState {
         PencilState {
             last_cursor_pos_pix: (0.0, 0.0),
             mode: PencilMode::TraceCursor,

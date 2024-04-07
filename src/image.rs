@@ -92,14 +92,6 @@ impl Image {
             pixels: pixels.into_iter().flatten().collect::<Vec<_>>(),
         }
     }
-
-    pub fn pixels(&self) -> &Vec<Pixel> {
-        &self.pixels
-    }
-
-    pub fn into_pixels(self) -> Vec<Pixel> {
-        self.pixels
-    }
 }
 
 // i/o

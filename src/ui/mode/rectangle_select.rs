@@ -19,7 +19,10 @@ impl RectangleSelectState {
             Selection::Rectangle(x, y, w, h) => Self::Selected(*x as f64, *y as f64, *w as f64, *h as f64),
             _ => Self::Unselected
         }
+    }
 
+    pub fn default_no_canvas() -> RectangleSelectState {
+        Self::Unselected
     }
 
     fn calc_xywh(ax: f64, ay: f64, canvas: &Canvas) -> (f64, f64, f64, f64) {

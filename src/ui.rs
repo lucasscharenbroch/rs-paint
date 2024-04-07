@@ -8,19 +8,18 @@ mod io;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use super::image::{mk_test_image};
 use dialog::run_about_dialog;
 
 use gtk::prelude::*;
 use gtk::gdk::{Key, ModifierType};
-use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator, GestureDrag, EventControllerMotion};
+use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator};
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 use gtk::glib::signal::Propagation;
 
 pub struct UiState {
-    canvas_p: Rc<RefCell<Canvas>>,
+    tabs: Vec<Rc<RefCell<Canvas>>>,
     toolbar_p: Rc<RefCell<Toolbar>>,
     window: ApplicationWindow,
 }
@@ -46,25 +45,39 @@ impl UiState {
         app.run()
     }
 
-    fn new() -> Rc<RefCell<UiState>> {
-        let canvas_p = Canvas::new_p(mk_test_image());
+    fn set_tab(&self) {
+        // TODO
+        // grid.attach(state.borrow().canvas_p.borrow().widget(), 0, 2, 1, 1);
+    }
 
+    fn active_tab(&self) -> Option<Rc<RefCell<Canvas>>> {
+        None // TODO
+    }
+
+    fn new() -> Rc<RefCell<UiState>> {
         let state = Rc::new(RefCell::new(UiState {
-            toolbar_p: Toolbar::new_p(canvas_p.clone()),
-            canvas_p,
+            toolbar_p: Toolbar::new_p(),
+            tabs: vec![],
             window: ApplicationWindow::builder()
                 .show_menubar(true)
                 .title("RS-Paint")
                 .build(),
         }));
 
+        Toolbar::init_ui_hooks(&state);
+
         let grid = Grid::new();
         grid.attach(state.borrow().toolbar_p.borrow().widget(), 0, 0, 1, 1);
         grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 1, 1, 1);
-        grid.attach(state.borrow().canvas_p.borrow().widget(), 0, 2, 1, 1);
 
         state.borrow().window.set_child(Some(&grid));
 
+        Self::init_internal_connections(&state);
+
+        state
+    }
+
+    fn init_internal_connections(state: &Rc<RefCell<Self>>) {
         // keypresses
 
         let key_controller = EventControllerKey::new();
@@ -79,61 +92,15 @@ impl UiState {
         }));
 
         state.borrow().window.add_controller(key_controller);
-
-        // drag
-
-        let drag_controller = GestureDrag::new();
-        drag_controller.connect_begin(clone!(@strong state => move |dc, _| {
-            let state = state.borrow();
-            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_start(&dc.current_event_state(), &mut state.canvas_p.borrow_mut());
-        }));
-
-        drag_controller.connect_drag_update(clone!(@strong state => move |dc, _, _| {
-            let state = state.borrow();
-            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_update(&dc.current_event_state(), &mut state.canvas_p.borrow_mut());
-        }));
-
-        drag_controller.connect_drag_end(clone!(@strong state => move |dc, _, _| {
-            let state = state.borrow();
-            state.toolbar_p.borrow_mut().mouse_mode().handle_drag_end(&dc.current_event_state(), &mut state.canvas_p.borrow_mut());
-        }));
-
-        state.borrow().canvas_p.borrow().drawing_area().add_controller(drag_controller);
-
-        // mouse movement
-
-        let motion_controller = EventControllerMotion::new();
-
-        motion_controller.connect_motion(clone!(@strong state => move |ecm, x, y| {
-            let mut state = state.borrow_mut();
-
-            state.canvas_p.borrow_mut().update_cursor_pos(x, y);
-            state.toolbar_p.borrow_mut().mouse_mode().handle_motion(&ecm.current_event_state(), &mut state.canvas_p.borrow_mut());
-        }));
-
-        state.borrow().canvas_p.borrow().drawing_area().add_controller(motion_controller);
-
-        // drawing
-
-        state.borrow().canvas_p.borrow_mut().set_draw_hook(Box::new(clone!(@strong state => move |cr| {
-            let state = state.borrow();
-            state.toolbar_p.borrow_mut().mouse_mode().draw(&state.canvas_p.borrow(), cr);
-        })));
-
-        // mouse-mode-change
-
-        state.borrow_mut().toolbar_p.borrow_mut().set_mode_change_hook(Box::new(clone!(@strong state => move |_toolbar: &Toolbar| {
-            state.borrow_mut().canvas_p.borrow_mut().update();
-        })));
-
-        state
     }
 
     // hack a mod-key-update handler:
     // (.connect_modifier reports the updated mod keys one event late)
     // this is called by handle_keypress and handle_keyrelease
     fn handle_mod_keys_update(&mut self, mod_keys: ModifierType) {
-        self.toolbar_p.borrow_mut().mouse_mode().handle_mod_key_update(&mod_keys, &mut self.canvas_p.borrow_mut());
+        if let Some(canvas_p) = self.active_tab() {
+            self.toolbar_p.borrow_mut().mouse_mode().handle_mod_key_update(&mod_keys, &mut canvas_p.borrow_mut());
+        }
     }
 
     // apply `key` to `mod_keys`, if it's a mod key
@@ -159,20 +126,28 @@ impl UiState {
         if mod_keys == ModifierType::CONTROL_MASK {
             match key {
                 Key::equal => {
-                    self.canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
-                    self.canvas_p.borrow_mut().update();
+                    if let Some(canvas_p) = self.active_tab() {
+                        canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
+                        canvas_p.borrow_mut().update();
+                    }
                 },
                 Key::minus => {
-                    self.canvas_p.borrow_mut().inc_zoom(-ZOOM_INC);
-                    self.canvas_p.borrow_mut().update();
+                    if let Some(canvas_p) = self.active_tab() {
+                        canvas_p.borrow_mut().inc_zoom(-ZOOM_INC);
+                        canvas_p.borrow_mut().update();
+                    }
                 },
                 Key::z => {
-                    self.canvas_p.borrow_mut().undo();
-                    self.canvas_p.borrow_mut().update();
+                    if let Some(canvas_p) = self.active_tab() {
+                        canvas_p.borrow_mut().undo();
+                        canvas_p.borrow_mut().update();
+                    }
                 },
                 Key::y => {
-                    self.canvas_p.borrow_mut().redo();
-                    self.canvas_p.borrow_mut().update();
+                    if let Some(canvas_p) = self.active_tab() {
+                        canvas_p.borrow_mut().redo();
+                        canvas_p.borrow_mut().update();
+                    }
                 },
                 Key::a => {
                     run_about_dialog(&self.window);

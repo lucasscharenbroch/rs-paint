@@ -1,11 +1,13 @@
 use super::super::image::{UnifiedImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::undo::ImageHistory;
 use super::selection::Selection;
+use super::UiState;
+use super::toolbar::Toolbar;
 
 use gtk::prelude::*;
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
 use gtk::gdk::{ModifierType};
-use gtk::{DrawingArea, EventControllerScroll, EventControllerScrollFlags};
+use gtk::{DrawingArea, EventControllerScroll, EventControllerScrollFlags, GestureDrag, EventControllerMotion};
 use gtk::cairo::Context;
 use gtk::cairo;
 use gtk::glib::signal::Propagation;
@@ -31,7 +33,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn new_p(image: UnifiedImage) -> Rc<RefCell<Canvas>> {
+    pub fn new_p(ui_state: Rc<RefCell<UiState>>, image: UnifiedImage) -> Rc<RefCell<Canvas>> {
         let grid = Grid::new();
 
         let drawing_area =  DrawingArea::builder()
@@ -62,6 +64,15 @@ impl Canvas {
             draw_hook: None,
             transparent_checkerboard: mk_transparent_checkerboard(),
         }));
+
+        Self::init_internal_connections(state.clone());
+        Self::init_ui_state_connections(state.clone(), ui_state);
+
+        state
+    }
+
+    fn init_internal_connections(state: Rc<RefCell<Self>>) {
+        // drawing area draw-function
 
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
             state.borrow_mut().draw(area, cr, width, height);
@@ -101,8 +112,48 @@ impl Canvas {
         }));
 
         state.borrow_mut().update_scrollbars();
+    }
 
-        state
+    fn init_ui_state_connections(canvas_p: Rc<RefCell<Self>>, ui_p: Rc<RefCell<UiState>>) {
+        // drag
+
+        let drag_controller = GestureDrag::new();
+        drag_controller.connect_begin(clone!(@strong ui_p, @strong canvas_p => move |dc, _| {
+            ui_p.borrow().toolbar_p.borrow_mut().mouse_mode().handle_drag_start(&dc.current_event_state(), &mut canvas_p.borrow_mut());
+        }));
+
+        drag_controller.connect_drag_update(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
+            ui_p.borrow().toolbar_p.borrow_mut().mouse_mode().handle_drag_update(&dc.current_event_state(), &mut canvas_p.borrow_mut());
+        }));
+
+        drag_controller.connect_drag_end(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
+            ui_p.borrow().toolbar_p.borrow_mut().mouse_mode().handle_drag_end(&dc.current_event_state(), &mut canvas_p.borrow_mut());
+        }));
+
+        canvas_p.borrow().drawing_area().add_controller(drag_controller);
+
+        // mouse movement
+
+        let motion_controller = EventControllerMotion::new();
+
+        motion_controller.connect_motion(clone!(@strong ui_p, @strong canvas_p => move |ecm, x, y| {
+            canvas_p.borrow_mut().update_cursor_pos(x, y);
+            ui_p.borrow_mut().toolbar_p.borrow_mut().mouse_mode().handle_motion(&ecm.current_event_state(), &mut canvas_p.borrow_mut());
+        }));
+
+        canvas_p.borrow().drawing_area().add_controller(motion_controller);
+
+        // drawing
+
+        canvas_p.borrow_mut().set_draw_hook(Box::new(clone!(@strong ui_p, @strong canvas_p => move |cr| {
+            ui_p.borrow().toolbar_p.borrow_mut().mouse_mode().draw(&canvas_p.borrow(), cr);
+        })));
+
+        // mouse-mode-change
+
+        ui_p.borrow_mut().toolbar_p.borrow_mut().set_mode_change_hook(Box::new(clone!(@strong ui_p => move |_toolbar: &Toolbar| {
+            canvas_p.borrow_mut().update();
+        })));
     }
 
     pub fn widget(&self) -> &Grid {

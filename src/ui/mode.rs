@@ -47,12 +47,24 @@ impl MouseMode {
         MouseMode::Cursor(CursorState::default(canvas))
     }
 
+    pub fn cursor_default() -> MouseMode {
+        MouseMode::Cursor(CursorState::default_no_canvas())
+    }
+
     pub fn pencil(canvas: &Canvas) -> MouseMode {
         MouseMode::Pencil(PencilState::default(canvas))
     }
 
+    pub fn pencil_default() -> MouseMode {
+        MouseMode::Pencil(PencilState::default_no_canvas())
+    }
+
     pub fn rectangle_select(canvas: &Canvas) -> MouseMode {
         MouseMode::RectangleSelect(RectangleSelectState::default(canvas))
+    }
+
+    pub fn rectangle_select_default() -> MouseMode {
+        MouseMode::RectangleSelect(RectangleSelectState::default_no_canvas())
     }
 
     fn get_state(&mut self) -> &mut dyn MouseModeState {

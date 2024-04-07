@@ -73,11 +73,13 @@ pub fn import(ui_state: Rc<RefCell<UiState>>) {
             let path = path.as_path();
             match Image::from_file(path) {
                 Ok(img) => {
+                    /* TODO: make new tab, set it as active, update it
                     let ui = ui_state.borrow_mut();
                     let mut canvas = ui.canvas_p.borrow_mut();
                     canvas.image().set_image(img);
                     canvas.save_state_for_undo();
                     canvas.update();
+                    */
                 },
                 Err(mesg) => {
                     popup_mesg(ui_state.borrow().window(), "Import Error",
@@ -97,10 +99,12 @@ pub fn export(ui_state: Rc<RefCell<UiState>>) {
         if let Ok(res) = res {
             let path = res.path().unwrap();
             let path = path.as_path();
+            /* TODO: get active tab
             if let Err(mesg) = ui_state.borrow().canvas_p.borrow().image_ref().image().to_file(path) {
                 popup_mesg(ui_state.borrow().window(), "Export Error",
                             format!("Error during export: {}", mesg).as_str());
             }
+            */
         }
     }))
 }

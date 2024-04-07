@@ -12,6 +12,10 @@ pub struct CursorState {
 
 impl CursorState {
     pub fn default(_canvas: &Canvas) -> CursorState {
+        Self::default_no_canvas()
+    }
+
+    pub fn default_no_canvas() -> CursorState {
         CursorState {
             last_cursor_pos: (0.0, 0.0),
         }
