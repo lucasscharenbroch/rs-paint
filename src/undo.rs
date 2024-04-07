@@ -1,6 +1,6 @@
 use super::image::{Image, UnifiedImage, Pixel};
 
-use std::{collections::HashSet};
+use std::{collections::HashMap};
 
 enum PixelVecDiff {
     Diff(Vec<(usize, Pixel, Pixel)>), // [(pos, old_pix, new_pix)]
@@ -14,7 +14,11 @@ struct ImageDiff {
 }
 
 impl ImageDiff {
-    pub fn new(from: &UnifiedImage, to: &UnifiedImage, (mod_pix, all_modified): (HashSet<(i32, i32)>, bool)) -> ImageDiff {
+    pub fn new(
+        from: &UnifiedImage,
+        to: &UnifiedImage,
+        (mod_pix, save_image): (HashMap<usize, (Pixel, Pixel)>, Option<Image>)
+    ) -> ImageDiff {
         let old_dimensions = (from.width() as usize, from.height() as usize);
         let new_dimensions = (to.width() as usize, to.height() as usize);
 
@@ -23,18 +27,17 @@ impl ImageDiff {
         let hash_set_too_big_to_bother = (mod_pix.len() as f64 / (from.width() * from.height()) as f64) > EXHAUSTIVE_CHECK_THRESHOLD;
 
         let changed_pix =
-            if all_modified || hash_set_too_big_to_bother || old_dimensions != new_dimensions {
+            if let Some(save_image) = save_image {
+                PixelVecDiff::FullCopy(save_image.into_pixels(), to.image().pixels().clone())
+            } else if hash_set_too_big_to_bother || old_dimensions != new_dimensions {
                 PixelVecDiff::FullCopy(from.image().pixels().clone(), to.image().pixels().clone())
-            } else { // just consider pixel coordinates in the hash set
+            } else { // just consider pixel coordinates in the hash map
                 let width = from.width();
                 let from_pix = from.image().pixels();
                 let to_pix = to.image().pixels();
 
-                let diff_vec = mod_pix.iter()
-                    .map(|(r, c)| {
-                    let i = (r * width + c) as usize;
-                    (i, from_pix[i].clone(), to_pix[i].clone())
-                    })
+                let diff_vec = mod_pix.into_iter()
+                    .map(|(i, (b, a))| (i, b, a))
                     .collect::<Vec<_>>();
 
                 PixelVecDiff::Diff(diff_vec)
@@ -48,7 +51,14 @@ impl ImageDiff {
     }
 
     pub fn apply_to(&self, image: &mut UnifiedImage) {
-        // image.set_image(&self.new, true);
+        match self.changed_pix {
+            PixelVecDiff::Diff(ref pixs) => {
+                assert!(self.old_dimensions == self.new_dimensions);
+            },
+            PixelVecDiff::FullCopy(ref before, ref after) => {
+
+            },
+        }
     }
 
     pub fn unapply_to(&self, image: &mut UnifiedImage) {
