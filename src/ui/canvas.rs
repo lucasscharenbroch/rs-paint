@@ -1,5 +1,5 @@
 use super::super::image::{UnifiedImage, DrawableImage, mk_transparent_checkerboard};
-use super::super::undo::ImageHistory;
+use super::super::image::undo::ImageHistory;
 use super::selection::Selection;
 
 use gtk::prelude::*;

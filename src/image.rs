@@ -1,3 +1,5 @@
+pub mod undo;
+
 extern crate image as image_lib;
 
 use image_lib::io::Reader as ImageReader;
