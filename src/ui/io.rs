@@ -73,13 +73,8 @@ pub fn import(ui_state: Rc<RefCell<UiState>>) {
             let path = path.as_path();
             match Image::from_file(path) {
                 Ok(img) => {
-                    /* TODO: make new tab, set it as active, update it
-                    let ui = ui_state.borrow_mut();
-                    let mut canvas = ui.canvas_p.borrow_mut();
-                    canvas.image().set_image(img);
-                    canvas.save_state_for_undo();
-                    canvas.update();
-                    */
+                    let new_tab_idx = UiState::new_tab(&ui_state, img);
+                    ui_state.borrow_mut().set_tab(new_tab_idx);
                 },
                 Err(mesg) => {
                     popup_mesg(ui_state.borrow().window(), "Import Error",

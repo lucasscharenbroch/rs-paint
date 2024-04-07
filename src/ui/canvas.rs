@@ -33,7 +33,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn new_p(ui_state: Rc<RefCell<UiState>>, image: UnifiedImage) -> Rc<RefCell<Canvas>> {
+    pub fn new_p(ui_state: &Rc<RefCell<UiState>>, image: UnifiedImage) -> Rc<RefCell<Canvas>> {
         let grid = Grid::new();
 
         let drawing_area =  DrawingArea::builder()
@@ -65,13 +65,13 @@ impl Canvas {
             transparent_checkerboard: mk_transparent_checkerboard(),
         }));
 
-        Self::init_internal_connections(state.clone());
-        Self::init_ui_state_connections(state.clone(), ui_state);
+        Self::init_internal_connections(&state);
+        Self::init_ui_state_connections(&state, &ui_state);
 
         state
     }
 
-    fn init_internal_connections(state: Rc<RefCell<Self>>) {
+    fn init_internal_connections(state: &Rc<RefCell<Self>>) {
         // drawing area draw-function
 
         state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
@@ -114,7 +114,7 @@ impl Canvas {
         state.borrow_mut().update_scrollbars();
     }
 
-    fn init_ui_state_connections(canvas_p: Rc<RefCell<Self>>, ui_p: Rc<RefCell<UiState>>) {
+    fn init_ui_state_connections(canvas_p: &Rc<RefCell<Self>>, ui_p: &Rc<RefCell<UiState>>) {
         // drag
 
         let drag_controller = GestureDrag::new();
@@ -151,7 +151,7 @@ impl Canvas {
 
         // mouse-mode-change
 
-        ui_p.borrow_mut().toolbar_p.borrow_mut().set_mode_change_hook(Box::new(clone!(@strong ui_p => move |_toolbar: &Toolbar| {
+        ui_p.borrow_mut().toolbar_p.borrow_mut().set_mode_change_hook(Box::new(clone!(@strong ui_p, @strong canvas_p => move |_toolbar: &Toolbar| {
             canvas_p.borrow_mut().update();
         })));
     }

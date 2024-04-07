@@ -9,6 +9,7 @@ mod io;
 use canvas::Canvas;
 use toolbar::Toolbar;
 use dialog::run_about_dialog;
+use crate::image::{Image, UnifiedImage};
 
 use gtk::prelude::*;
 use gtk::gdk::{Key, ModifierType};
@@ -20,7 +21,9 @@ use gtk::glib::signal::Propagation;
 
 pub struct UiState {
     tabs: Vec<Rc<RefCell<Canvas>>>,
+    active_tab: Option<Rc<RefCell<Canvas>>>,
     toolbar_p: Rc<RefCell<Toolbar>>,
+    grid: Grid,
     window: ApplicationWindow,
 }
 
@@ -45,19 +48,29 @@ impl UiState {
         app.run()
     }
 
-    fn set_tab(&self) {
-        // TODO
-        // grid.attach(state.borrow().canvas_p.borrow().widget(), 0, 2, 1, 1);
+    fn set_tab(&mut self, target_idx: usize) {
+        if let Some(canvas_p) = self.tabs.get(target_idx) {
+            self.grid.attach(canvas_p.borrow().widget(), 0, 2, 1, 1);
+            self.active_tab = Some(canvas_p.clone());
+        }
     }
 
-    fn active_tab(&self) -> Option<Rc<RefCell<Canvas>>> {
-        None // TODO
+    fn active_tab(&self) -> &Option<Rc<RefCell<Canvas>>> {
+        &self.active_tab
+    }
+
+    fn new_tab(ui_p: &Rc<RefCell<UiState>>, image: Image) -> usize {
+        let canvas_p = Canvas::new_p(&ui_p, UnifiedImage::from_image(image));
+        ui_p.borrow_mut().tabs.push(canvas_p);
+        ui_p.borrow().tabs.len() - 1
     }
 
     fn new() -> Rc<RefCell<UiState>> {
         let state = Rc::new(RefCell::new(UiState {
             toolbar_p: Toolbar::new_p(),
             tabs: vec![],
+            active_tab: None,
+            grid: Grid::new(),
             window: ApplicationWindow::builder()
                 .show_menubar(true)
                 .title("RS-Paint")
@@ -66,11 +79,10 @@ impl UiState {
 
         Toolbar::init_ui_hooks(&state);
 
-        let grid = Grid::new();
-        grid.attach(state.borrow().toolbar_p.borrow().widget(), 0, 0, 1, 1);
-        grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 1, 1, 1);
+        state.borrow().grid.attach(state.borrow().toolbar_p.borrow().widget(), 0, 0, 1, 1);
+        state.borrow().grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 1, 1, 1);
 
-        state.borrow().window.set_child(Some(&grid));
+        state.borrow().window.set_child(Some(&state.borrow().grid));
 
         Self::init_internal_connections(&state);
 
