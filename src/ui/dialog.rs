@@ -1,4 +1,4 @@
-use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog};
+use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align};
 use gtk::glib::{object::IsA, error::Error as GError};
 use gtk::gio::{File, Cancellable};
 
@@ -7,11 +7,46 @@ fn run_window_with(parent: &impl IsA<Window>, title: &str, content: &impl IsA<Wi
         .transient_for(parent)
         .title(title)
         .child(content)
-        .default_width(300)
-        .default_height(300)
         .build();
 
     dialog_window.present();
+}
+
+fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>) {
+    let ok_button = Button::builder()
+        .label("Ok")
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .margin_end(12)
+        .halign(Align::Center)
+        .build();
+
+    let content = gtk::Box::builder()
+        .orientation(Orientation::Vertical)
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .margin_end(12)
+        .spacing(12)
+        .hexpand(true)
+        .vexpand(true)
+        .build();
+
+    content.append(inner_content);
+    content.append(&ok_button);
+
+    let dialog_window = Window::builder()
+        .transient_for(parent)
+        .title(title)
+        .child(&content)
+        .build();
+
+    dialog_window.present();
+
+    ok_button.connect_clicked(move |_button| {
+        dialog_window.close();
+    });
 }
 
 pub fn run_about_dialog(parent: &impl IsA<Window>) {
@@ -23,9 +58,11 @@ pub fn run_about_dialog(parent: &impl IsA<Window>) {
         .buffer(&text_content)
         .editable(false)
         .cursor_visible(false)
+        .vexpand(true)
+        .hexpand(true)
         .build();
 
-    run_window_with(parent, "About Rs-Paint", &content)
+    ok_dialog(parent, "About Rs-Paint", &content)
 }
 
 pub fn choose_file<P: FnOnce(Result<File, GError>) + 'static>(
@@ -46,4 +83,12 @@ pub fn choose_file<P: FnOnce(Result<File, GError>) + 'static>(
     } else {
         dialog.open(Some(parent), None::<&Cancellable>, callback);
     }
+}
+
+pub fn popup_mesg(parent: &impl IsA<Window>, title: &str, mesg: &str) {
+    let text_label = Label::builder()
+        .label(mesg)
+        .build();
+
+    ok_dialog(parent, title, &text_label)
 }

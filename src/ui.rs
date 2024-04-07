@@ -177,6 +177,9 @@ impl UiState {
                 Key::a => {
                     run_about_dialog(&self.window);
                 }
+                Key::x => {
+                    dialog::popup_mesg(&self.window, "Title", "A very lengthy message that\n also includes newlinew and all");
+                }
                 _ => (),
             }
         }
