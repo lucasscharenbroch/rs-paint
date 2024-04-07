@@ -340,10 +340,7 @@ impl UnifiedImage {
     }
 
     pub fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, Option<Image>) {
-        for (i, p_before) in self.pix_modified_since_draw.iter() {
-            // Self::update_pix_modified_since_save(&mut self.pix_modified_since_save, *i, p_before, &self.image.pixels[*i]);
-            self.pix_modified_since_save.entry(*i).or_insert((p_before.clone(), self.image.pixels[*i].clone()));
-        }
+        self.drawable(); // flush pix_modified_since_draw
 
         let mut mod_pix = HashMap::new();
         std::mem::swap(&mut mod_pix, &mut self.pix_modified_since_save);
