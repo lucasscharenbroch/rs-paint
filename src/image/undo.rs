@@ -30,15 +30,15 @@ impl ImageDiff {
             ImageDiff::Diff(ref pixs) => {
                 for (i, _before, after) in pixs.iter() {
                     image.image.pixels[*i] = after.clone();
+                    image.drawable.pixels[*i] = after.to_drawable();
                 }
             },
             ImageDiff::FullCopy(ref _before, ref after) => {
                 image.image.pixels = after.pixels.clone();
                 (image.image.width, image.image.height) = (after.width, after.height);
+                image.drawable = DrawableImage::from_image(&image.image);
             },
         }
-
-        image.drawable = DrawableImage::from_image(&image.image);
     }
 
     pub fn unapply_to(&self, image: &mut UnifiedImage) {
@@ -46,15 +46,15 @@ impl ImageDiff {
             &ImageDiff::Diff(ref pixs) => {
                 for (i, before, _after) in pixs.iter() {
                     image.image.pixels[*i] = before.clone();
+                    image.drawable.pixels[*i] = before.to_drawable();
                 }
             },
             &ImageDiff::FullCopy(ref before, ref _after) => {
                 image.image.pixels = before.pixels.clone();
                 (image.image.width, image.image.height) = (before.width, before.height);
+                image.drawable = DrawableImage::from_image(&image.image);
             },
         }
-
-        image.drawable = DrawableImage::from_image(&image.image);
     }
 }
 
