@@ -177,9 +177,6 @@ impl UiState {
                 Key::a => {
                     run_about_dialog(&self.window);
                 }
-                Key::x => {
-                    dialog::popup_mesg(&self.window, "Title", "A very lengthy message that\n also includes newlinew and all");
-                }
                 _ => (),
             }
         }
@@ -194,5 +191,9 @@ impl UiState {
         if let Some(mod_keys) = Self::try_update_mod_keys(key, mod_keys, false) {
             self.handle_mod_keys_update(mod_keys);
         }
+    }
+
+    pub fn window(&self) -> &ApplicationWindow {
+        &self.window
     }
 }

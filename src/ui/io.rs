@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-use super::{dialog::choose_file, UiState};
+use super::{dialog::{choose_file, popup_mesg}, UiState};
 use crate::image::Image;
 
 fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
@@ -79,8 +79,9 @@ pub fn import(ui_state: Rc<RefCell<UiState>>) {
                     canvas.save_state_for_undo();
                     canvas.update();
                 },
-                Err(e) => {
-                    panic!("Error loading file: {:?}", e); // TODO
+                Err(mesg) => {
+                    popup_mesg(ui_state.borrow().window(), "Import Error",
+                               format!("Error during import: {}", mesg).as_str());
                 }
             }
         }
@@ -96,8 +97,9 @@ pub fn export(ui_state: Rc<RefCell<UiState>>) {
         if let Ok(res) = res {
             let path = res.path().unwrap();
             let path = path.as_path();
-            if let Err(e) = ui_state.borrow().canvas_p.borrow().image_ref().image().to_file(path) {
-                panic!("Error exporting file: {:?}", e); // TODO
+            if let Err(mesg) = ui_state.borrow().canvas_p.borrow().image_ref().image().to_file(path) {
+                popup_mesg(ui_state.borrow().window(), "Export Error",
+                            format!("Error during export: {}", mesg).as_str());
             }
         }
     }))
