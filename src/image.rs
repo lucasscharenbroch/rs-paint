@@ -4,6 +4,7 @@ extern crate image as image_lib;
 
 use image_lib::io::Reader as ImageReader;
 use image_lib::{DynamicImage, ImageError, RgbaImage, ImageFormat as ImgFmt};
+use std::hash::Hash;
 use std::io::Error;
 use std::path::Path;
 use std::collections::HashMap;
@@ -277,7 +278,7 @@ impl UnifiedImage {
         let i = (r * self.width() + c) as usize;
         // only bother recording modified pixel if image hasn't been overwritten
         if let None = self.save_image_before_overwritten {
-            self.pix_modified_since_draw.insert(i, self.image.pixels[i].clone());
+            self.pix_modified_since_draw.entry(i).or_insert(self.image.pixels[i].clone());
         }
         &mut self.image.pixels[i]
     }
@@ -288,7 +289,7 @@ impl UnifiedImage {
         } else {
             let i = (r * self.width() + c) as usize;
             if let None = self.save_image_before_overwritten {
-                self.pix_modified_since_draw.insert(i, self.image.pixels[i].clone());
+                self.pix_modified_since_draw.entry(i).or_insert(self.image.pixels[i].clone());
             }
             Some(&mut self.image.pixels[i])
         }
@@ -319,10 +320,19 @@ impl UnifiedImage {
         self.pix_modified_since_draw.clear();
     }
 
+    fn update_pix_modified_dict(dict: &mut HashMap<usize, (Pixel, Pixel)>, i: usize, before: &Pixel, after: &Pixel) {
+        let entry = dict.entry(i);
+        if let std::collections::hash_map::Entry::Occupied(mut oe) = entry {
+            oe.insert((oe.get().0.clone(), after.clone()));
+        } else {
+            dict.insert(i, (before.clone(), after.clone()));
+        }
+    }
+
     pub fn drawable(&mut self) -> &mut DrawableImage {
-        for (i, p) in self.pix_modified_since_draw.iter() {
+        for (i, p_before) in self.pix_modified_since_draw.iter() {
             self.drawable.pixels[*i] = self.image.pixels[*i].to_drawable();
-            self.pix_modified_since_save.insert(*i, (p.clone(), self.image.pixels[*i].clone()));
+            Self::update_pix_modified_dict(&mut self.pix_modified_since_save, *i, p_before, &self.image.pixels[*i]);
         }
 
         self.pix_modified_since_draw.clear();
@@ -330,8 +340,9 @@ impl UnifiedImage {
     }
 
     pub fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, Option<Image>) {
-        for (i, p) in self.pix_modified_since_draw.iter() {
-            self.pix_modified_since_save.insert(*i, (p.clone(), self.image.pixels[*i].clone()));
+        for (i, p_before) in self.pix_modified_since_draw.iter() {
+            // Self::update_pix_modified_since_save(&mut self.pix_modified_since_save, *i, p_before, &self.image.pixels[*i]);
+            self.pix_modified_since_save.entry(*i).or_insert((p_before.clone(), self.image.pixels[*i].clone()));
         }
 
         let mut mod_pix = HashMap::new();

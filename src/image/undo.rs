@@ -1,3 +1,5 @@
+use crate::image::DrawableImage;
+
 use super::{Image, UnifiedImage, Pixel};
 
 use std::{collections::HashMap};
@@ -12,12 +14,6 @@ impl ImageDiff {
         to: &UnifiedImage,
         (mod_pix, save_image): (HashMap<usize, (Pixel, Pixel)>, Option<Image>)
     ) -> ImageDiff {
-        let new_dimensions = (to.width() as usize, to.height() as usize);
-
-        // it's probably faster to not bother with the hash set if enough pixels have been modified
-        const EXHAUSTIVE_CHECK_THRESHOLD: f64 = 0.25;
-        let hash_set_too_big_to_bother = (mod_pix.len() as f64 / (to.width() * to.height()) as f64) > EXHAUSTIVE_CHECK_THRESHOLD;
-
         if let Some(save_image) = save_image {
             ImageDiff::FullCopy(save_image, to.image().clone())
         } else { // just consider pixel coordinates in the hash map
@@ -41,6 +37,8 @@ impl ImageDiff {
                 (image.image.width, image.image.height) = (after.width, after.height);
             },
         }
+
+        image.drawable = DrawableImage::from_image(&image.image);
     }
 
     pub fn unapply_to(&self, image: &mut UnifiedImage) {
@@ -55,6 +53,8 @@ impl ImageDiff {
                 (image.image.width, image.image.height) = (before.width, before.height);
             },
         }
+
+        image.drawable = DrawableImage::from_image(&image.image);
     }
 }
 
