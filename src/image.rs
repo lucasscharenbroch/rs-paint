@@ -3,9 +3,7 @@ pub mod undo;
 extern crate image as image_lib;
 
 use image_lib::io::Reader as ImageReader;
-use image_lib::{DynamicImage, ImageError, RgbaImage, ImageFormat as ImgFmt};
-use std::hash::Hash;
-use std::io::Error;
+use image_lib::{DynamicImage, RgbaImage, ImageFormat as ImgFmt};
 use std::path::Path;
 use std::collections::HashMap;
 
@@ -106,8 +104,8 @@ impl Image {
 
 // i/o
 impl Image {
-    pub fn from_file(path: &Path) -> Result<Image, Error> {
-        match ImageReader::open(path)?.decode() {
+    pub fn from_file(path: &Path) -> Result<Image, String> {
+        match ImageReader::open(path).map_err(|e| e.to_string())?.decode() {
             Ok(dyn_img) => {
                 let rgba = dyn_img.to_rgba8();
                 let pixels = rgba.enumerate_pixels().map(|(x, y, rgba)| {
@@ -122,36 +120,39 @@ impl Image {
 
                 Ok(img)
             },
-            Err(err) => {
-                panic!("Error when loading image: {:?}", err);
-            },
+            Err(img_err) => Err(img_err.to_string()),
         }
     }
 
-    pub fn to_file(&self, path: &Path) -> Result<(), ImageError> {
+    pub fn to_file(&self, path: &Path) -> Result<(), String> {
         let ext = path.extension()
             .and_then(|os| os.to_str())
             .map(|s| s.to_ascii_lowercase());
 
-        let format = match ext.as_ref().map(|s| s.as_str()) {
-            Some("png") => ImgFmt::Png,
-            Some("jpg") | Some("jpeg") => ImgFmt::Jpeg,
-            Some("gif") => ImgFmt::Gif,
-            Some("webp") => ImgFmt::WebP,
-            Some("bmp") => ImgFmt::Bmp,
-            _ => panic!("Invalid file extension: {:?}", ext),
+        let format = if let Some(s) = ext {
+            match s.as_str() {
+                "png" => ImgFmt::Png,
+                "jpg" | "jpeg" => ImgFmt::Jpeg,
+                "gif" => ImgFmt::Gif,
+                "webp" => ImgFmt::WebP,
+                "bmp" => ImgFmt::Bmp,
+                _ => return Err(format!("Invalid file extension: `.{}`", s)),
+            }
+        } else {
+            return Err(String::from("Can't determine image type (no extension)"));
         };
 
         unsafe {
             let (_, u8_slice, _) = self.pixels.align_to::<u8>();
-            let rgba = RgbaImage::from_raw(self.width as u32, self.height as u32, u8_slice.to_vec()).unwrap();
+            let rgba = RgbaImage::from_raw(self.width as u32, self.height as u32, u8_slice.to_vec())
+                .ok_or("Failed to make RgbaImage from image buffer")?;
             match format {
                 ImgFmt::Jpeg =>  {
                     // jpg doesn't support alpha
                     let rgb = DynamicImage::from(rgba).to_rgb8();
-                    rgb.save_with_format(path, format)
+                    rgb.save_with_format(path, format).map_err(|e| e.to_string())
                 }
-                _ => rgba.save_with_format(path, format)
+                _ => rgba.save_with_format(path, format).map_err(|e| e.to_string())
             }
         }
     }

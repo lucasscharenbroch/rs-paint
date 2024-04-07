@@ -80,7 +80,7 @@ pub fn import(ui_state: Rc<RefCell<UiState>>) {
                     canvas.update();
                 },
                 Err(e) => {
-                    panic!("Error loading file: {:?}", e);
+                    panic!("Error loading file: {:?}", e); // TODO
                 }
             }
         }
@@ -97,7 +97,7 @@ pub fn export(ui_state: Rc<RefCell<UiState>>) {
             let path = res.path().unwrap();
             let path = path.as_path();
             if let Err(e) = ui_state.borrow().canvas_p.borrow().image_ref().image().to_file(path) {
-                panic!("Error exporting file: {:?}", e);
+                panic!("Error exporting file: {:?}", e); // TODO
             }
         }
     }))

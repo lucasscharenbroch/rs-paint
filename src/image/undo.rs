@@ -94,7 +94,6 @@ impl ImageHistory {
         }
     }
 
-    // TODO mult-level-undo (choose which branch to take)
     pub fn redo(&mut self) {
         if let Some(d) = self.redo_stack.pop() {
             d.apply_to(&mut self.now);

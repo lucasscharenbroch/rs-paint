@@ -1,5 +1,5 @@
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog};
-use gtk::glib::{object::IsA, error::Error};
+use gtk::glib::{object::IsA, error::Error as GError};
 use gtk::gio::{File, Cancellable};
 
 fn run_window_with(parent: &impl IsA<Window>, title: &str, content: &impl IsA<Widget>) {
@@ -28,7 +28,7 @@ pub fn run_about_dialog(parent: &impl IsA<Window>) {
     run_window_with(parent, "About Rs-Paint", &content)
 }
 
-pub fn choose_file<P: FnOnce(Result<File, Error>) + 'static>(
+pub fn choose_file<P: FnOnce(Result<File, GError>) + 'static>(
     parent: &impl IsA<Window>,
     title: &str, accept_label: &str,
     valid_filetypes: &impl IsA<gtk::gio::ListModel>,
