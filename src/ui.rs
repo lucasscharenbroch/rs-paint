@@ -44,12 +44,15 @@ impl UiState {
         app.set_menubar(Some(&menu));
         menu_actions.iter().for_each(|a| app.add_action(a));
 
-
         app.run()
     }
 
     fn set_tab(&mut self, target_idx: usize) {
         if let Some(canvas_p) = self.tabs.get(target_idx) {
+            if let Some(current_canvas_p) = self.active_tab() {
+                self.grid.remove(current_canvas_p.borrow().widget());
+            }
+
             self.grid.attach(canvas_p.borrow().widget(), 0, 2, 1, 1);
             self.active_tab = Some(canvas_p.clone());
         }

@@ -94,12 +94,15 @@ pub fn export(ui_state: Rc<RefCell<UiState>>) {
         if let Ok(res) = res {
             let path = res.path().unwrap();
             let path = path.as_path();
-            /* TODO: get active tab
-            if let Err(mesg) = ui_state.borrow().canvas_p.borrow().image_ref().image().to_file(path) {
+            if let Some(canvas_p) = ui_state.borrow().active_tab() {
+                if let Err(mesg) = canvas_p.borrow().image_ref().image().to_file(path) {
+                    popup_mesg(ui_state.borrow().window(), "Export Error",
+                                format!("Error during export: {}", mesg).as_str());
+                }
+            } else {
                 popup_mesg(ui_state.borrow().window(), "Export Error",
-                            format!("Error during export: {}", mesg).as_str());
+                           "No image to export");
             }
-            */
         }
     }))
 }
