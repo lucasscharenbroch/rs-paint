@@ -94,7 +94,7 @@ pub fn export(ui_p: Rc<RefCell<UiState>>) {
         if let Ok(res) = res {
             let path = res.path().unwrap();
             let path = path.as_path();
-            if let Some(canvas_p) = ui_p.borrow().active_tab() {
+            if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
                 if let Err(mesg) = canvas_p.borrow().image_ref().image().to_file(path) {
                     popup_mesg(ui_p.borrow().window(), "Export Error",
                                 format!("Error during export: {}", mesg).as_str());

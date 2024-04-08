@@ -5,11 +5,13 @@ mod selection;
 mod menu;
 mod dialog;
 mod io;
+mod tab;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
 use dialog::run_about_dialog;
 use crate::image::{Image, UnifiedImage};
+use tab::Tab;
 
 use gtk::prelude::*;
 use gtk::gdk::{Key, ModifierType};
@@ -20,8 +22,8 @@ use glib_macros::clone;
 use gtk::glib::signal::Propagation;
 
 pub struct UiState {
-    tabs: Vec<Rc<RefCell<Canvas>>>,
-    active_tab: Option<Rc<RefCell<Canvas>>>,
+    tabs: Vec<Tab>,
+    active_tab_idx: usize,
     toolbar_p: Rc<RefCell<Toolbar>>,
     grid: Grid,
     window: ApplicationWindow,
@@ -48,23 +50,28 @@ impl UiState {
     }
 
     fn set_tab(&mut self, target_idx: usize) {
-        if let Some(canvas_p) = self.tabs.get(target_idx) {
-            if let Some(current_canvas_p) = self.active_tab() {
+        if let Some(target_tab) = self.tabs.get(target_idx) {
+            let target_canvas_p = target_tab.canvas_p;
+            if let Some(current_canvas_p) = self.active_canvas_p() {
                 self.grid.remove(current_canvas_p.borrow().widget());
             }
 
-            self.grid.attach(canvas_p.borrow().widget(), 0, 2, 1, 1);
-            self.active_tab = Some(canvas_p.clone());
+            self.grid.attach(target_canvas_p.borrow().widget(), 0, 2, 1, 1);
+            self.active_tab_idx = target_idx;
         }
     }
 
-    fn active_tab(&self) -> &Option<Rc<RefCell<Canvas>>> {
-        &self.active_tab
+    fn active_tab(&self) -> Option<&Tab> {
+        self.tabs.get(self.active_tab_idx)
+    }
+
+    fn active_canvas_p(&self) -> Option<&Rc<RefCell<Canvas>>> {
+        self.active_tab().map(|t| &t.canvas_p)
     }
 
     fn new_tab(ui_p: &Rc<RefCell<UiState>>, image: Image) -> usize {
         let canvas_p = Canvas::new_p(&ui_p, UnifiedImage::from_image(image));
-        ui_p.borrow_mut().tabs.push(canvas_p);
+        ui_p.borrow_mut().tabs.push(Tab::new(&canvas_p));
         ui_p.borrow().tabs.len() - 1
     }
 
@@ -72,7 +79,7 @@ impl UiState {
         let ui_p = Rc::new(RefCell::new(UiState {
             toolbar_p: Toolbar::new_p(),
             tabs: vec![],
-            active_tab: None,
+            active_tab_idx: 0,
             grid: Grid::new(),
             window: ApplicationWindow::builder()
                 .show_menubar(true)
@@ -113,7 +120,7 @@ impl UiState {
     // (.connect_modifier reports the updated mod keys one event late)
     // this is called by handle_keypress and handle_keyrelease
     fn handle_mod_keys_update(&mut self, mod_keys: ModifierType) {
-        if let Some(canvas_p) = self.active_tab() {
+        if let Some(canvas_p) = self.active_canvas_p() {
             self.toolbar_p.borrow_mut().mouse_mode().handle_mod_key_update(&mod_keys, &mut canvas_p.borrow_mut());
         }
     }
@@ -141,25 +148,25 @@ impl UiState {
         if mod_keys == ModifierType::CONTROL_MASK {
             match key {
                 Key::equal => {
-                    if let Some(canvas_p) = self.active_tab() {
+                    if let Some(canvas_p) = self.active_canvas_p() {
                         canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
                         canvas_p.borrow_mut().update();
                     }
                 },
                 Key::minus => {
-                    if let Some(canvas_p) = self.active_tab() {
+                    if let Some(canvas_p) = self.active_canvas_p() {
                         canvas_p.borrow_mut().inc_zoom(-ZOOM_INC);
                         canvas_p.borrow_mut().update();
                     }
                 },
                 Key::z => {
-                    if let Some(canvas_p) = self.active_tab() {
+                    if let Some(canvas_p) = self.active_canvas_p() {
                         canvas_p.borrow_mut().undo();
                         canvas_p.borrow_mut().update();
                     }
                 },
                 Key::y => {
-                    if let Some(canvas_p) = self.active_tab() {
+                    if let Some(canvas_p) = self.active_canvas_p() {
                         canvas_p.borrow_mut().redo();
                         canvas_p.borrow_mut().update();
                     }

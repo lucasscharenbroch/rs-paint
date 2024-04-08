@@ -61,7 +61,7 @@ impl Toolbar {
                 button.connect_clicked(clone!(@strong toolbar_p, @strong ui_p => move |b| {
                     if b.is_active() {
                         let mode =
-                            if let Some(canvas_p) = ui_p.borrow().active_tab()  {
+                            if let Some(canvas_p) = ui_p.borrow().active_canvas_p()  {
                                 mode_constructor(&canvas_p.borrow())
                             } else {
                                 mode_constructor_default()
