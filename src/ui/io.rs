@@ -62,22 +62,22 @@ pub fn image_export_formats() -> Vec<Vec<&'static str>> {
     ]
 }
 
-pub fn import(ui_state: Rc<RefCell<UiState>>) {
+pub fn import(ui_p: Rc<RefCell<UiState>>) {
     let valid_filetypes = mk_file_filter_list(image_import_formats());
 
-    choose_file(&ui_state.borrow().window, "Choose an image to import",
+    choose_file(&ui_p.borrow().window, "Choose an image to import",
                 "Import", &valid_filetypes, false,
-                clone!(@strong ui_state => move |res| {
+                clone!(@strong ui_p => move |res| {
         if let Ok(res) = res {
             let path = res.path().unwrap();
             let path = path.as_path();
             match Image::from_file(path) {
                 Ok(img) => {
-                    let new_tab_idx = UiState::new_tab(&ui_state, img);
-                    ui_state.borrow_mut().set_tab(new_tab_idx);
+                    let new_tab_idx = UiState::new_tab(&ui_p, img);
+                    ui_p.borrow_mut().set_tab(new_tab_idx);
                 },
                 Err(mesg) => {
-                    popup_mesg(ui_state.borrow().window(), "Import Error",
+                    popup_mesg(ui_p.borrow().window(), "Import Error",
                                format!("Error during import: {}", mesg).as_str());
                 }
             }
@@ -85,22 +85,22 @@ pub fn import(ui_state: Rc<RefCell<UiState>>) {
     }))
 }
 
-pub fn export(ui_state: Rc<RefCell<UiState>>) {
+pub fn export(ui_p: Rc<RefCell<UiState>>) {
     let valid_filetypes = mk_file_filter_list(image_export_formats());
 
-    choose_file(&ui_state.borrow().window, "Export image",
+    choose_file(&ui_p.borrow().window, "Export image",
                 "Export", &valid_filetypes, true,
-                clone!(@strong ui_state => move |res| {
+                clone!(@strong ui_p => move |res| {
         if let Ok(res) = res {
             let path = res.path().unwrap();
             let path = path.as_path();
-            if let Some(canvas_p) = ui_state.borrow().active_tab() {
+            if let Some(canvas_p) = ui_p.borrow().active_tab() {
                 if let Err(mesg) = canvas_p.borrow().image_ref().image().to_file(path) {
-                    popup_mesg(ui_state.borrow().window(), "Export Error",
+                    popup_mesg(ui_p.borrow().window(), "Export Error",
                                 format!("Error during export: {}", mesg).as_str());
                 }
             } else {
-                popup_mesg(ui_state.borrow().window(), "Export Error",
+                popup_mesg(ui_p.borrow().window(), "Export Error",
                            "No image to export");
             }
         }

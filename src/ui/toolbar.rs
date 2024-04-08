@@ -26,7 +26,7 @@ impl Toolbar {
         let tbox =  Box::new(Orientation::Horizontal, 10);
         let initial_mode = MouseMode::cursor_default();
 
-        let state = Rc::new(RefCell::new(Toolbar {
+        let toolbar_p = Rc::new(RefCell::new(Toolbar {
             tbox,
             mouse_mode: initial_mode,
             mouse_mode_buttons: vec![],
@@ -34,13 +34,13 @@ impl Toolbar {
         }));
 
         // activate initial_mode button
-        state.borrow_mut().mouse_mode_buttons.iter().for_each(|b| {
+        toolbar_p.borrow_mut().mouse_mode_buttons.iter().for_each(|b| {
             if b.mode == initial_mode {
                 b.widget.set_active(true);
             }
         });
 
-        state
+        toolbar_p
     }
 
     pub fn init_ui_hooks(ui_p: &Rc<RefCell<UiState>>) {

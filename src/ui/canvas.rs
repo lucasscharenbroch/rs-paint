@@ -33,7 +33,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn new_p(ui_state: &Rc<RefCell<UiState>>, image: UnifiedImage) -> Rc<RefCell<Canvas>> {
+    pub fn new_p(ui_p: &Rc<RefCell<UiState>>, image: UnifiedImage) -> Rc<RefCell<Canvas>> {
         let grid = Grid::new();
 
         let drawing_area =  DrawingArea::builder()
@@ -49,7 +49,7 @@ impl Canvas {
         grid.attach(&v_scrollbar, 1, 0, 1, 1);
         grid.attach(&h_scrollbar, 0, 1, 1, 1);
 
-        let state = Rc::new(RefCell::new(Canvas {
+        let canvas_p = Rc::new(RefCell::new(Canvas {
             image_hist: ImageHistory::new(image),
             zoom: 1.0,
             pan: (0.0, 0.0),
@@ -65,53 +65,53 @@ impl Canvas {
             transparent_checkerboard: mk_transparent_checkerboard(),
         }));
 
-        Self::init_internal_connections(&state);
-        Self::init_ui_state_connections(&state, &ui_state);
+        Self::init_internal_connections(&canvas_p);
+        Self::init_ui_state_connections(&canvas_p, &ui_p);
 
-        state
+        canvas_p
     }
 
-    fn init_internal_connections(state: &Rc<RefCell<Self>>) {
+    fn init_internal_connections(canvas_p: &Rc<RefCell<Self>>) {
         // drawing area draw-function
 
-        state.borrow().drawing_area.set_draw_func(clone!(@strong state => move |area, cr, width, height| {
-            state.borrow_mut().draw(area, cr, width, height);
+        canvas_p.borrow().drawing_area.set_draw_func(clone!(@strong canvas_p => move |area, cr, width, height| {
+            canvas_p.borrow_mut().draw(area, cr, width, height);
 
             // draw selection
-            state.borrow().selection.draw_outline(&state.borrow(), cr);
+            canvas_p.borrow().selection.draw_outline(&canvas_p.borrow(), cr);
 
             // run hooks
-            state.borrow().draw_hook.iter().for_each(|f| f(cr));
-            state.borrow().single_shot_draw_hooks.iter().for_each(|f| f(cr));
-            state.borrow_mut().single_shot_draw_hooks = vec![];
+            canvas_p.borrow().draw_hook.iter().for_each(|f| f(cr));
+            canvas_p.borrow().single_shot_draw_hooks.iter().for_each(|f| f(cr));
+            canvas_p.borrow_mut().single_shot_draw_hooks = vec![];
         }));
 
         // scroll
 
         let scroll_controller = EventControllerScroll::new(EventControllerScrollFlags::BOTH_AXES);
-        scroll_controller.connect_scroll(clone!(@strong state => move |ecs, dx, dy| {
-            state.borrow_mut().handle_scroll(ecs, dx, dy)
+        scroll_controller.connect_scroll(clone!(@strong canvas_p => move |ecs, dx, dy| {
+            canvas_p.borrow_mut().handle_scroll(ecs, dx, dy)
         }));
 
-        state.borrow_mut().grid.add_controller(scroll_controller);
+        canvas_p.borrow_mut().grid.add_controller(scroll_controller);
 
-        let h_sb_handler = state.borrow_mut().h_scrollbar.adjustment().connect_value_changed(clone!(@strong state => move |adjustment| {
-            state.borrow_mut().set_h_pan(adjustment.value());
-            state.borrow_mut().update();
+        let h_sb_handler = canvas_p.borrow_mut().h_scrollbar.adjustment().connect_value_changed(clone!(@strong canvas_p => move |adjustment| {
+            canvas_p.borrow_mut().set_h_pan(adjustment.value());
+            canvas_p.borrow_mut().update();
         }));
 
-        let v_sb_handler = state.borrow_mut().v_scrollbar.adjustment().connect_value_changed(clone!(@strong state => move |adjustment| {
-            state.borrow_mut().set_v_pan(adjustment.value());
-            state.borrow_mut().update();
+        let v_sb_handler = canvas_p.borrow_mut().v_scrollbar.adjustment().connect_value_changed(clone!(@strong canvas_p => move |adjustment| {
+            canvas_p.borrow_mut().set_v_pan(adjustment.value());
+            canvas_p.borrow_mut().update();
         }));
 
-        state.borrow_mut().scrollbar_update_handlers = Some((h_sb_handler, v_sb_handler));
+        canvas_p.borrow_mut().scrollbar_update_handlers = Some((h_sb_handler, v_sb_handler));
 
-        state.borrow_mut().drawing_area.connect_resize(clone!(@strong state => move |_, _, _| {
-            state.borrow_mut().update();
+        canvas_p.borrow_mut().drawing_area.connect_resize(clone!(@strong canvas_p => move |_, _, _| {
+            canvas_p.borrow_mut().update();
         }));
 
-        state.borrow_mut().update_scrollbars();
+        canvas_p.borrow_mut().update_scrollbars();
     }
 
     fn init_ui_state_connections(canvas_p: &Rc<RefCell<Self>>, ui_p: &Rc<RefCell<UiState>>) {

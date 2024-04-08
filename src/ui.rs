@@ -31,14 +31,14 @@ impl UiState {
     pub fn run_main_ui() -> gtk::glib::ExitCode {
         let app = Application::builder()
             .build();
-        let state = Self::new();
+        let ui_p = Self::new();
 
-        app.connect_activate(clone!(@strong state => move |app| {
-            state.borrow().window.set_application(Some(app));
-            state.borrow().window.present();
+        app.connect_activate(clone!(@strong ui_p => move |app| {
+            ui_p.borrow().window.set_application(Some(app));
+            ui_p.borrow().window.present();
         }));
 
-        let (menu, menu_actions) = menu::mk_menu(state.clone());
+        let (menu, menu_actions) = menu::mk_menu(ui_p.clone());
 
         app.register(None::<&gtk::gio::Cancellable>);
         app.set_menubar(Some(&menu));
@@ -69,7 +69,7 @@ impl UiState {
     }
 
     fn new() -> Rc<RefCell<UiState>> {
-        let state = Rc::new(RefCell::new(UiState {
+        let ui_p = Rc::new(RefCell::new(UiState {
             toolbar_p: Toolbar::new_p(),
             tabs: vec![],
             active_tab: None,
@@ -80,33 +80,33 @@ impl UiState {
                 .build(),
         }));
 
-        Toolbar::init_ui_hooks(&state);
+        Toolbar::init_ui_hooks(&ui_p);
 
-        state.borrow().grid.attach(state.borrow().toolbar_p.borrow().widget(), 0, 0, 1, 1);
-        state.borrow().grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 1, 1, 1);
+        ui_p.borrow().grid.attach(ui_p.borrow().toolbar_p.borrow().widget(), 0, 0, 1, 1);
+        ui_p.borrow().grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 1, 1, 1);
 
-        state.borrow().window.set_child(Some(&state.borrow().grid));
+        ui_p.borrow().window.set_child(Some(&ui_p.borrow().grid));
 
-        Self::init_internal_connections(&state);
+        Self::init_internal_connections(&ui_p);
 
-        state
+        ui_p
     }
 
-    fn init_internal_connections(state: &Rc<RefCell<Self>>) {
+    fn init_internal_connections(ui_p: &Rc<RefCell<Self>>) {
         // keypresses
 
         let key_controller = EventControllerKey::new();
 
-        key_controller.connect_key_pressed(clone!(@strong state => move |_, key, _, mod_keys| {
-            state.borrow_mut().handle_keypress(key, mod_keys);
+        key_controller.connect_key_pressed(clone!(@strong ui_p => move |_, key, _, mod_keys| {
+            ui_p.borrow_mut().handle_keypress(key, mod_keys);
             Propagation::Proceed
         }));
 
-        key_controller.connect_key_released(clone!(@strong state => move |_, key, _, mod_keys| {
-            state.borrow_mut().handle_keyrelease(key, mod_keys);
+        key_controller.connect_key_released(clone!(@strong ui_p => move |_, key, _, mod_keys| {
+            ui_p.borrow_mut().handle_keyrelease(key, mod_keys);
         }));
 
-        state.borrow().window.add_controller(key_controller);
+        ui_p.borrow().window.add_controller(key_controller);
     }
 
     // hack a mod-key-update handler:
