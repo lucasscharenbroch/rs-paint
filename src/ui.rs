@@ -60,19 +60,19 @@ impl UiState {
     }
 
     fn set_tab(&mut self, target_idx: usize) {
-        if let Some(target_tab) = self.tabbar.get_tab(target_idx) {
+        if let Some(target_tab) = self.tabbar.tabs.get(target_idx) {
             let target_canvas_p = &target_tab.canvas_p;
             if let Some(current_canvas_p) = self.active_canvas_p() {
                 self.grid.remove(current_canvas_p.borrow().widget());
             }
 
             self.grid.attach(target_canvas_p.borrow().widget(), 0, 2, 1, 1);
-            self.tabbar.set_tab(target_idx);
+            self.tabbar.active_idx = Some(target_idx);
         }
     }
 
     fn active_tab(&self) -> Option<&Tab> {
-        self.tabbar.active_tab()
+        self.tabbar.active_idx.and_then(|i| self.tabbar.tabs.get(i))
     }
 
     fn active_canvas_p(&self) -> Option<&Rc<RefCell<Canvas>>> {
@@ -82,7 +82,8 @@ impl UiState {
     fn new_tab(ui_p: &Rc<RefCell<UiState>>, image: Image, name: &str) -> usize {
         let canvas_p = Canvas::new_p(&ui_p, UnifiedImage::from_image(image));
         let new_tab = Tab::new(&canvas_p, name);
-        let new_idx = ui_p.borrow_mut().tabbar.append_tab(new_tab);
+        let new_idx = ui_p.borrow().tabbar.tabs.len();
+        ui_p.borrow_mut().tabbar.tabs.push(new_tab);
         ui_p.borrow_mut().set_tab(new_idx);
         ui_p.borrow_mut().update_tabbar_widget();
         new_idx

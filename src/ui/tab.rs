@@ -46,8 +46,8 @@ impl Tab {
 }
 
 pub struct Tabbar {
-    tabs: Vec<Tab>,
-    active_idx: Option<usize>
+    pub tabs: Vec<Tab>,
+    pub active_idx: Option<usize>
 }
 
 impl Tabbar {
@@ -67,22 +67,5 @@ impl Tabbar {
             .for_each(|(tab, i)| res.append(&tab.widget(self.active_idx.map(|ai| ai == i).unwrap_or(false))));
 
         res
-    }
-
-    pub fn append_tab(&mut self, tab: Tab) -> usize {
-        self.tabs.push(tab);
-        self.tabs.len() - 1
-    }
-
-    pub fn active_tab(&self) -> Option<&Tab> {
-        self.active_idx.and_then(|i| self.tabs.get(i))
-    }
-
-    pub fn get_tab(&self, idx: usize) -> Option<&Tab> {
-        self.tabs.get(idx)
-    }
-
-    pub fn set_tab(&mut self, idx: usize) {
-        self.active_idx = Some(idx);
     }
 }
