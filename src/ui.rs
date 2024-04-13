@@ -49,14 +49,14 @@ impl UiState {
         app.run()
     }
 
-    fn update_tabbar_widget(&mut self) {
-        if let Some(ref w) = self.tabbar_widget {
-            self.grid.remove(w);
+    fn update_tabbar_widget(ui_p: &Rc<RefCell<Self>>) {
+        if let Some(ref w) = ui_p.borrow().tabbar_widget {
+            ui_p.borrow().grid.remove(w);
         }
 
-        let new_widget = self.tabbar.widget();
-        self.grid.attach(&new_widget, 0, 0, 1, 1);
-        self.tabbar_widget = Some(new_widget);
+        let new_widget = ui_p.borrow().tabbar.widget(ui_p);
+        ui_p.borrow().grid.attach(&new_widget, 0, 0, 1, 1);
+        ui_p.borrow_mut().tabbar_widget = Some(new_widget);
     }
 
     fn set_tab(&mut self, target_idx: usize) {
@@ -85,7 +85,7 @@ impl UiState {
         let new_idx = ui_p.borrow().tabbar.tabs.len();
         ui_p.borrow_mut().tabbar.tabs.push(new_tab);
         ui_p.borrow_mut().set_tab(new_idx);
-        ui_p.borrow_mut().update_tabbar_widget();
+        Self::update_tabbar_widget(ui_p);
         new_idx
     }
 
@@ -103,7 +103,7 @@ impl UiState {
 
         Toolbar::init_ui_hooks(&ui_p);
 
-        ui_p.borrow().grid.attach(&ui_p.borrow().tabbar.widget(), 0, 0, 1, 1);
+        ui_p.borrow().grid.attach(&ui_p.borrow().tabbar.widget(&ui_p), 0, 0, 1, 1);
         ui_p.borrow().grid.attach(ui_p.borrow().toolbar_p.borrow().widget(), 0, 1, 1, 1);
         ui_p.borrow().grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 2, 1, 1);
 
