@@ -78,15 +78,16 @@ impl UiState {
         });
 
         if let Some(target_tab) = ui_p.borrow().tabbar.tabs.get(target_idx) {
-            if !target_tab.modified_since_export() {
-                close_it();
-            } else {
+            if target_tab.modified_since_export() {
                 popup_yes_no_prompt(ui_p.borrow().window(), "Close tab",
                                     format!("`{}` has been modified since last exporting. Close anyway?", target_tab.name()).as_str(),
                                     close_it,
                                     || ());
+                return;
             }
         }
+
+        close_it();
     }
 
     fn close_tab(&mut self, target_idx: usize) {
