@@ -1,6 +1,9 @@
-use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align};
+use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
 use gtk::glib::{object::IsA, error::Error as GError};
 use gtk::gio::{File, Cancellable};
+use std::rc::Rc;
+use std::cell::RefCell;
+use glib_macros::clone;
 
 fn run_window_with(parent: &impl IsA<Window>, title: &str, content: &impl IsA<Widget>) {
     let dialog_window = Window::builder()
@@ -49,6 +52,64 @@ fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Wi
     });
 }
 
+fn yes_no_dialog<F, G>(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>, on_yes: F, on_no: G)
+where
+    F: Fn() + 'static,
+    G: Fn() + 'static
+{
+    let yes_button = Button::builder()
+        .label("Yes")
+        .margin_end(2)
+        .build();
+
+    let no_button = Button::builder()
+        .label("No")
+        .margin_end(2)
+        .build();
+
+    let button_wrapper = GBox::builder()
+        .orientation(Orientation::Horizontal)
+        .halign(Align::Center)
+        .build();
+
+    button_wrapper.append(&no_button);
+    button_wrapper.append(&yes_button);
+
+    let content = gtk::Box::builder()
+        .orientation(Orientation::Vertical)
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .margin_end(12)
+        .spacing(12)
+        .hexpand(true)
+        .vexpand(true)
+        .build();
+
+    content.append(inner_content);
+    content.append(&button_wrapper);
+
+    let dialog_window = Window::builder()
+        .transient_for(parent)
+        .title(title)
+        .child(&content)
+        .build();
+
+    dialog_window.present();
+
+    let window_p = Rc::new(RefCell::new(dialog_window));
+
+    yes_button.connect_clicked(clone!(@strong window_p => move |_button| {
+        on_yes();
+        window_p.borrow().close();
+    }));
+
+    no_button.connect_clicked(clone!(@strong window_p => move |_button| {
+        on_no();
+        window_p.borrow().close();
+    }));
+}
+
 pub fn run_about_dialog(parent: &impl IsA<Window>) {
     let text_content = TextBuffer::builder()
         .text("Information about RS-Paint")
@@ -92,4 +153,17 @@ pub fn popup_mesg(parent: &impl IsA<Window>, title: &str, mesg: &str) {
         .build();
 
     ok_dialog(parent, title, &text_label)
+}
+
+pub fn popup_yes_no_prompt<F, G>(parent: &impl IsA<Window>, title: &str, prompt: &str, on_yes: F, on_no: G)
+where
+    F: Fn() + 'static,
+    G: Fn() + 'static,
+{
+    let text_label = Label::builder()
+        .label(prompt)
+        .selectable(true)
+        .build();
+
+    yes_no_dialog(parent, title, &text_label, on_yes, on_no);
 }

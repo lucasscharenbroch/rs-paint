@@ -127,6 +127,7 @@ impl ImageHistory {
         let mod_pix_info = self.now.img.get_and_reset_modified();
         let image_diff = ImageDiff::new(&self.now.img, mod_pix_info);
         let image_state_diff = ImageStateDiff::new(image_diff, self.now.id, self.id_counter);
+        self.now.id = self.id_counter;
         self.id_counter += 1;
 
         self.undo_stack.push(image_state_diff);

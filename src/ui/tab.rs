@@ -1,10 +1,10 @@
 use super::canvas::Canvas;
 use super::UiState;
+
 use std::rc::Rc;
 use std::cell::{Ref, RefCell};
 use gtk::{pango, DrawingArea, Align};
 use glib_macros::clone;
-
 use gtk::{prelude::*, Box as GBox, Orientation, Label, Button};
 
 pub struct Tab {
@@ -87,8 +87,7 @@ impl Tab {
             .build();
 
         x_button.connect_clicked(clone!(@strong ui_p => move |_| {
-            ui_p.borrow_mut().close_tab(idx);
-            UiState::update_tabbar_widget(&ui_p);
+            UiState::try_close_tab(&ui_p, idx);
         }));
 
         res.append(&name_button);
@@ -97,12 +96,16 @@ impl Tab {
         res
     }
 
-    pub fn confirm_close(&self, ui: &UiState) -> bool {
-        true // TODO (!modified_since_saved) ? true : prompt
+    pub fn modified_since_export(&self) -> bool {
+        self.last_export_id != self.canvas_p.borrow().undo_id()
     }
 
     pub fn notify_successful_export(&mut self) {
         self.last_export_id = self.canvas_p.borrow().undo_id();
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
 

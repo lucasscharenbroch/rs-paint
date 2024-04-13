@@ -97,7 +97,7 @@ pub fn export(ui_p: Rc<RefCell<UiState>>) {
             if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
                 if let Err(mesg) = canvas_p.borrow().image_ref().image().to_file(path) {
                     popup_mesg(ui_p.borrow().window(), "Export Error",
-                                format!("Error during export: {}", mesg).as_str());
+                               format!("Error during export: {}", mesg).as_str());
                 } else {
                     // export success
                     ui_p.borrow_mut().notify_tab_successful_export();
