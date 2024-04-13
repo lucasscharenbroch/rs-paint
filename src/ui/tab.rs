@@ -23,6 +23,10 @@ impl Tab {
     pub fn widget(&self, ui_p: &Rc<RefCell<UiState>>, idx: usize, is_active: bool) -> GBox {
         let res = GBox::builder()
             .orientation(Orientation::Horizontal)
+            .margin_start(6)
+            .margin_end(6)
+            .margin_top(6)
+            .margin_bottom(6)
             .build();
 
         let attributes = pango::AttrList::new();
@@ -33,25 +37,35 @@ impl Tab {
 
         let text_label = Label::builder()
             .label(self.name.as_str())
-            .margin_start(6)
-            .margin_end(6)
-            .margin_top(6)
-            .margin_bottom(6)
             .attributes(&attributes)
             .build();
 
-        let button = Button::builder()
+        let name_button = Button::builder()
             .child(&text_label)
             .build();
 
-        button.connect_clicked(clone!(@strong ui_p => move |_| {
+        name_button.connect_clicked(clone!(@strong ui_p => move |_| {
             ui_p.borrow_mut().set_tab(idx);
             UiState::update_tabbar_widget(&ui_p);
         }));
 
-        res.append(&button);
+        let x_button = Button::builder()
+            .label("x")
+            .build();
+
+        x_button.connect_clicked(clone!(@strong ui_p => move |_| {
+            ui_p.borrow_mut().close_tab(idx);
+            UiState::update_tabbar_widget(&ui_p);
+        }));
+
+        res.append(&name_button);
+        res.append(&x_button);
 
         res
+    }
+
+    pub fn confirm_close(&self, ui: &UiState) -> bool {
+        true // TODO (!modified_since_saved) ? true : prompt
     }
 }
 

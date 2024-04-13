@@ -71,6 +71,36 @@ impl UiState {
         }
     }
 
+    fn close_tab(&mut self, target_idx: usize) {
+        if let Some(target_tab) = self.tabbar.tabs.get(target_idx) {
+            if target_tab.confirm_close(self) {
+                if self.tabbar.tabs.len() == 1 {
+                    self.grid.remove(target_tab.canvas_p.borrow().widget());
+                    self.tabbar.active_idx = None;
+                } else if self.tabbar.active_idx.map(|i| i == target_idx).unwrap_or(false) {
+                    // removing the active tab: switch one to the left, unless it's 0
+                    if target_idx == 0 {
+                        self.set_tab(1);
+                        self.tabbar.active_idx = Some(0);
+                    } else {
+                        self.set_tab(target_idx - 1);
+                    }
+                } else {
+                    // active tab is not being removed: just adjust active_idx
+                    self.tabbar.active_idx = self.tabbar.active_idx.and_then(|i| {
+                        if i < target_idx {
+                            Some(i)
+                        } else {
+                            Some(i - 1)
+                        }
+                    });
+                }
+
+                self.tabbar.tabs.remove(target_idx);
+            }
+        }
+    }
+
     fn active_tab(&self) -> Option<&Tab> {
         self.tabbar.active_idx.and_then(|i| self.tabbar.tabs.get(i))
     }
