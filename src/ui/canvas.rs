@@ -325,6 +325,39 @@ impl Canvas {
         cr.set_dash(&[], 0.0);
     }
 
+    pub fn draw_thumbnail(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
+        let img_width = self.image_width() as f64;
+        let img_height = self.image_height() as f64;
+        let scale = area_width as f64 / img_width as f64;
+
+        let image_surface_pattern = self.image_hist.now_mut().drawable().to_surface_pattern();
+        let transparent_pattern = self.transparent_checkerboard.to_repeated_surface_pattern();
+
+        cr.scale(scale, scale);
+
+        const TRANSPARENT_CHECKER_SZ: f64 = 10.0;
+        let trans_scale = TRANSPARENT_CHECKER_SZ / scale;
+        cr.scale(trans_scale, trans_scale);
+        cr.rectangle(0.0, 0.0, img_width / trans_scale, img_height / trans_scale);
+        cr.set_source(transparent_pattern);
+        cr.fill();
+        cr.scale(1.0 / trans_scale, 1.0 / trans_scale);
+
+
+        cr.rectangle(0.0, 0.0, img_width, img_height);
+        cr.set_source(image_surface_pattern);
+        cr.fill();
+
+        /* TODO border?
+        const BORDER_WIDTH: f64 = 1.5;
+        cr.set_line_width(BORDER_WIDTH / scale);
+
+        cr.rectangle(0.0, 0.0, img_width, img_height);
+        cr.set_source_rgb(1.0, 1.0, 0.0);
+        cr.stroke();
+        */
+    }
+
     fn update_scrollbars(&mut self) {
         let v_window = self.drawing_area.height() as f64 / self.zoom;
         let h_window = self.drawing_area.width() as f64 / self.zoom;

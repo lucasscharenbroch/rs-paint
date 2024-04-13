@@ -2,7 +2,7 @@ use super::canvas::Canvas;
 use super::UiState;
 use std::rc::Rc;
 use std::cell::{Ref, RefCell};
-use gtk::pango;
+use gtk::{pango, DrawingArea};
 use glib_macros::clone;
 
 use gtk::{prelude::*, Box as GBox, Orientation, Label, Button};
@@ -40,8 +40,37 @@ impl Tab {
             .attributes(&attributes)
             .build();
 
+        let container = GBox::builder()
+            .orientation(Orientation::Horizontal)
+            .build();
+
+        let canvas_p = self.canvas_p.clone();
+        let aspect_ratio = self.canvas_p.borrow().image_width() as f64 /
+                           self.canvas_p.borrow().image_height() as f64;
+
+        const MAX_DIMENSION: i32 = 30;
+
+        let (w, h) = if aspect_ratio >= 1.0 {
+            (MAX_DIMENSION, (MAX_DIMENSION as f64 / aspect_ratio).ceil() as i32)
+        } else {
+            ((MAX_DIMENSION as f64 * aspect_ratio).ceil() as i32, MAX_DIMENSION)
+        };
+
+        let thumbnail_area = DrawingArea::builder()
+            .content_width(w)
+            .content_height(h)
+            .margin_start(3)
+            .build();
+
+        thumbnail_area.set_draw_func(clone!(@strong canvas_p => move |area, cr, width, height| {
+            canvas_p.borrow_mut().draw_thumbnail(area, cr, width, height);
+        }));
+
+        container.append(&text_label);
+        container.append(&thumbnail_area);
+
         let name_button = Button::builder()
-            .child(&text_label)
+            .child(&container)
             .build();
 
         name_button.connect_clicked(clone!(@strong ui_p => move |_| {
