@@ -4,6 +4,7 @@ extern crate image as image_lib;
 
 use image_lib::io::Reader as ImageReader;
 use image_lib::{DynamicImage, RgbaImage, ImageFormat as ImgFmt};
+use std::mem;
 use std::path::Path;
 use std::collections::HashMap;
 
@@ -99,18 +100,21 @@ impl Image {
     pub fn from_file(path: &Path) -> Result<Image, String> {
         match ImageReader::open(path).map_err(|e| e.to_string())?.decode() {
             Ok(dyn_img) => {
-                let rgba = dyn_img.to_rgba8();
-                let pixels = rgba.enumerate_pixels().map(|(x, y, rgba)| {
-                    Pixel::from_rgba(rgba.0[0], rgba.0[1], rgba.0[2], rgba.0[3])
-                }).collect::<Vec<_>>();
+                let rgba = dyn_img.into_rgba8();
+                let (width, height) = rgba.dimensions();
+                let (width, height) = (width as usize, height as usize);
+                let n_pix = rgba.len() / 4;
 
-                let img = Image {
-                    height: dyn_img.height() as usize,
-                    width: dyn_img.width() as usize,
-                    pixels,
+                let pixels: Vec<Pixel> = unsafe {
+                    let mut rgba = mem::ManuallyDrop::new(rgba);
+                    Vec::from_raw_parts(rgba.as_mut_ptr() as *mut Pixel, n_pix, n_pix)
                 };
 
-                Ok(img)
+                Ok(Image {
+                    height,
+                    width,
+                    pixels,
+                })
             },
             Err(img_err) => Err(img_err.to_string()),
         }
