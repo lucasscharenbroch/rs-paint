@@ -18,6 +18,13 @@ pub enum MouseMode {
     RectangleSelect(rectangle_select::RectangleSelectState),
 }
 
+#[derive(PartialEq)]
+pub enum MouseModeVariant {
+    Cursor,
+    Pencil,
+    RectangleSelect,
+}
+
 trait MouseModeState {
     fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
     fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
@@ -27,27 +34,12 @@ trait MouseModeState {
     fn draw(&self, canvas: &Canvas, cr: &Context);
 }
 
-impl PartialEq<MouseMode> for MouseMode {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (MouseMode::Cursor(_), MouseMode::Cursor(_)) => true,
-            (MouseMode::Pencil(_), MouseMode::Pencil(_)) => true,
-            (MouseMode::RectangleSelect(_), MouseMode::RectangleSelect(_)) => true,
-            _ => false,
-        }
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        !self.eq(other)
-    }
-}
-
 impl MouseMode {
     pub fn cursor(canvas: &Canvas) -> MouseMode {
         MouseMode::Cursor(CursorState::default(canvas))
     }
 
-    pub fn cursor_default() -> MouseMode {
+    pub const fn cursor_default() -> MouseMode {
         MouseMode::Cursor(CursorState::default_no_canvas())
     }
 
@@ -97,5 +89,13 @@ impl MouseMode {
 
     pub fn draw(&mut self, canvas: &Canvas, context: &Context) {
         self.get_state().draw(canvas, context);
+    }
+
+    pub fn variant(&self) -> MouseModeVariant {
+        match self {
+            MouseMode::Cursor(_) => MouseModeVariant::Cursor,
+            MouseMode::Pencil(_) => MouseModeVariant::Pencil,
+            MouseMode::RectangleSelect(_) => MouseModeVariant::RectangleSelect,
+        }
     }
 }

@@ -15,7 +15,7 @@ impl CursorState {
         Self::default_no_canvas()
     }
 
-    pub fn default_no_canvas() -> CursorState {
+    pub const fn default_no_canvas() -> CursorState {
         CursorState {
             last_cursor_pos: (0.0, 0.0),
         }
