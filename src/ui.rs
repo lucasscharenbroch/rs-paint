@@ -11,7 +11,7 @@ use canvas::Canvas;
 use toolbar::Toolbar;
 use dialog::run_about_dialog;
 use crate::image::{Image, UnifiedImage};
-use tab::Tab;
+use tab::{Tab, Tabbar};
 
 use gtk::prelude::*;
 use gtk::gdk::{Key, ModifierType};
@@ -22,8 +22,7 @@ use glib_macros::clone;
 use gtk::glib::signal::Propagation;
 
 pub struct UiState {
-    tabs: Vec<Tab>,
-    active_tab_idx: usize,
+    tabbar: Tabbar,
     toolbar_p: Rc<RefCell<Toolbar>>,
     grid: Grid,
     window: ApplicationWindow,
@@ -49,20 +48,24 @@ impl UiState {
         app.run()
     }
 
+    fn update_tabbar_widget(&self) {
+        self.grid.attach(&self.tabbar.widget(), 0, 1, 1, 1);
+    }
+
     fn set_tab(&mut self, target_idx: usize) {
-        if let Some(target_tab) = self.tabs.get(target_idx) {
-            let target_canvas_p = target_tab.canvas_p;
+        if let Some(target_tab) = self.tabbar.get_tab(target_idx) {
+            let target_canvas_p = &target_tab.canvas_p;
             if let Some(current_canvas_p) = self.active_canvas_p() {
                 self.grid.remove(current_canvas_p.borrow().widget());
             }
 
             self.grid.attach(target_canvas_p.borrow().widget(), 0, 2, 1, 1);
-            self.active_tab_idx = target_idx;
+            self.tabbar.set_tab(target_idx);
         }
     }
 
     fn active_tab(&self) -> Option<&Tab> {
-        self.tabs.get(self.active_tab_idx)
+        self.tabbar.active_tab()
     }
 
     fn active_canvas_p(&self) -> Option<&Rc<RefCell<Canvas>>> {
@@ -71,15 +74,17 @@ impl UiState {
 
     fn new_tab(ui_p: &Rc<RefCell<UiState>>, image: Image) -> usize {
         let canvas_p = Canvas::new_p(&ui_p, UnifiedImage::from_image(image));
-        ui_p.borrow_mut().tabs.push(Tab::new(&canvas_p));
-        ui_p.borrow().tabs.len() - 1
+        let new_tab = Tab::new(&canvas_p);
+        let new_idx = ui_p.borrow_mut().tabbar.append_tab(new_tab);
+        ui_p.borrow().update_tabbar_widget();
+        ui_p.borrow_mut().set_tab(new_idx);
+        new_idx
     }
 
     fn new() -> Rc<RefCell<UiState>> {
         let ui_p = Rc::new(RefCell::new(UiState {
             toolbar_p: Toolbar::new_p(),
-            tabs: vec![],
-            active_tab_idx: 0,
+            tabbar: Tabbar::new(),
             grid: Grid::new(),
             window: ApplicationWindow::builder()
                 .show_menubar(true)
@@ -90,7 +95,8 @@ impl UiState {
         Toolbar::init_ui_hooks(&ui_p);
 
         ui_p.borrow().grid.attach(ui_p.borrow().toolbar_p.borrow().widget(), 0, 0, 1, 1);
-        ui_p.borrow().grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 1, 1, 1);
+        ui_p.borrow().grid.attach(&ui_p.borrow().tabbar.widget(), 0, 1, 1, 1);
+        ui_p.borrow().grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 2, 1, 1);
 
         ui_p.borrow().window.set_child(Some(&ui_p.borrow().grid));
 
