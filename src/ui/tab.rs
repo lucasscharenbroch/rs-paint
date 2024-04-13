@@ -23,6 +23,8 @@ impl Tab {
 
         let text_label = Label::builder()
             .label("hi")
+            .margin_start(6)
+            .margin_end(6)
             .build();
 
         res.append(&text_label);

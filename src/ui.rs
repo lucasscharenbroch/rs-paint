@@ -15,7 +15,7 @@ use tab::{Tab, Tabbar};
 
 use gtk::prelude::*;
 use gtk::gdk::{Key, ModifierType};
-use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator};
+use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator, Box as GBox};
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
@@ -23,6 +23,7 @@ use gtk::glib::signal::Propagation;
 
 pub struct UiState {
     tabbar: Tabbar,
+    tabbar_widget: Option<GBox>,
     toolbar_p: Rc<RefCell<Toolbar>>,
     grid: Grid,
     window: ApplicationWindow,
@@ -48,8 +49,14 @@ impl UiState {
         app.run()
     }
 
-    fn update_tabbar_widget(&self) {
-        self.grid.attach(&self.tabbar.widget(), 0, 1, 1, 1);
+    fn update_tabbar_widget(&mut self) {
+        if let Some(ref w) = self.tabbar_widget {
+            self.grid.remove(w);
+        }
+
+        let new_widget = self.tabbar.widget();
+        self.grid.attach(&new_widget, 0, 0, 1, 1);
+        self.tabbar_widget = Some(new_widget);
     }
 
     fn set_tab(&mut self, target_idx: usize) {
@@ -76,7 +83,7 @@ impl UiState {
         let canvas_p = Canvas::new_p(&ui_p, UnifiedImage::from_image(image));
         let new_tab = Tab::new(&canvas_p);
         let new_idx = ui_p.borrow_mut().tabbar.append_tab(new_tab);
-        ui_p.borrow().update_tabbar_widget();
+        ui_p.borrow_mut().update_tabbar_widget();
         ui_p.borrow_mut().set_tab(new_idx);
         new_idx
     }
@@ -85,6 +92,7 @@ impl UiState {
         let ui_p = Rc::new(RefCell::new(UiState {
             toolbar_p: Toolbar::new_p(),
             tabbar: Tabbar::new(),
+            tabbar_widget: None,
             grid: Grid::new(),
             window: ApplicationWindow::builder()
                 .show_menubar(true)
@@ -94,8 +102,8 @@ impl UiState {
 
         Toolbar::init_ui_hooks(&ui_p);
 
-        ui_p.borrow().grid.attach(ui_p.borrow().toolbar_p.borrow().widget(), 0, 0, 1, 1);
-        ui_p.borrow().grid.attach(&ui_p.borrow().tabbar.widget(), 0, 1, 1, 1);
+        ui_p.borrow().grid.attach(&ui_p.borrow().tabbar.widget(), 0, 0, 1, 1);
+        ui_p.borrow().grid.attach(ui_p.borrow().toolbar_p.borrow().widget(), 0, 1, 1, 1);
         ui_p.borrow().grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 2, 1, 1);
 
         ui_p.borrow().window.set_child(Some(&ui_p.borrow().grid));
