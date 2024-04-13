@@ -71,9 +71,10 @@ pub fn import(ui_p: Rc<RefCell<UiState>>) {
         if let Ok(res) = res {
             let path = res.path().unwrap();
             let path = path.as_path();
+            let name = path.file_name().and_then(|os| os.to_str()).unwrap_or("[Untitled]");
             match Image::from_file(path) {
                 Ok(img) => {
-                    UiState::new_tab(&ui_p, img);
+                    UiState::new_tab(&ui_p, img, name);
                 },
                 Err(mesg) => {
                     popup_mesg(ui_p.borrow().window(), "Import Error",

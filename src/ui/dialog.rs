@@ -88,6 +88,7 @@ pub fn choose_file<P: FnOnce(Result<File, GError>) + 'static>(
 pub fn popup_mesg(parent: &impl IsA<Window>, title: &str, mesg: &str) {
     let text_label = Label::builder()
         .label(mesg)
+        .selectable(true)
         .build();
 
     ok_dialog(parent, title, &text_label)

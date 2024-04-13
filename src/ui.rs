@@ -79,12 +79,12 @@ impl UiState {
         self.active_tab().map(|t| &t.canvas_p)
     }
 
-    fn new_tab(ui_p: &Rc<RefCell<UiState>>, image: Image) -> usize {
+    fn new_tab(ui_p: &Rc<RefCell<UiState>>, image: Image, name: &str) -> usize {
         let canvas_p = Canvas::new_p(&ui_p, UnifiedImage::from_image(image));
-        let new_tab = Tab::new(&canvas_p);
+        let new_tab = Tab::new(&canvas_p, name);
         let new_idx = ui_p.borrow_mut().tabbar.append_tab(new_tab);
-        ui_p.borrow_mut().update_tabbar_widget();
         ui_p.borrow_mut().set_tab(new_idx);
+        ui_p.borrow_mut().update_tabbar_widget();
         new_idx
     }
 
