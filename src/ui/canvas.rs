@@ -421,6 +421,10 @@ impl Canvas {
         self.image_hist.now_mut()
     }
 
+    pub fn undo_id(&self) -> usize {
+        self.image_hist.now_id()
+    }
+
     pub fn image_ref(&self) -> &UnifiedImage {
         self.image_hist.now()
     }

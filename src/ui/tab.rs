@@ -10,6 +10,7 @@ use gtk::{prelude::*, Box as GBox, Orientation, Label, Button};
 pub struct Tab {
     pub canvas_p: Rc<RefCell<Canvas>>,
     name: String,
+    last_export_id: usize,
 }
 
 impl Tab {
@@ -17,6 +18,7 @@ impl Tab {
         Tab {
             canvas_p: canvas_p.clone(),
             name: String::from(name),
+            last_export_id: canvas_p.borrow().undo_id()
         }
     }
 
@@ -97,6 +99,10 @@ impl Tab {
 
     pub fn confirm_close(&self, ui: &UiState) -> bool {
         true // TODO (!modified_since_saved) ? true : prompt
+    }
+
+    pub fn notify_successful_export(&mut self) {
+        self.last_export_id = self.canvas_p.borrow().undo_id();
     }
 }
 

@@ -58,32 +58,78 @@ impl ImageDiff {
     }
 }
 
+pub struct ImageState {
+    img: UnifiedImage,
+    id: usize,
+}
+
+pub struct ImageStateDiff {
+    image_diff: ImageDiff,
+    old_id: usize,
+    new_id: usize,
+}
+
+impl ImageStateDiff {
+    fn new(image_diff: ImageDiff, old_id: usize, new_id: usize) -> Self {
+        ImageStateDiff {
+            image_diff,
+            old_id,
+            new_id
+        }
+    }
+
+    fn apply_to(&self, image_state: &mut ImageState) {
+        self.image_diff.apply_to(&mut image_state.img);
+        image_state.id = self.new_id;
+    }
+
+    fn unapply_to(&self, image_state: &mut ImageState) {
+        self.image_diff.unapply_to(&mut image_state.img);
+        image_state.id = self.old_id;
+    }
+}
+
 pub struct ImageHistory {
-    now: UnifiedImage,
-    undo_stack: Vec<ImageDiff>,
-    redo_stack: Vec<ImageDiff>,
+    now: ImageState,
+    undo_stack: Vec<ImageStateDiff>,
+    redo_stack: Vec<ImageStateDiff>,
+    id_counter: usize,
 }
 
 impl ImageHistory {
     pub fn new(initial_image: UnifiedImage) -> ImageHistory {
+        let initial_state = ImageState {
+            img: initial_image,
+            id: 0,
+        };
+
         ImageHistory {
-            now: initial_image,
+            now: initial_state,
             undo_stack: vec![],
             redo_stack: vec![],
+            id_counter: 1,
         }
     }
 
     pub fn now(&self) -> &UnifiedImage {
-        &self.now
+        &self.now.img
+    }
+
+    pub fn now_id(&self) -> usize {
+        self.now.id
     }
 
     pub fn now_mut(&mut self) -> &mut UnifiedImage {
-        &mut self.now
+        &mut self.now.img
     }
 
     pub fn push_state(&mut self) {
-        let mod_pix_info = self.now.get_and_reset_modified();
-        self.undo_stack.push(ImageDiff::new(&self.now, mod_pix_info));
+        let mod_pix_info = self.now.img.get_and_reset_modified();
+        let image_diff = ImageDiff::new(&self.now.img, mod_pix_info);
+        let image_state_diff = ImageStateDiff::new(image_diff, self.now.id, self.id_counter);
+        self.id_counter += 1;
+
+        self.undo_stack.push(image_state_diff);
         self.redo_stack = vec![];
     }
 

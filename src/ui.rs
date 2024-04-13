@@ -105,6 +105,10 @@ impl UiState {
         self.tabbar.active_idx.and_then(|i| self.tabbar.tabs.get(i))
     }
 
+    fn active_tab_mut(&mut self) -> Option<&mut Tab> {
+        self.tabbar.active_idx.and_then(|i| self.tabbar.tabs.get_mut(i))
+    }
+
     fn active_canvas_p(&self) -> Option<&Rc<RefCell<Canvas>>> {
         self.active_tab().map(|t| &t.canvas_p)
     }
@@ -237,5 +241,11 @@ impl UiState {
 
     pub fn window(&self) -> &ApplicationWindow {
         &self.window
+    }
+
+    pub fn notify_tab_successful_export(&mut self) {
+        if let Some(tab) = self.active_tab_mut() {
+            tab.notify_successful_export();
+        }
     }
 }
