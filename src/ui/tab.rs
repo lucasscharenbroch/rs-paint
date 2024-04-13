@@ -2,7 +2,7 @@ use super::canvas::Canvas;
 use super::UiState;
 use std::rc::Rc;
 use std::cell::{Ref, RefCell};
-use gtk::{pango, DrawingArea};
+use gtk::{pango, DrawingArea, Align};
 use glib_macros::clone;
 
 use gtk::{prelude::*, Box as GBox, Orientation, Label, Button};
@@ -60,6 +60,8 @@ impl Tab {
             .content_width(w)
             .content_height(h)
             .margin_start(3)
+            .halign(Align::Center)
+            .valign(Align::Center)
             .build();
 
         thumbnail_area.set_draw_func(clone!(@strong canvas_p => move |area, cr, width, height| {
