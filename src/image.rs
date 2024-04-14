@@ -29,7 +29,7 @@ impl Pixel {
         Pixel { r, g, b, a, }
     }
 
-    pub fn to_drawable(&self) -> DrawablePixel {
+    fn to_drawable(&self) -> DrawablePixel {
         DrawablePixel::from_rgba(self.r, self.g, self.b, self.a)
     }
 
@@ -45,8 +45,6 @@ impl Pixel {
 
 const TRANS: Pixel = Pixel::from_rgba(0, 0, 0, 0);
 const BLACK: Pixel = Pixel::from_rgb(0, 0, 0);
-const BLUE: Pixel = Pixel::from_rgb(0, 0, 255);
-const GREEN: Pixel = Pixel::from_rgb(0, 255, 0);
 const GRAY: Pixel = Pixel::from_rgb(211, 211, 211);
 const DARK_GRAY: Pixel = Pixel::from_rgb(229, 229, 229);
 
@@ -55,20 +53,6 @@ pub struct Image {
     pixels: Vec<Pixel>,
     width: usize,
     height: usize,
-}
-
-pub fn mk_test_image() -> UnifiedImage {
-    let mut pixels = vec![vec![BLUE; 400]; 400];
-
-    for i in 0..400 {
-        for j in 0..400 {
-            if i % 2 == 0 || j % 2 == 0 {
-                pixels[i][j] = GREEN;
-            }
-        }
-    }
-
-    UnifiedImage::from_image(Image::from_pixels(pixels))
 }
 
 pub fn mk_test_brush() -> Image {

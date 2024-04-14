@@ -1,8 +1,8 @@
 use super::Canvas;
-use super::super::super::image::{mk_test_brush};
+use super::super::super::image::mk_test_brush;
 
 use std::collections::HashSet;
-use gtk::gdk::{ModifierType};
+use gtk::gdk::ModifierType;
 use gtk::cairo::{Context, LineCap};
 
 #[derive(Clone, Copy)]
@@ -64,13 +64,13 @@ impl PencilState {
             cr.set_source_rgba(0.25, 0.25, 0.25, 0.75);
             cr.move_to(x0, y0);
             cr.line_to(x1, y1);
-            cr.stroke();
+            let _ = cr.stroke();
 
             cr.set_line_width(LINE_WIDTH / zoom * LINE_BORDER_FACTOR);
             cr.set_source_rgba(1.0, 1.0, 1.0, 0.75);
             cr.move_to(x0, y0);
             cr.line_to(x1, y1);
-            cr.stroke();
+            let _ = cr.stroke();
         })
     }
 }
@@ -185,6 +185,6 @@ impl super::MouseModeState for PencilState {
         self.handle_motion(mod_keys, canvas)
     }
 
-    fn draw(&self, canvas: &Canvas, cr: &Context) {
+    fn draw(&self, _canvas: &Canvas, _cr: &Context) {
     }
 }

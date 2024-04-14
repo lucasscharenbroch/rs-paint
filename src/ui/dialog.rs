@@ -25,7 +25,7 @@ fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Wi
         .halign(Align::Center)
         .build();
 
-    let content = gtk::Box::builder()
+    let content = GBox::builder()
         .orientation(Orientation::Vertical)
         .margin_top(12)
         .margin_bottom(12)
@@ -75,7 +75,7 @@ where
     button_wrapper.append(&no_button);
     button_wrapper.append(&yes_button);
 
-    let content = gtk::Box::builder()
+    let content = GBox::builder()
         .orientation(Orientation::Vertical)
         .margin_top(12)
         .margin_bottom(12)

@@ -6,14 +6,14 @@ use super::toolbar::Toolbar;
 
 use gtk::prelude::*;
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
-use gtk::gdk::{ModifierType};
+use gtk::gdk::ModifierType;
 use gtk::{DrawingArea, EventControllerScroll, EventControllerScrollFlags, GestureDrag, EventControllerMotion};
 use gtk::cairo::Context;
 use gtk::cairo;
 use gtk::glib::signal::Propagation;
 use std::rc::Rc;
-use std::cell::{Ref, RefCell};
-use gtk::glib::{SignalHandlerId};
+use std::cell::RefCell;
+use gtk::glib::SignalHandlerId;
 use glib_macros::clone;
 
 pub struct Canvas {
@@ -301,13 +301,13 @@ impl Canvas {
         let trans_scale = TRANSPARENT_CHECKER_SZ / self.zoom;
         cr.scale(trans_scale, trans_scale);
         cr.rectangle(0.0, 0.0, img_width / trans_scale, img_height / trans_scale);
-        cr.set_source(transparent_pattern);
-        cr.fill();
+        let _ = cr.set_source(transparent_pattern);
+        let _ = cr.fill();
         cr.scale(1.0 / trans_scale, 1.0 / trans_scale);
 
         cr.rectangle(0.0, 0.0, img_width, img_height);
-        cr.set_source(image_surface_pattern);
-        cr.fill();
+        let _ = cr.set_source(image_surface_pattern);
+        let _ = cr.fill();
 
         const BORDER_WIDTH: f64 = 1.5;
         const DASH_LENGTH: f64 = 6.0;
@@ -316,16 +316,16 @@ impl Canvas {
         cr.set_dash(&[DASH_LENGTH / self.zoom, DASH_LENGTH / self.zoom], 0.0);
         cr.rectangle(0.0, 0.0, img_width, img_height);
         cr.set_source_rgb(0.0, 0.0, 0.0);
-        cr.stroke();
+        let _ = cr.stroke();
 
         cr.set_dash(&[DASH_LENGTH / self.zoom, DASH_LENGTH / self.zoom], DASH_LENGTH / self.zoom);
         cr.set_source_rgb(1.0, 1.0, 1.0);
-        cr.stroke();
+        let _ = cr.stroke();
 
         cr.set_dash(&[], 0.0);
     }
 
-    pub fn draw_thumbnail(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
+    pub fn draw_thumbnail(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, _area_height: i32) {
         let img_width = self.image_width() as f64;
         let img_height = self.image_height() as f64;
         let scale = area_width as f64 / img_width as f64;
@@ -339,14 +339,14 @@ impl Canvas {
         let trans_scale = TRANSPARENT_CHECKER_SZ / scale;
         cr.scale(trans_scale, trans_scale);
         cr.rectangle(0.0, 0.0, img_width / trans_scale, img_height / trans_scale);
-        cr.set_source(transparent_pattern);
-        cr.fill();
+        let _ = cr.set_source(transparent_pattern);
+        let _ = cr.fill();
         cr.scale(1.0 / trans_scale, 1.0 / trans_scale);
 
 
         cr.rectangle(0.0, 0.0, img_width, img_height);
-        cr.set_source(image_surface_pattern);
-        cr.fill();
+        let _ = cr.set_source(image_surface_pattern);
+        let _ = cr.fill();
 
         /* TODO border?
         const BORDER_WIDTH: f64 = 1.5;

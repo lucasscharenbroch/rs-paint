@@ -3,8 +3,7 @@ use crate::ui::selection::Selection;
 use super::Canvas;
 
 use gtk::gdk::ModifierType;
-use gtk::cairo::{Context};
-
+use gtk::cairo::Context;
 
 #[derive(Clone, Copy)]
 pub enum RectangleSelectState {
@@ -64,12 +63,12 @@ impl RectangleSelectState {
             cr.set_line_width(LINE_WIDTH / zoom);
             cr.set_source_rgba(0.25, 0.25, 0.25, 0.75);
             cr.rectangle(x, y, w, h);
-            cr.stroke();
+            let _ = cr.stroke();
 
             cr.set_line_width(LINE_WIDTH / zoom * LINE_BORDER_FACTOR);
             cr.set_source_rgba(1.0, 1.0, 1.0, 0.75);
             cr.rectangle(x, y, w, h);
-            cr.stroke();
+            let _ = cr.stroke();
         })
     }
 
@@ -98,7 +97,7 @@ impl super::MouseModeState for RectangleSelectState {
         canvas.update_with(self.visual_cue_fn(canvas));
     }
 
-    fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_drag_end(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
         if let Self::Selecting(ax, ay) = self {
             let (x, y, w, h) = Self::calc_xywh(*ax, *ay, canvas);
             *self = Self::Selected(x, y, w, h);
@@ -107,10 +106,10 @@ impl super::MouseModeState for RectangleSelectState {
         canvas.update();
     }
 
-    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_motion(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas) {
     }
 
-    fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_mod_key_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas) {
     }
 
     fn draw(&self, canvas: &Canvas, cr: &Context) {

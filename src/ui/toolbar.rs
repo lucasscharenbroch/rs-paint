@@ -21,7 +21,7 @@ struct MouseModeButton {
     widget: ToggleButton,
 }
 
-const initial_mode: MouseMode = MouseMode::cursor_default();
+const INITIAL_MODE: MouseMode = MouseMode::cursor_default();
 
 impl Toolbar {
     pub fn new_p() -> Rc<RefCell<Toolbar>> {
@@ -29,7 +29,7 @@ impl Toolbar {
 
         let toolbar_p = Rc::new(RefCell::new(Toolbar {
             tbox,
-            mouse_mode: initial_mode,
+            mouse_mode: INITIAL_MODE,
             mouse_mode_buttons: vec![],
             mode_change_hook: None,
         }));
@@ -86,9 +86,9 @@ impl Toolbar {
             })
             .collect::<Vec<_>>();
 
-        // activate initial_mode button
+        // activate INITIAL_MODE button
         toolbar_p.borrow_mut().mouse_mode_buttons.iter().for_each(|b| {
-            if b.mode.variant() == initial_mode.variant() {
+            if b.mode.variant() == INITIAL_MODE.variant() {
                 b.widget.set_active(true);
             }
         });

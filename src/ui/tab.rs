@@ -2,7 +2,7 @@ use super::canvas::Canvas;
 use super::UiState;
 
 use std::rc::Rc;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use gtk::{pango, DrawingArea, Align};
 use glib_macros::clone;
 use gtk::{prelude::*, Box as GBox, Orientation, Label, Button};

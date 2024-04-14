@@ -17,12 +17,12 @@ fn draw_rect_sel(canvas: &Canvas, &x: &usize, &y: &usize, &w: &usize, &h: &usize
     cr.set_dash(&[DASH_LENGTH / zoom, DASH_LENGTH / zoom], 0.0);
     cr.set_source_rgb(1.0, 1.0, 0.0);
     cr.rectangle(x as f64, y as f64, w as f64, h as f64);
-    cr.stroke();
+    let _ = cr.stroke();
 
     cr.set_dash(&[DASH_LENGTH / zoom, DASH_LENGTH / zoom], DASH_LENGTH / zoom);
     cr.set_source_rgb(0.0, 0.0, 0.0);
     cr.rectangle(x as f64, y as f64, w as f64, h as f64);
-    cr.stroke();
+    let _ = cr.stroke();
 
     cr.set_dash(&[], 0.0);
 }

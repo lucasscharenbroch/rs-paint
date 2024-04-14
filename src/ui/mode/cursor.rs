@@ -43,12 +43,12 @@ impl super::MouseModeState for CursorState {
         self.handle_drag_update(mod_keys, canvas)
     }
 
-    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_motion(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas) {
     }
 
-    fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_mod_key_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas) {
     }
 
-    fn draw(&self, canvas: &Canvas, cr: &Context) {
+    fn draw(&self, _canvas: &Canvas, _cr: &Context) {
     }
 }

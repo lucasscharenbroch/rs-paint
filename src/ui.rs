@@ -42,7 +42,7 @@ impl UiState {
 
         let (menu, menu_actions) = menu::mk_menu(ui_p.clone());
 
-        app.register(None::<&gtk::gio::Cancellable>);
+        let _ = app.register(None::<&gtk::gio::Cancellable>);
         app.set_menubar(Some(&menu));
         menu_actions.iter().for_each(|a| app.add_action(a));
 
