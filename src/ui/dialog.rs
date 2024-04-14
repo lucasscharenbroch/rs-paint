@@ -1,21 +1,13 @@
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
+use gtk::{ColorDialog, ApplicationWindow};
 use gtk::glib::{object::IsA, error::Error as GError};
 use gtk::gio::{File, Cancellable};
+use gtk::gdk::RGBA;
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-fn run_window_with(parent: &impl IsA<Window>, title: &str, content: &impl IsA<Widget>) {
-    let dialog_window = Window::builder()
-        .transient_for(parent)
-        .title(title)
-        .child(content)
-        .build();
-
-    dialog_window.present();
-}
-
-fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>) {
+fn ok_dialog_with_content(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>) {
     let ok_button = Button::builder()
         .label("Ok")
         .margin_top(12)
@@ -52,7 +44,7 @@ fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Wi
     });
 }
 
-fn yes_no_dialog<F, G>(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>, on_yes: F, on_no: G)
+fn yes_no_dialog_with_content<F, G>(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>, on_yes: F, on_no: G)
 where
     F: Fn() + 'static,
     G: Fn() + 'static
@@ -110,7 +102,7 @@ where
     }));
 }
 
-pub fn run_about_dialog(parent: &impl IsA<Window>) {
+pub fn about_dialog(parent: &impl IsA<Window>) {
     let text_content = TextBuffer::builder()
         .text("Information about RS-Paint")
         .build();
@@ -123,10 +115,10 @@ pub fn run_about_dialog(parent: &impl IsA<Window>) {
         .hexpand(true)
         .build();
 
-    ok_dialog(parent, "About Rs-Paint", &content)
+    ok_dialog_with_content(parent, "About Rs-Paint", &content)
 }
 
-pub fn choose_file<P: FnOnce(Result<File, GError>) + 'static>(
+pub fn choose_file_dialog<P: FnOnce(Result<File, GError>) + 'static>(
     parent: &impl IsA<Window>,
     title: &str, accept_label: &str,
     valid_filetypes: &impl IsA<gtk::gio::ListModel>,
@@ -146,16 +138,16 @@ pub fn choose_file<P: FnOnce(Result<File, GError>) + 'static>(
     }
 }
 
-pub fn popup_mesg(parent: &impl IsA<Window>, title: &str, mesg: &str) {
+pub fn ok_dialog(parent: &impl IsA<Window>, title: &str, mesg: &str) {
     let text_label = Label::builder()
         .label(mesg)
         .selectable(true)
         .build();
 
-    ok_dialog(parent, title, &text_label)
+    ok_dialog_with_content(parent, title, &text_label)
 }
 
-pub fn popup_yes_no_prompt<F, G>(parent: &impl IsA<Window>, title: &str, prompt: &str, on_yes: F, on_no: G)
+pub fn yes_no_dialog<F, G>(parent: &impl IsA<Window>, title: &str, prompt: &str, on_yes: F, on_no: G)
 where
     F: Fn() + 'static,
     G: Fn() + 'static,
@@ -165,5 +157,13 @@ where
         .selectable(true)
         .build();
 
-    yes_no_dialog(parent, title, &text_label, on_yes, on_no);
+    yes_no_dialog_with_content(parent, title, &text_label, on_yes, on_no);
+}
+
+pub fn choose_color_dialog() {
+    let dialog = ColorDialog::builder()
+        .with_alpha(true)
+        .build();
+
+    dialog.choose_rgba(ApplicationWindow::NONE, Some(&RGBA::new(0.5, 0.5, 0.5, 0.5)), None::<&Cancellable>, |x| {println!("{:?}", x)});
 }

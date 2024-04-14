@@ -1,4 +1,4 @@
-use super::dialog::run_about_dialog;
+use super::dialog::about_dialog;
 use super::io::{import, export};
 use super::UiState;
 
@@ -52,6 +52,6 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
 
             MenuBuilder::new()
                 .item("About", "about",
-                      Box::new(clone!(@strong ui_state => move || run_about_dialog(&ui_state.borrow().window)))))
+                      Box::new(clone!(@strong ui_state => move || about_dialog(&ui_state.borrow().window)))))
         .build()
 }

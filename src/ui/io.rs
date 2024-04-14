@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-use super::{dialog::{choose_file, popup_mesg}, UiState};
+use super::{dialog::{choose_file_dialog, ok_dialog}, UiState};
 use crate::image::Image;
 
 fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
@@ -65,7 +65,7 @@ pub fn image_export_formats() -> Vec<Vec<&'static str>> {
 pub fn import(ui_p: Rc<RefCell<UiState>>) {
     let valid_filetypes = mk_file_filter_list(image_import_formats());
 
-    choose_file(&ui_p.borrow().window, "Choose an image to import",
+    choose_file_dialog(&ui_p.borrow().window, "Choose an image to import",
                 "Import", &valid_filetypes, false,
                 clone!(@strong ui_p => move |res| {
         if let Ok(res) = res {
@@ -77,8 +77,8 @@ pub fn import(ui_p: Rc<RefCell<UiState>>) {
                     UiState::new_tab(&ui_p, img, name);
                 },
                 Err(mesg) => {
-                    popup_mesg(ui_p.borrow().window(), "Import Error",
-                               format!("Error during import: {}", mesg).as_str());
+                    ok_dialog(ui_p.borrow().window(), "Import Error",
+                              format!("Error during import: {}", mesg).as_str());
                 }
             }
         }
@@ -88,7 +88,7 @@ pub fn import(ui_p: Rc<RefCell<UiState>>) {
 pub fn export(ui_p: Rc<RefCell<UiState>>) {
     let valid_filetypes = mk_file_filter_list(image_export_formats());
 
-    choose_file(&ui_p.borrow().window, "Export image",
+    choose_file_dialog(&ui_p.borrow().window, "Export image",
                 "Export", &valid_filetypes, true,
                 clone!(@strong ui_p => move |res| {
         if let Ok(res) = res {
@@ -96,13 +96,13 @@ pub fn export(ui_p: Rc<RefCell<UiState>>) {
             let path = path.as_path();
             if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
                 if let Err(mesg) = canvas_p.borrow().image_ref().image().to_file(path) {
-                    popup_mesg(ui_p.borrow().window(), "Export Error",
-                               format!("Error during export: {}", mesg).as_str());
+                    ok_dialog(ui_p.borrow().window(), "Export Error",
+                              format!("Error during export: {}", mesg).as_str());
                     return;
                 }
             } else {
-                popup_mesg(ui_p.borrow().window(), "Export Error",
-                           "No image to export");
+                ok_dialog(ui_p.borrow().window(), "Export Error",
+                          "No image to export");
                 return;
             }
 
