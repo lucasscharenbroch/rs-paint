@@ -1,22 +1,25 @@
 mod pallete;
 mod mode;
 
+use gtk::gdk::RGBA;
 use mode::MouseMode;
 use super::canvas::Canvas;
 use super::UiState;
+use pallete::Pallete;
 
 use gtk::prelude::*;
-use gtk::{Box, Orientation, ToggleButton};
+use gtk::{Box as GBox, Orientation, ToggleButton};
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::boxed;
 use glib_macros::clone;
 
 pub struct Toolbar {
-    tbox: Box,
+    widget: GBox,
+    mode_button_box: GBox,
+    pallete: Pallete,
     mouse_mode: MouseMode,
     mouse_mode_buttons: Vec<MouseModeButton>,
-    mode_change_hook: Option<boxed::Box<dyn Fn(&Toolbar)>>,
+    mode_change_hook: Option<Box<dyn Fn(&Toolbar)>>,
 }
 
 struct MouseModeButton {
@@ -28,10 +31,17 @@ const INITIAL_MODE: MouseMode = MouseMode::cursor_default();
 
 impl Toolbar {
     pub fn new_p() -> Rc<RefCell<Toolbar>> {
-        let tbox =  Box::new(Orientation::Horizontal, 10);
+        let widget =  GBox::new(Orientation::Horizontal, 10);
+        let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
+        let pallete = Pallete::new(vec![]);
+
+        widget.append(&mode_button_box);
+        widget.append(pallete.widget());
 
         let toolbar_p = Rc::new(RefCell::new(Toolbar {
-            tbox,
+            widget,
+            mode_button_box,
+            pallete,
             mouse_mode: INITIAL_MODE,
             mouse_mode_buttons: vec![],
             mode_change_hook: None,
@@ -80,7 +90,7 @@ impl Toolbar {
                     }
                 }));
 
-                toolbar_p.borrow_mut().tbox.append(&button);
+                toolbar_p.borrow_mut().mode_button_box.append(&button);
 
                 MouseModeButton {
                     widget: button,
@@ -101,11 +111,15 @@ impl Toolbar {
         &mut self.mouse_mode
     }
 
-    pub fn widget(&self) -> &Box {
-        &self.tbox
+    pub fn primary_color(&self) -> RGBA {
+        self.pallete.primary_color()
     }
 
-    pub fn set_mode_change_hook(&mut self, f: boxed::Box<dyn Fn(&Toolbar)>) {
+    pub fn widget(&self) -> &GBox {
+        &self.widget
+    }
+
+    pub fn set_mode_change_hook(&mut self, f: Box<dyn Fn(&Toolbar)>) {
         self.mode_change_hook = Some(f);
     }
 }
