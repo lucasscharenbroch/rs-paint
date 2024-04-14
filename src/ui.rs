@@ -1,6 +1,5 @@
 mod canvas;
 mod toolbar;
-mod mode;
 mod selection;
 mod menu;
 mod dialog;

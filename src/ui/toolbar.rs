@@ -1,4 +1,7 @@
-use super::mode::MouseMode;
+mod pallete;
+mod mode;
+
+use mode::MouseMode;
 use super::canvas::Canvas;
 use super::UiState;
 

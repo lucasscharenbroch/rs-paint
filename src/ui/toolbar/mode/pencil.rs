@@ -1,5 +1,5 @@
 use super::Canvas;
-use super::super::super::image::mk_test_brush;
+use crate::image::mk_test_brush;
 
 use std::collections::HashSet;
 use gtk::gdk::ModifierType;

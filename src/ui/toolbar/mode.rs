@@ -2,7 +2,7 @@ mod cursor;
 mod pencil;
 mod rectangle_select;
 
-use super::canvas::Canvas;
+use crate::ui::canvas::Canvas;
 
 use cursor::CursorState;
 use pencil::PencilState;
