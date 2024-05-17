@@ -1,11 +1,11 @@
-mod pallete;
+mod palette;
 mod mode;
 
 use gtk::gdk::RGBA;
 use mode::MouseMode;
 use super::canvas::Canvas;
 use super::UiState;
-use pallete::Pallete;
+use palette::Palette;
 
 use gtk::prelude::*;
 use gtk::{Box as GBox, Orientation, ToggleButton};
@@ -16,7 +16,7 @@ use glib_macros::clone;
 pub struct Toolbar {
     widget: GBox,
     mode_button_box: GBox,
-    pallete: Pallete,
+    pallete: Palette,
     mouse_mode: MouseMode,
     mouse_mode_buttons: Vec<MouseModeButton>,
     mode_change_hook: Option<Box<dyn Fn(&Toolbar)>>,
@@ -33,7 +33,7 @@ impl Toolbar {
     pub fn new_p() -> Rc<RefCell<Toolbar>> {
         let widget =  GBox::new(Orientation::Horizontal, 10);
         let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
-        let pallete = Pallete::new(vec![]);
+        let pallete = Palette::new(vec![]);
 
         widget.append(&mode_button_box);
         widget.append(pallete.widget());

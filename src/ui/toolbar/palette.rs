@@ -43,13 +43,13 @@ impl ColorButton {
     }
 }
 
-pub struct Pallete {
+pub struct Palette {
     widget: GBox,
     color_buttons: Vec<Rc<RefCell<ColorButton>>>,
 }
 
 
-impl Pallete {
+impl Palette {
     pub fn new(colors: Vec<RGBA>) -> Self {
         let widget = GBox::new(Orientation::Horizontal, 10);
 
@@ -57,12 +57,12 @@ impl Pallete {
             .map(|rgba| ColorButton::new_p(*rgba))
             .collect::<Vec<_>>();
 
-        for w in color_buttons.iter() {
-            widget.append(&w.borrow().widget);
+        for button in color_buttons.iter() {
+            widget.append(&button.borrow().widget);
 
         }
 
-        Pallete {
+        Palette {
             widget,
             color_buttons,
         }
