@@ -1,13 +1,13 @@
 use crate::image::{DrawableImage, mk_transparent_checkerboard};
 
-use gtk::{prelude::*, Orientation, DrawingArea, Button, Box as GBox};
+use gtk::{prelude::*, Orientation, DrawingArea, ToggleButton, Box as GBox};
 use std::rc::Rc;
 use std::cell::RefCell;
 use gtk::gdk::RGBA;
 use glib_macros::clone;
 
 struct ColorButton {
-    widget: Button,
+    widget: ToggleButton,
     drawing_area: DrawingArea,
     checkerboard: DrawableImage,
     color: RGBA,
@@ -15,7 +15,7 @@ struct ColorButton {
 
 impl ColorButton {
     fn new_p(color: RGBA) -> Rc<RefCell<Self>> {
-        let widget = Button::new();
+        let widget = ToggleButton::new();
         let drawing_area =  DrawingArea::builder()
             .content_height(30)
             .content_width(30)

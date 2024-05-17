@@ -10,7 +10,6 @@ use self::rectangle_select::RectangleSelectState;
 use gtk::cairo::Context;
 use gtk::gdk::ModifierType;
 
-
 #[derive(Clone, Copy)]
 pub enum MouseMode {
     Cursor(cursor::CursorState),
