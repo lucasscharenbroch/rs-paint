@@ -31,9 +31,17 @@ const INITIAL_MODE: MouseMode = MouseMode::cursor_default();
 
 impl Toolbar {
     pub fn new_p() -> Rc<RefCell<Toolbar>> {
+        let default_palette_colors = vec![
+            RGBA::new(0.0, 0.0, 0.0, 1.0),
+            RGBA::new(1.0, 0.0, 0.0, 1.0),
+            RGBA::new(0.0, 1.0, 0.0, 1.0),
+            RGBA::new(0.0, 0.0, 1.0, 1.0),
+            RGBA::new(0.0, 0.0, 0.0, 0.0),
+        ];
+
         let widget =  GBox::new(Orientation::Horizontal, 10);
         let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
-        let pallete = Palette::new(vec![]);
+        let pallete = Palette::new(default_palette_colors);
 
         widget.append(&mode_button_box);
         widget.append(pallete.widget());

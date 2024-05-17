@@ -17,8 +17,8 @@ impl ColorButton {
     fn new_p(color: RGBA) -> Rc<RefCell<Self>> {
         let widget = Button::new();
         let drawing_area =  DrawingArea::builder()
-            .vexpand(true)
-            .hexpand(true)
+            .content_height(30)
+            .content_width(30)
             .build();
 
         widget.set_child(Some(&drawing_area));
@@ -32,11 +32,18 @@ impl ColorButton {
             color,
         }));
 
-        state_p.borrow().drawing_area.set_draw_func(clone!(@strong state_p => move |_drawing_area, cr, _width, _height| {
+        state_p.borrow().drawing_area.set_draw_func(clone!(@strong state_p => move |_drawing_area, cr, width, height| {
+            cr.scale((width / 2).into(), (height / 2).into());
+
             let transparent_pattern = state_p.borrow_mut().checkerboard.to_repeated_surface_pattern();
             let _ = cr.set_source(&transparent_pattern);
+            cr.rectangle(0.0, 0.0, 2.0, 2.0);
+            let _ = cr.fill();
+
             let color = state_p.borrow().color;
             cr.set_source_rgba(color.red().into(), color.green().into(), color.blue().into(), color.alpha().into());
+            cr.rectangle(0.0, 0.0, 2.0, 2.0);
+            let _ = cr.fill();
         }));
 
         state_p
