@@ -26,22 +26,22 @@ impl ColorButton {
 
         let checkerboard = mk_transparent_checkerboard();
 
-        let state_p = Rc::new(RefCell::new(ColorButton {
+        let cb_p = Rc::new(RefCell::new(ColorButton {
             widget,
             drawing_area,
             checkerboard,
             color,
         }));
 
-        state_p.borrow().drawing_area.set_draw_func(clone!(@strong state_p => move |_drawing_area, cr, width, height| {
+        cb_p.borrow().drawing_area.set_draw_func(clone!(@strong cb_p => move |_drawing_area, cr, width, height| {
             cr.scale((width / 2).into(), (height / 2).into());
 
-            let transparent_pattern = state_p.borrow_mut().checkerboard.to_repeated_surface_pattern();
+            let transparent_pattern = cb_p.borrow_mut().checkerboard.to_repeated_surface_pattern();
             let _ = cr.set_source(&transparent_pattern);
             cr.rectangle(0.0, 0.0, 2.0, 2.0);
             let _ = cr.fill();
 
-            let color = state_p.borrow().color;
+            let color = cb_p.borrow().color;
             cr.set_source_rgba(color.red().into(), color.green().into(), color.blue().into(), color.alpha().into());
             cr.rectangle(0.0, 0.0, 2.0, 2.0);
             let _ = cr.fill();
@@ -53,15 +53,15 @@ impl ColorButton {
 
         const RIGHT_CLICK_BUTTON: u32 = 3;
 
-        click_controller.connect_released(clone!(@strong state_p => move |controller, _n_press, _x, _y| {
+        click_controller.connect_released(clone!(@strong cb_p => move |controller, _n_press, _x, _y| {
             if controller.current_button() == RIGHT_CLICK_BUTTON {
-                Self::select_new_color(state_p.clone());
+                Self::select_new_color(cb_p.clone());
             }
         }));
 
-        state_p.borrow().widget.add_controller(click_controller);
+        cb_p.borrow().widget.add_controller(click_controller);
 
-        state_p
+        cb_p
     }
 
     fn select_new_color(self_p: Rc<RefCell<Self>>) {
@@ -84,24 +84,34 @@ impl ColorButton {
 pub struct Palette {
     widget: GBox,
     color_buttons: Vec<Rc<RefCell<ColorButton>>>,
+    active_idx: usize,
 }
 
 impl Palette {
-    pub fn new(colors: Vec<RGBA>) -> Self {
+    pub fn new_p(colors: Vec<RGBA>) -> Rc<RefCell<Self>> {
         let widget = GBox::new(Orientation::Horizontal, 10);
 
         let color_buttons = colors.iter()
             .map(|rgba| ColorButton::new_p(*rgba))
             .collect::<Vec<_>>();
 
-        for button in color_buttons.iter() {
-            widget.append(&button.borrow().widget);
-        }
-
-        Palette {
+        let palette_p = Rc::new(RefCell::new(Palette {
             widget,
             color_buttons,
+            active_idx: 0,
+        }));
+
+        for (i, cb_p) in palette_p.borrow().color_buttons.iter().enumerate() {
+            palette_p.borrow().widget.append(&cb_p.borrow().widget);
+            cb_p.borrow().widget.connect_clicked(clone!(@strong palette_p => move |_button| {
+                palette_p.borrow_mut().active_idx = i;
+                for (j, cb) in palette_p.borrow_mut().color_buttons.iter().enumerate() {
+                    cb.borrow().widget.set_active(i == j);
+                }
+            }));
         }
+
+        palette_p
     }
 
     pub fn widget(&self) -> &GBox {
@@ -110,5 +120,9 @@ impl Palette {
 
     pub fn primary_color(&self) -> RGBA {
         todo!("primary color")
+    }
+
+    pub fn set_primary_color(&mut self, color: RGBA) {
+        todo!("set primary color")
     }
 }
