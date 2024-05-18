@@ -1,5 +1,5 @@
 use crate::image::{DrawableImage, mk_transparent_checkerboard};
-use crate::ui::{dialog::{choose_color_dialog}, get_parent_window};
+use crate::ui::{dialog::choose_color_dialog, get_parent_window};
 
 use gtk::{prelude::*, Orientation, DrawingArea, ToggleButton, Box as GBox, GestureClick};
 use std::rc::Rc;

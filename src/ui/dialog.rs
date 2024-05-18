@@ -1,5 +1,5 @@
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
-use gtk::{ColorDialog, ApplicationWindow};
+use gtk::ColorDialog;
 use gtk::glib::{object::IsA, error::Error as GError};
 use gtk::gio::{File, Cancellable};
 use gtk::gdk::RGBA;

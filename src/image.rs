@@ -143,6 +143,7 @@ impl Image {
 // this is necessary for drawing in cairo
 
 #[derive(Clone)]
+#[allow(dead_code)]
 struct DrawablePixel {
     // order of the fields corresponds to cairo::Format::ARgb32
     // (this struct is used for directly rendering the cairo pattern)
