@@ -53,7 +53,7 @@ impl ColorButton {
 
         const RIGHT_CLICK_BUTTON: u32 = 3;
 
-        click_controller.connect_pressed(clone!(@strong state_p => move |controller, _n_press, _x, _y| {
+        click_controller.connect_released(clone!(@strong state_p => move |controller, _n_press, _x, _y| {
             if controller.current_button() == RIGHT_CLICK_BUTTON {
                 Self::select_new_color(state_p.clone());
             }
