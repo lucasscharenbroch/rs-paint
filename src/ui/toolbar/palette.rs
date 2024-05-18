@@ -1,6 +1,7 @@
 use crate::image::{DrawableImage, mk_transparent_checkerboard};
+use crate::ui::dialog::{choose_color_dialog};
 
-use gtk::{prelude::*, Orientation, DrawingArea, ToggleButton, Box as GBox};
+use gtk::{prelude::*, Orientation, DrawingArea, ToggleButton, Box as GBox, GestureClick};
 use std::rc::Rc;
 use std::cell::RefCell;
 use gtk::gdk::RGBA;
@@ -46,7 +47,30 @@ impl ColorButton {
             let _ = cr.fill();
         }));
 
+        let click_controller = GestureClick::builder()
+            .button(0)
+            .build();
+
+        const RIGHT_CLICK_BUTTON: u32 = 3;
+
+        click_controller.connect_pressed(clone!(@strong state_p => move |controller, _n_press, _x, _y| {
+            if controller.current_button() == RIGHT_CLICK_BUTTON {
+                Self::select_new_color(state_p.clone());
+            }
+        }));
+
+        state_p.borrow().widget.add_controller(click_controller);
+
         state_p
+    }
+
+    fn select_new_color(self_p: Rc<RefCell<Self>>) {
+        choose_color_dialog(move |res_color| {
+            if let Ok(rgba) = res_color {
+                self_p.borrow_mut().color = rgba;
+                self_p.borrow_mut().drawing_area.queue_draw();
+            }
+        });
     }
 }
 
@@ -66,7 +90,6 @@ impl Palette {
 
         for button in color_buttons.iter() {
             widget.append(&button.borrow().widget);
-
         }
 
         Palette {
