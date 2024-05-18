@@ -14,11 +14,21 @@ use tab::{Tab, Tabbar};
 
 use gtk::prelude::*;
 use gtk::gdk::{Key, ModifierType};
-use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator, Box as GBox};
+use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator, Box as GBox, Window, Widget};
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 use gtk::glib::signal::Propagation;
+
+fn get_parent_window(widget: &impl IsA<Widget>) -> Option<Window> {
+    let parent = widget.parent()?;
+
+    if let Ok(window) = parent.clone().downcast::<gtk::Window>() {
+        Some(window)
+    } else {
+        get_parent_window(&parent)
+    }
+}
 
 pub struct UiState {
     tabbar: Tabbar,

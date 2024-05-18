@@ -1,5 +1,5 @@
 use crate::image::{DrawableImage, mk_transparent_checkerboard};
-use crate::ui::dialog::{choose_color_dialog};
+use crate::ui::{dialog::{choose_color_dialog}, get_parent_window};
 
 use gtk::{prelude::*, Orientation, DrawingArea, ToggleButton, Box as GBox, GestureClick};
 use std::rc::Rc;
@@ -65,7 +65,14 @@ impl ColorButton {
     }
 
     fn select_new_color(self_p: Rc<RefCell<Self>>) {
-        choose_color_dialog(move |res_color| {
+        let parent = get_parent_window(&self_p.borrow().widget);
+        let parent_ref = if let Some(ref w) = parent {
+            Some(w)
+        } else {
+            None
+        };
+
+        choose_color_dialog(parent_ref, move |res_color| {
             if let Ok(rgba) = res_color {
                 self_p.borrow_mut().color = rgba;
                 self_p.borrow_mut().drawing_area.queue_draw();
@@ -78,7 +85,6 @@ pub struct Palette {
     widget: GBox,
     color_buttons: Vec<Rc<RefCell<ColorButton>>>,
 }
-
 
 impl Palette {
     pub fn new(colors: Vec<RGBA>) -> Self {

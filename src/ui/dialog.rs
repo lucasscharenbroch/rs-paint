@@ -160,12 +160,12 @@ where
     yes_no_dialog_with_content(parent, title, &text_label, on_yes, on_no);
 }
 
-pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(callback: P) {
+pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(parent: Option<&impl IsA<Window>>, callback: P) {
     let dialog = ColorDialog::builder()
         .with_alpha(true)
         .build();
 
-    dialog.choose_rgba(ApplicationWindow::NONE,
+    dialog.choose_rgba(parent,
                        Some(&RGBA::new(0.5, 0.5, 0.5, 0.5)),
                        None::<&Cancellable>,
                        callback);
