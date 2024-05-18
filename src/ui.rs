@@ -249,9 +249,6 @@ impl UiState {
                 Key::a => {
                     about_dialog(&self.window);
                 }
-                Key::x => {
-                    println!("{:?}", self.toolbar_p.borrow().primary_color());
-                }
                 _ => (),
             }
         }

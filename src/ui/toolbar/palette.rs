@@ -53,7 +53,14 @@ impl ColorButton {
 
         const RIGHT_CLICK_BUTTON: u32 = 3;
 
-        click_controller.connect_released(clone!(@strong cb_p => move |controller, _n_press, _x, _y| {
+        // Scuffed use of click_controller's handlers: I don't know
+        // why this works, and why the alternatives don't.
+
+        click_controller.connect_end(|controller, _| {
+            controller.reset();
+        });
+
+        click_controller.connect_stopped(clone!(@strong cb_p => move |controller| {
             if controller.current_button() == RIGHT_CLICK_BUTTON {
                 Self::select_new_color(cb_p.clone());
             }
@@ -95,6 +102,8 @@ impl Palette {
             .map(|rgba| ColorButton::new_p(*rgba))
             .collect::<Vec<_>>();
 
+        color_buttons[0].borrow().widget.set_active(true);
+
         let palette_p = Rc::new(RefCell::new(Palette {
             widget,
             color_buttons,
@@ -119,10 +128,10 @@ impl Palette {
     }
 
     pub fn primary_color(&self) -> RGBA {
-        todo!("primary color")
+        self.color_buttons[self.active_idx].borrow().color
     }
 
     pub fn set_primary_color(&mut self, color: RGBA) {
-        todo!("set primary color")
+        self.color_buttons[self.active_idx].borrow_mut().color = color;
     }
 }
