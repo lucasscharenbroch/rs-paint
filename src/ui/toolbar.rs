@@ -120,12 +120,20 @@ impl Toolbar {
         });
     }
 
-    pub fn mouse_mode(&mut self) -> &mut MouseMode {
-        &mut self.mouse_mode
+    pub fn mouse_mode(&self) -> &MouseMode {
+        &self.mouse_mode
+    }
+
+    pub fn set_mouse_mode(&mut self, new_mouse_mode: MouseMode) {
+        self.mouse_mode = new_mouse_mode;
     }
 
     pub fn primary_color(&self) -> RGBA {
         self.palette_p.borrow().primary_color()
+    }
+
+    pub fn set_primary_color(&self, color: RGBA) {
+        self.palette_p.borrow_mut().set_primary_color(color);
     }
 
     pub fn widget(&self) -> &GBox {
@@ -136,7 +144,8 @@ impl Toolbar {
         self.mode_change_hook = Some(f);
     }
 
-    fn get_brush(&self) -> &Brush {
+    fn get_brush(&mut self) -> &Brush {
+        self.brush.modify(self.primary_color());
         &self.brush
     }
 }

@@ -196,7 +196,10 @@ impl UiState {
     // this is called by handle_keypress and handle_keyrelease
     fn handle_mod_keys_update(&mut self, mod_keys: ModifierType) {
         if let Some(canvas_p) = self.active_canvas_p() {
-            self.toolbar_p.borrow_mut().mouse_mode().handle_mod_key_update(&mod_keys, &mut canvas_p.borrow_mut());
+            let mut toolbar = self.toolbar_p.borrow_mut();
+            let mut mouse_mode = toolbar.mouse_mode().clone();
+            mouse_mode.handle_mod_key_update(&mod_keys, &mut canvas_p.borrow_mut(), &mut toolbar);
+            toolbar.set_mouse_mode(mouse_mode);
         }
     }
 

@@ -2,7 +2,7 @@ mod cursor;
 mod pencil;
 mod rectangle_select;
 
-use crate::ui::canvas::Canvas;
+use crate::ui::{canvas::Canvas, toolbar::Toolbar};
 
 use cursor::CursorState;
 use pencil::PencilState;
@@ -25,11 +25,11 @@ pub enum MouseModeVariant {
 }
 
 trait MouseModeState {
-    fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
-    fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
-    fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
-    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
-    fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas);
+    fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar);
+    fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar);
+    fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar);
+    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar);
+    fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar);
     fn draw(&self, canvas: &Canvas, cr: &Context);
 }
 
@@ -66,28 +66,36 @@ impl MouseMode {
         }
     }
 
-    pub fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        self.get_state().handle_drag_start(mod_keys, canvas);
+    fn get_state_immutable(&self) -> &dyn MouseModeState {
+        match self {
+            MouseMode::Cursor(ref s) => s,
+            MouseMode::Pencil(ref s) => s,
+            MouseMode::RectangleSelect(ref s) => s,
+        }
     }
 
-    pub fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        self.get_state().handle_drag_update(mod_keys, canvas);
+    pub fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.get_state().handle_drag_start(mod_keys, canvas, toolbar);
     }
 
-    pub fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        self.get_state().handle_drag_end(mod_keys, canvas);
+    pub fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.get_state().handle_drag_update(mod_keys, canvas, toolbar);
     }
 
-    pub fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        self.get_state().handle_motion(mod_keys, canvas);
+    pub fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.get_state().handle_drag_end(mod_keys, canvas, toolbar);
     }
 
-    pub fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        self.get_state().handle_mod_key_update(mod_keys, canvas);
+    pub fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.get_state().handle_motion(mod_keys, canvas, toolbar);
     }
 
-    pub fn draw(&mut self, canvas: &Canvas, context: &Context) {
-        self.get_state().draw(canvas, context);
+    pub fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.get_state().handle_mod_key_update(mod_keys, canvas, toolbar);
+    }
+
+    pub fn draw(&self, canvas: &Canvas, context: &Context) {
+        self.get_state_immutable().draw(canvas, context);
     }
 
     pub fn variant(&self) -> MouseModeVariant {

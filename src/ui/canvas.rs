@@ -121,15 +121,27 @@ impl Canvas {
 
         let drag_controller = GestureDrag::new();
         drag_controller.connect_begin(clone!(@strong ui_p, @strong canvas_p => move |dc, _| {
-            ui_p.borrow().toolbar_p.borrow_mut().mouse_mode().handle_drag_start(&dc.current_event_state(), &mut canvas_p.borrow_mut());
+            let ui = ui_p.borrow();
+            let mut toolbar = ui.toolbar_p.borrow_mut();
+            let mut mouse_mode = toolbar.mouse_mode().clone();
+            mouse_mode.handle_drag_start(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
+            toolbar.set_mouse_mode(mouse_mode);
         }));
 
         drag_controller.connect_drag_update(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
-            ui_p.borrow().toolbar_p.borrow_mut().mouse_mode().handle_drag_update(&dc.current_event_state(), &mut canvas_p.borrow_mut());
+            let ui = ui_p.borrow();
+            let mut toolbar = ui.toolbar_p.borrow_mut();
+            let mut mouse_mode = toolbar.mouse_mode().clone();
+            mouse_mode.handle_drag_update(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
+            toolbar.set_mouse_mode(mouse_mode);
         }));
 
         drag_controller.connect_drag_end(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
-            ui_p.borrow().toolbar_p.borrow_mut().mouse_mode().handle_drag_end(&dc.current_event_state(), &mut canvas_p.borrow_mut());
+            let ui = ui_p.borrow();
+            let mut toolbar = ui.toolbar_p.borrow_mut();
+            let mut mouse_mode = toolbar.mouse_mode().clone();
+            mouse_mode.handle_drag_end(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
+            toolbar.set_mouse_mode(mouse_mode);
         }));
 
         canvas_p.borrow().drawing_area().add_controller(drag_controller);
@@ -140,7 +152,11 @@ impl Canvas {
 
         motion_controller.connect_motion(clone!(@strong ui_p, @strong canvas_p => move |ecm, x, y| {
             canvas_p.borrow_mut().update_cursor_pos(x, y);
-            ui_p.borrow_mut().toolbar_p.borrow_mut().mouse_mode().handle_motion(&ecm.current_event_state(), &mut canvas_p.borrow_mut());
+            let ui = ui_p.borrow();
+            let mut toolbar = ui.toolbar_p.borrow_mut();
+            let mut mouse_mode = toolbar.mouse_mode().clone();
+            mouse_mode.handle_motion(&ecm.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
+            toolbar.set_mouse_mode(mouse_mode);
         }));
 
         canvas_p.borrow().drawing_area().add_controller(motion_controller);

@@ -1,4 +1,4 @@
-use super::Canvas;
+use super::{Canvas, Toolbar};
 
 use std::collections::HashSet;
 use gtk::gdk::ModifierType;
@@ -28,10 +28,8 @@ impl PencilState {
         }
     }
 
-    fn draw_line_between(&self, line_pt0: (f64, f64), line_pt1: (f64, f64), canvas: &mut Canvas) {
+    fn draw_line_between(&self, line_pt0: (f64, f64), line_pt1: (f64, f64), canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let target_pixels = pixels_on_segment(line_pt0, line_pt1);
-        let toolbar_p = canvas.get_toolbar_p();
-        let toolbar = toolbar_p.borrow();
         let brush = toolbar.get_brush();
 
         target_pixels.iter().for_each(|&(x, y)| {
@@ -39,12 +37,12 @@ impl PencilState {
         });
     }
 
-    fn draw_to_cursor(&mut self, canvas: &mut Canvas) {
+    fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let line_pt0 = self.last_cursor_pos_pix;
         let line_pt1 = canvas.cursor_pos_pix();
         self.last_cursor_pos_pix = line_pt1;
 
-        self.draw_line_between(line_pt0, line_pt1, canvas);
+        self.draw_line_between(line_pt0, line_pt1, canvas, toolbar);
 
         canvas.update();
     }
@@ -151,9 +149,9 @@ fn pixels_on_segment((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> HashSet<(usi
 }
 
 impl super::MouseModeState for PencilState {
-    fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         if mod_keys.intersects(ModifierType::SHIFT_MASK) {
-            self.draw_to_cursor(canvas);
+            self.draw_to_cursor(canvas, toolbar);
             self.mode = PencilMode::DrawLineCooldown;
         } else {
             self.mode = PencilMode::TraceCursor;
@@ -162,19 +160,19 @@ impl super::MouseModeState for PencilState {
         self.last_cursor_pos_pix = canvas.cursor_pos_pix();
     }
 
-    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         match self.mode {
             PencilMode::DrawLineCooldown => (), // line already drawn
-            PencilMode::TraceCursor => self.draw_to_cursor(canvas),
+            PencilMode::TraceCursor => self.draw_to_cursor(canvas, toolbar),
         }
     }
 
-    fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        self.handle_drag_update(mod_keys, canvas);
+    fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.handle_drag_update(mod_keys, canvas, toolbar);
         canvas.save_state_for_undo();
     }
 
-    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         if mod_keys.intersects(ModifierType::SHIFT_MASK) {
             canvas.update_with(self.straight_line_visual_cue_fn(canvas));
         } else {
@@ -182,8 +180,8 @@ impl super::MouseModeState for PencilState {
         }
     }
 
-    fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas) {
-        self.handle_motion(mod_keys, canvas)
+    fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.handle_motion(mod_keys, canvas, toolbar)
     }
 
     fn draw(&self, _canvas: &Canvas, _cr: &Context) {

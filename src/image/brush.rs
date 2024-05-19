@@ -26,15 +26,15 @@ impl Brush {
             ]) // TODO
     }
 
-    pub fn modify(mut self, color: RGBA) -> Self {
+    pub fn modify(&mut self, color: RGBA) {
         let new_props = BrushProperties {
             color
         };
 
         if self.props == new_props {
-            self
+            // no changes necessary
         } else {
-            Brush::from_props(new_props)
+            *self = Brush::from_props(new_props)
         }
     }
 

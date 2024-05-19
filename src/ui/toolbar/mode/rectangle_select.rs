@@ -1,6 +1,6 @@
 use crate::ui::selection::Selection;
 
-use super::Canvas;
+use super::{Canvas, Toolbar};
 
 use gtk::gdk::ModifierType;
 use gtk::cairo::Context;
@@ -87,17 +87,17 @@ impl RectangleSelectState {
 }
 
 impl super::MouseModeState for RectangleSelectState {
-    fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
         let (ax, ay) = canvas.cursor_pos_pix();
         *self = Self::Selecting(ax, ay);
         canvas.set_selection(Selection::NoSelection);
     }
 
-    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
         canvas.update_with(self.visual_cue_fn(canvas));
     }
 
-    fn handle_drag_end(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas) {
+    fn handle_drag_end(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
         if let Self::Selecting(ax, ay) = self {
             let (x, y, w, h) = Self::calc_xywh(*ax, *ay, canvas);
             *self = Self::Selected(x, y, w, h);
@@ -106,10 +106,10 @@ impl super::MouseModeState for RectangleSelectState {
         canvas.update();
     }
 
-    fn handle_motion(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas) {
+    fn handle_motion(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {
     }
 
-    fn handle_mod_key_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas) {
+    fn handle_mod_key_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {
     }
 
     fn draw(&self, canvas: &Canvas, cr: &Context) {
