@@ -1,4 +1,5 @@
 pub mod undo;
+pub mod brush;
 
 extern crate image as image_lib;
 
@@ -53,16 +54,6 @@ pub struct Image {
     pixels: Vec<Pixel>,
     width: usize,
     height: usize,
-}
-
-pub fn mk_test_brush() -> Image {
-    Image::from_pixels(vec![
-            vec![TRANS, BLACK, BLACK, BLACK, TRANS],
-            vec![BLACK, BLACK, BLACK, BLACK, BLACK],
-            vec![BLACK, BLACK, BLACK, BLACK, BLACK],
-            vec![BLACK, BLACK, BLACK, BLACK, BLACK],
-            vec![TRANS, BLACK, BLACK, BLACK, TRANS],
-        ])
 }
 
 pub fn mk_transparent_checkerboard() -> DrawableImage {

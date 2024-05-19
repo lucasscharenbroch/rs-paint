@@ -1,4 +1,4 @@
-use super::super::image::{UnifiedImage, DrawableImage, mk_transparent_checkerboard};
+use super::super::image::{Image, UnifiedImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::undo::ImageHistory;
 use super::selection::Selection;
 use super::UiState;
@@ -30,6 +30,7 @@ pub struct Canvas {
     single_shot_draw_hooks: Vec<Box<dyn Fn(&Context)>>,
     draw_hook: Option<Box<dyn Fn(&Context)>>,
     transparent_checkerboard: DrawableImage,
+    ui_p: Rc<RefCell<UiState>>,
 }
 
 impl Canvas {
@@ -63,6 +64,7 @@ impl Canvas {
             single_shot_draw_hooks: vec![],
             draw_hook: None,
             transparent_checkerboard: mk_transparent_checkerboard(),
+            ui_p: ui_p.clone(),
         }));
 
         Self::init_internal_connections(&canvas_p);
@@ -447,5 +449,10 @@ impl Canvas {
 
     pub fn save_state_for_undo(&mut self) {
         self.image_hist.push_state();
+    }
+
+    // somewhat scuffed
+    pub fn get_ui_p(&self) -> Rc<RefCell<UiState>> {
+        self.ui_p.clone()
     }
 }
