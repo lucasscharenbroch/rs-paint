@@ -48,7 +48,7 @@ impl Toolbar {
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
 
-        let brush_type = BrushType::Square(5); // TODO brush settings from toolbar
+        let brush_type = BrushType::Pen(5); // TODO brush settings from toolbar
 
         let brush = Brush::new(palette_p.borrow().primary_color(), brush_type);
 
@@ -139,7 +139,7 @@ impl Toolbar {
     }
 
     fn brush_type(&self) -> BrushType {
-        BrushType::Square(5) // TODO brush settings from toolbar
+        BrushType::Pen(5) // TODO brush settings from toolbar
     }
 
     pub fn widget(&self) -> &GBox {

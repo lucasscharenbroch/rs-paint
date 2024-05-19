@@ -53,8 +53,8 @@ impl Pixel {
                          std::cmp::max(above.a, below.a))
     }
 
-    fn fade(p: &Pixel, amount: f64) -> Pixel {
-        Pixel::from_rgba(p.r, p.g, p.b, (p.a as f64 * amount) as u8)
+    fn scale_alpha(&self, amount: f64) -> Pixel {
+        Pixel::from_rgba(self.r, self.g, self.b, (self.a as f64 * amount) as u8)
     }
 }
 

@@ -6,7 +6,9 @@ use gtk::gdk::RGBA;
 pub enum BrushType {
     Square(u8),
     Round(u8),
-    Diamond(u8)
+    Dither(u8),
+    Pen(u8), // faded round
+    Crayon(u8), // faded dither
 }
 
 #[derive(PartialEq)]
@@ -37,20 +39,41 @@ fn mk_square_brush_image(n: u8, color: RGBA) -> Image {
     Image::from_pixels(vec![vec![p; n as usize]; n as usize])
 }
 
-fn mk_round_brush_image(n: u8, color: RGBA) -> Image {
-    todo!()
-}
+fn mk_round_brush_image(n: u8, fade: bool, dither:bool, color: RGBA) -> Image {
+    let p = Pixel::from_rgba_struct(color);
+    let n = n as usize;
+    let mut pix = vec![vec![TRANS; n]; n];
 
-fn mk_diamond_brush_image(n: u8, color: RGBA) -> Image {
-    todo!()
+    const CIRC_THRESH: f64 = 0.3;
+
+    for i in 0..n {
+        for j in 0..n {
+            let x = (n as f64 / 2.0) - (j as f64);
+            let y = (n as f64 / 2.0) - (i as f64);
+            let dist = (x * x + y * y).sqrt();
+            let opacity = 1.0 - (dist / (n as f64 / 2.0));
+
+            if opacity > CIRC_THRESH  && (!dither || i % 2 == j % 2) {
+                if fade {
+                    pix[i][j] = p.scale_alpha(opacity);
+                } else {
+                    pix[i][j] = p.clone();
+                }
+            }
+        }
+    }
+
+    Image::from_pixels(pix)
 }
 
 impl Brush {
     fn image_from_props(props: &BrushProperties) -> Image {
         match props.brush_type {
             BrushType::Square(n) => mk_square_brush_image(n, props.color),
-            BrushType::Round(n) => mk_round_brush_image(n, props.color),
-            BrushType::Diamond(n) => mk_round_brush_image(n, props.color),
+            BrushType::Round(n) => mk_round_brush_image(n, false, false, props.color),
+            BrushType::Dither(n) => mk_round_brush_image(n, false, true, props.color),
+            BrushType::Pen(n) => mk_round_brush_image(n, true, false, props.color),
+            BrushType::Crayon(n) => mk_round_brush_image(n, true, true, props.color),
         }
     }
 
