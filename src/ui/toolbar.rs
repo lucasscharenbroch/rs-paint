@@ -6,7 +6,7 @@ use mode::MouseMode;
 use super::canvas::Canvas;
 use super::UiState;
 use palette::Palette;
-use crate::image::brush::Brush;
+use crate::image::brush::{Brush, BrushType};
 
 use gtk::prelude::*;
 use gtk::{Box as GBox, Orientation, ToggleButton};
@@ -48,7 +48,9 @@ impl Toolbar {
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
 
-        let brush = Brush::new(palette_p.borrow().primary_color()); // TODO form it from other default
+        let brush_type = BrushType::Square(5); // TODO brush settings from toolbar
+
+        let brush = Brush::new(palette_p.borrow().primary_color(), brush_type);
 
         let toolbar_p = Rc::new(RefCell::new(Toolbar {
             widget,
@@ -136,6 +138,10 @@ impl Toolbar {
         self.palette_p.borrow_mut().set_primary_color(color);
     }
 
+    fn brush_type(&self) -> BrushType {
+        BrushType::Square(5) // TODO brush settings from toolbar
+    }
+
     pub fn widget(&self) -> &GBox {
         &self.widget
     }
@@ -145,7 +151,7 @@ impl Toolbar {
     }
 
     fn get_brush(&mut self) -> &Brush {
-        self.brush.modify(self.primary_color());
+        self.brush.modify(self.primary_color(), self.brush_type());
         &self.brush
     }
 }

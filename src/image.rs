@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter};
 use gtk::cairo;
+use gtk::gdk::RGBA;
 
 #[derive(Clone)]
 pub struct Pixel {
@@ -26,7 +27,16 @@ impl Pixel {
         Pixel { r, g, b, a: 255, }
     }
 
-    pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self{
+    pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Pixel { r, g, b, a, }
+    }
+
+    pub fn from_rgba_struct(color: RGBA) -> Self {
+        let r = (color.red() * 255.0) as u8;
+        let g = (color.green() * 255.0) as u8;
+        let b = (color.blue() * 255.0) as u8;
+        let a = (color.alpha() * 255.0) as u8;
+
         Pixel { r, g, b, a, }
     }
 
@@ -41,6 +51,10 @@ impl Pixel {
                          (above.g as f64 * o + below.g as f64 * t) as u8,
                          (above.b as f64 * o + below.b as f64 * t) as u8,
                          std::cmp::max(above.a, below.a))
+    }
+
+    fn fade(p: &Pixel, amount: f64) -> Pixel {
+        Pixel::from_rgba(p.r, p.g, p.b, (p.a as f64 * amount) as u8)
     }
 }
 
