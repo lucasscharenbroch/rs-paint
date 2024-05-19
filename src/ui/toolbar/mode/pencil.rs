@@ -33,7 +33,9 @@ impl PencilState {
         let brush = toolbar.get_brush();
 
         target_pixels.iter().for_each(|&(x, y)| {
-            canvas.image().sample(&brush.image, x as i32 - 3, y as i32 - 3);
+            let x_offset = (brush.image.width() as i32 - 1) / 2;
+            let y_offset = (brush.image.height() as i32 - 1) / 2;
+            canvas.image().sample(&brush.image, x as i32 - x_offset, y as i32 - y_offset);
         });
     }
 
