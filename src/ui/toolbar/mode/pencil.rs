@@ -30,9 +30,9 @@ impl PencilState {
 
     fn draw_line_between(&self, line_pt0: (f64, f64), line_pt1: (f64, f64), canvas: &mut Canvas) {
         let target_pixels = pixels_on_segment(line_pt0, line_pt1);
-        let ui_p = canvas.get_ui_p();
-        let ui = ui_p.borrow();
-        let brush = ui.get_brush();
+        let toolbar_p = canvas.get_toolbar_p();
+        let toolbar = toolbar_p.borrow();
+        let brush = toolbar.get_brush();
 
         target_pixels.iter().for_each(|&(x, y)| {
             canvas.image().sample(&brush.image, x as i32 - 3, y as i32 - 3);

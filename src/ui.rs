@@ -10,7 +10,6 @@ use canvas::Canvas;
 use toolbar::Toolbar;
 use dialog::{about_dialog, yes_no_dialog};
 use crate::image::{Image, UnifiedImage};
-use crate::image::brush::{default_brush, Brush};
 use tab::{Tab, Tabbar};
 
 use gtk::prelude::*;
@@ -37,7 +36,6 @@ pub struct UiState {
     toolbar_p: Rc<RefCell<Toolbar>>,
     grid: Grid,
     window: ApplicationWindow,
-    brush: Brush,
 }
 
 impl UiState {
@@ -161,7 +159,6 @@ impl UiState {
                 .show_menubar(true)
                 .title("RS-Paint")
                 .build(),
-            brush: default_brush(),
         }));
 
         Toolbar::init_ui_hooks(&ui_p);
@@ -276,13 +273,5 @@ impl UiState {
         if let Some(tab) = self.active_tab_mut() {
             tab.notify_successful_export();
         }
-    }
-
-    fn update_brush(&self) {
-        todo!()
-    }
-
-    fn get_brush(&self) -> &Brush {
-        &self.brush
     }
 }

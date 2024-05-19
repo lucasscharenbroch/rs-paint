@@ -6,6 +6,7 @@ use mode::MouseMode;
 use super::canvas::Canvas;
 use super::UiState;
 use palette::Palette;
+use crate::image::brush::Brush;
 
 use gtk::prelude::*;
 use gtk::{Box as GBox, Orientation, ToggleButton};
@@ -16,10 +17,11 @@ use glib_macros::clone;
 pub struct Toolbar {
     widget: GBox,
     mode_button_box: GBox,
-    pallete_p: Rc<RefCell<Palette>>,
+    palette_p: Rc<RefCell<Palette>>,
     mouse_mode: MouseMode,
     mouse_mode_buttons: Vec<MouseModeButton>,
     mode_change_hook: Option<Box<dyn Fn(&Toolbar)>>,
+    brush: Brush,
 }
 
 struct MouseModeButton {
@@ -41,18 +43,21 @@ impl Toolbar {
 
         let widget =  GBox::new(Orientation::Horizontal, 10);
         let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
-        let pallete_p = Palette::new_p(default_palette_colors);
+        let palette_p = Palette::new_p(default_palette_colors);
 
         widget.append(&mode_button_box);
-        widget.append(pallete_p.borrow().widget());
+        widget.append(palette_p.borrow().widget());
+
+        let brush = Brush::new(palette_p.borrow().primary_color()); // TODO form it from other default
 
         let toolbar_p = Rc::new(RefCell::new(Toolbar {
             widget,
             mode_button_box,
-            pallete_p,
+            palette_p,
             mouse_mode: INITIAL_MODE,
             mouse_mode_buttons: vec![],
             mode_change_hook: None,
+            brush,
         }));
 
         toolbar_p
@@ -120,7 +125,7 @@ impl Toolbar {
     }
 
     pub fn primary_color(&self) -> RGBA {
-        self.pallete_p.borrow().primary_color()
+        self.palette_p.borrow().primary_color()
     }
 
     pub fn widget(&self) -> &GBox {
@@ -129,5 +134,9 @@ impl Toolbar {
 
     pub fn set_mode_change_hook(&mut self, f: Box<dyn Fn(&Toolbar)>) {
         self.mode_change_hook = Some(f);
+    }
+
+    fn get_brush(&self) -> &Brush {
+        &self.brush
     }
 }

@@ -44,8 +44,6 @@ impl Pixel {
     }
 }
 
-const TRANS: Pixel = Pixel::from_rgba(0, 0, 0, 0);
-const BLACK: Pixel = Pixel::from_rgb(0, 0, 0);
 const GRAY: Pixel = Pixel::from_rgb(211, 211, 211);
 const DARK_GRAY: Pixel = Pixel::from_rgb(229, 229, 229);
 
