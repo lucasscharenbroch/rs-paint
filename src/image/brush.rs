@@ -1,8 +1,8 @@
 use super::{Image, Pixel};
 
 use gtk::gdk::RGBA;
-use std::rc::Rc;
-use std::cell::RefCell;
+use gtk::gio::ListStore;
+use gtk::{prelude::*, Box as GBox, DropDown, Orientation, StringObject};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum BrushType {
@@ -104,7 +104,17 @@ impl Brush {
 pub struct BrushToolbar {
     brush: Brush,
     brush_type: BrushType,
+    type_dropdown: DropDown,
+    widget: GBox,
 }
+
+const BRUSH_TYPES_AND_IDS: [(BrushType, &str); 5] = [
+    (BrushType::Square(5), "Square"),
+    (BrushType::Round(5), "Round"),
+    (BrushType::Dither(5), "Dither"),
+    (BrushType::Pen(5), "Pen"),
+    (BrushType::Crayon(5), "Crayon"),
+];
 
 impl BrushToolbar {
     pub fn new(color: RGBA, brush_type: BrushType) -> Self {
@@ -113,9 +123,25 @@ impl BrushToolbar {
             brush_type,
         };
 
+        let type_list = ListStore::new::<StringObject>();
+
+        for (_, id) in BRUSH_TYPES_AND_IDS.iter() {
+            type_list.append(&StringObject::new(id))
+        }
+
+        let type_dropdown = DropDown::builder()
+            .model(&type_list)
+            .build();
+
+        let widget = GBox::new(Orientation::Horizontal, 5);
+
+        widget.append(&type_dropdown);
+
         BrushToolbar {
             brush: Brush::from_props(props),
             brush_type,
+            type_dropdown,
+            widget
         }
     }
 
@@ -126,5 +152,9 @@ impl BrushToolbar {
     pub fn get_brush(&mut self, color: RGBA) -> &Brush {
         self.brush.modify(color, self.brush_type);
         &self.brush
+    }
+
+    pub fn widget(&self) -> &GBox {
+        &self.widget
     }
 }

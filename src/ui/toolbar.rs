@@ -45,11 +45,11 @@ impl Toolbar {
         let widget =  GBox::new(Orientation::Horizontal, 10);
         let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
         let palette_p = Palette::new_p(default_palette_colors);
+        let brush_toolbar = BrushToolbar::new(default_color, BrushType::Pen(5));
 
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
-
-        let brush_toolbar = BrushToolbar::new(default_color, BrushType::Pen(5));
+        widget.append(brush_toolbar.widget());
 
         let toolbar_p = Rc::new(RefCell::new(Toolbar {
             widget,
