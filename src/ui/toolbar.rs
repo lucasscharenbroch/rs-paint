@@ -6,7 +6,7 @@ use mode::MouseMode;
 use super::canvas::Canvas;
 use super::UiState;
 use palette::Palette;
-use crate::image::brush::{Brush, BrushType};
+use crate::image::brush::{Brush, BrushType, BrushToolbar};
 
 use gtk::prelude::*;
 use gtk::{Box as GBox, Orientation, ToggleButton};
@@ -21,7 +21,7 @@ pub struct Toolbar {
     mouse_mode: MouseMode,
     mouse_mode_buttons: Vec<MouseModeButton>,
     mode_change_hook: Option<Box<dyn Fn(&Toolbar)>>,
-    brush: Brush,
+    brush_toolbar: BrushToolbar,
 }
 
 struct MouseModeButton {
@@ -41,6 +41,7 @@ impl Toolbar {
             RGBA::new(0.0, 0.0, 0.0, 0.0),
         ];
 
+        let default_color = default_palette_colors[0].clone();
         let widget =  GBox::new(Orientation::Horizontal, 10);
         let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
         let palette_p = Palette::new_p(default_palette_colors);
@@ -48,9 +49,7 @@ impl Toolbar {
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
 
-        let brush_type = BrushType::Square(30); // TODO brush settings from toolbar
-
-        let brush = Brush::new(palette_p.borrow().primary_color(), brush_type);
+        let brush_toolbar = BrushToolbar::new(default_color, BrushType::Pen(5));
 
         let toolbar_p = Rc::new(RefCell::new(Toolbar {
             widget,
@@ -59,7 +58,7 @@ impl Toolbar {
             mouse_mode: INITIAL_MODE,
             mouse_mode_buttons: vec![],
             mode_change_hook: None,
-            brush,
+            brush_toolbar,
         }));
 
         toolbar_p
@@ -138,10 +137,6 @@ impl Toolbar {
         self.palette_p.borrow_mut().set_primary_color(color);
     }
 
-    fn brush_type(&self) -> BrushType {
-        BrushType::Square(30) // TODO brush settings from toolbar
-    }
-
     pub fn widget(&self) -> &GBox {
         &self.widget
     }
@@ -151,7 +146,6 @@ impl Toolbar {
     }
 
     fn get_brush(&mut self) -> &Brush {
-        self.brush.modify(self.primary_color(), self.brush_type());
-        &self.brush
+        self.brush_toolbar.get_brush(self.primary_color())
     }
 }

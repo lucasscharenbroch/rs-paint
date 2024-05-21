@@ -224,7 +224,7 @@ impl DrawableImage {
 pub struct UnifiedImage {
     image: Image,
     drawable: DrawableImage,
-    pix_modified_since_draw: HashMap<usize, (Pixel)>,
+    pix_modified_since_draw: HashMap<usize, Pixel>,
     pix_modified_since_save: HashMap<usize, (Pixel, Pixel)>,
     save_image_before_overwritten: Option<Image>,
 }

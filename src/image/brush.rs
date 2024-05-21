@@ -1,8 +1,10 @@
 use super::{Image, Pixel};
 
 use gtk::gdk::RGBA;
+use std::rc::Rc;
+use std::cell::RefCell;
 
-#[derive(PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum BrushType {
     Square(u8),
     Round(u8),
@@ -23,16 +25,6 @@ pub struct Brush {
 }
 
 const TRANS: Pixel = Pixel::from_rgba(0, 0, 0, 0);
-
-/*
-    Image::from_pixels(vec![
-            vec![TRANS, BLACK, BLACK, BLACK, TRANS],
-            vec![BLACK, BLACK, BLACK, BLACK, BLACK],
-            vec![BLACK, BLACK, BLACK, BLACK, BLACK],
-            vec![BLACK, BLACK, BLACK, BLACK, BLACK],
-            vec![TRANS, BLACK, BLACK, BLACK, TRANS],
-        ]) // TODO
-*/
 
 fn mk_square_brush_image(n: u8, color: RGBA) -> Image {
     let p = Pixel::from_rgba_struct(color);
@@ -106,5 +98,33 @@ impl Brush {
             props,
             image,
         }
+    }
+}
+
+pub struct BrushToolbar {
+    brush: Brush,
+    brush_type: BrushType,
+}
+
+impl BrushToolbar {
+    pub fn new(color: RGBA, brush_type: BrushType) -> Self {
+        let props = BrushProperties {
+            color,
+            brush_type,
+        };
+
+        BrushToolbar {
+            brush: Brush::from_props(props),
+            brush_type,
+        }
+    }
+
+    pub fn brush_type(&self) -> &BrushType {
+        &self.brush_type
+    }
+
+    pub fn get_brush(&mut self, color: RGBA) -> &Brush {
+        self.brush.modify(color, self.brush_type);
+        &self.brush
     }
 }
