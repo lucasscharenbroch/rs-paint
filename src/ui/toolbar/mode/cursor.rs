@@ -42,13 +42,4 @@ impl super::MouseModeState for CursorState {
     fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         self.handle_drag_update(mod_keys, canvas, toolbar)
     }
-
-    fn handle_motion(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-    }
-
-    fn handle_mod_key_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-    }
-
-    fn draw(&self, _canvas: &Canvas, _cr: &Context) {
-    }
 }

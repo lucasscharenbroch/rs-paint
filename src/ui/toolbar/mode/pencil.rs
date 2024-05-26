@@ -185,7 +185,4 @@ impl super::MouseModeState for PencilState {
     fn handle_mod_key_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         self.handle_motion(mod_keys, canvas, toolbar)
     }
-
-    fn draw(&self, _canvas: &Canvas, _cr: &Context) {
-    }
 }

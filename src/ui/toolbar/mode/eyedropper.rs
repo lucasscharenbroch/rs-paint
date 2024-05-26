@@ -26,21 +26,7 @@ impl super::MouseModeState for EyedropperState {
         }
     }
 
-    // drag_start is the only handled event
-    // TODO default to empty?
-
-    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-    }
-
-    fn handle_drag_end(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-    }
-
-    fn handle_motion(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-    }
-
-    fn handle_mod_key_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-    }
-
     fn draw(&self, _canvas: &Canvas, _cr: &Context) {
+        // TODO?
     }
 }
