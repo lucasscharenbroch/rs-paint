@@ -6,16 +6,17 @@ use gtk::{prelude::*, Box as GBox, DropDown, Orientation, StringObject};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum BrushType {
-    Square(u8),
-    Round(u8),
-    Dither(u8),
-    Pen(u8), // faded round
-    Crayon(u8), // faded dither
+    Square,
+    Round,
+    Dither,
+    Pen, // faded round
+    Crayon, // faded dither
 }
 
 #[derive(PartialEq)]
 struct BrushProperties {
     brush_type: BrushType,
+    radius: u8,
     color: RGBA,
 }
 
@@ -60,19 +61,21 @@ fn mk_round_brush_image(n: u8, fade: bool, dither:bool, color: RGBA) -> Image {
 
 impl Brush {
     fn image_from_props(props: &BrushProperties) -> Image {
+        let r = props.radius;
         match props.brush_type {
-            BrushType::Square(n) => mk_square_brush_image(n, props.color),
-            BrushType::Round(n) => mk_round_brush_image(n, false, false, props.color),
-            BrushType::Dither(n) => mk_round_brush_image(n, false, true, props.color),
-            BrushType::Pen(n) => mk_round_brush_image(n, true, false, props.color),
-            BrushType::Crayon(n) => mk_round_brush_image(n, true, true, props.color),
+            BrushType::Square => mk_square_brush_image(r, props.color),
+            BrushType::Round => mk_round_brush_image(r, false, false, props.color),
+            BrushType::Dither => mk_round_brush_image(r, false, true, props.color),
+            BrushType::Pen => mk_round_brush_image(r, true, false, props.color),
+            BrushType::Crayon => mk_round_brush_image(r, true, true, props.color),
         }
     }
 
-    pub fn modify(&mut self, color: RGBA, brush_type: BrushType) {
+    pub fn modify(&mut self, color: RGBA, brush_type: BrushType, radius: u8) {
         let new_props = BrushProperties {
             color,
             brush_type,
+            radius,
         };
 
         if self.props == new_props {
@@ -82,10 +85,11 @@ impl Brush {
         }
     }
 
-    pub fn new(color: RGBA, brush_type: BrushType) -> Self {
+    pub fn new(color: RGBA, brush_type: BrushType, radius: u8) -> Self {
         let props = BrushProperties {
             color,
             brush_type,
+            radius,
         };
 
         Self::from_props(props)
@@ -109,18 +113,19 @@ pub struct BrushToolbar {
 }
 
 const BRUSH_TYPES_AND_IDS: [(BrushType, &str); 5] = [
-    (BrushType::Round(5), "Round"),
-    (BrushType::Square(5), "Square"),
-    (BrushType::Dither(5), "Dither"),
-    (BrushType::Pen(5), "Pen"),
-    (BrushType::Crayon(5), "Crayon"),
+    (BrushType::Round, "Round"),
+    (BrushType::Square, "Square"),
+    (BrushType::Dither, "Dither"),
+    (BrushType::Pen, "Pen"),
+    (BrushType::Crayon, "Crayon"),
 ];
 
 impl BrushToolbar {
-    pub fn new(color: RGBA, brush_type: BrushType) -> Self {
+    pub fn new(color: RGBA, brush_type: BrushType, radius: u8) -> Self {
         let props = BrushProperties {
             color,
             brush_type,
+            radius,
         };
 
         let type_list = ListStore::new::<StringObject>();
@@ -149,8 +154,12 @@ impl BrushToolbar {
         BRUSH_TYPES_AND_IDS[self.type_dropdown.selected() as usize].0
     }
 
+    pub fn radius(&self) -> u8 {
+        5
+    }
+
     pub fn get_brush(&mut self, color: RGBA) -> &Brush {
-        self.brush.modify(color, self.brush_type());
+        self.brush.modify(color, self.brush_type(), self.radius());
         &self.brush
     }
 
