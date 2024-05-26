@@ -2,7 +2,7 @@ use super::{Image, Pixel};
 
 use gtk::gdk::RGBA;
 use gtk::gio::ListStore;
-use gtk::{prelude::*, Box as GBox, DropDown, Orientation, StringObject};
+use gtk::{prelude::*, Box as GBox, DropDown, Orientation, StringObject, SpinButton};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum BrushType {
@@ -109,6 +109,7 @@ pub struct BrushToolbar {
     brush: Brush,
     brush_type: BrushType,
     type_dropdown: DropDown,
+    radius_selector: SpinButton,
     widget: GBox,
 }
 
@@ -138,14 +139,19 @@ impl BrushToolbar {
             .model(&type_list)
             .build();
 
+        let radius_selector = SpinButton::with_range(1.0, 255.0, 1.0);
+        radius_selector.set_value(5.0);
+
         let widget = GBox::new(Orientation::Horizontal, 5);
 
         widget.append(&type_dropdown);
+        widget.append(&radius_selector);
 
         BrushToolbar {
             brush: Brush::from_props(props),
             brush_type,
             type_dropdown,
+            radius_selector,
             widget
         }
     }
@@ -155,7 +161,7 @@ impl BrushToolbar {
     }
 
     pub fn radius(&self) -> u8 {
-        5
+        self.radius_selector.value() as u8
     }
 
     pub fn get_brush(&mut self, color: RGBA) -> &Brush {
