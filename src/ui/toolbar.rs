@@ -70,6 +70,7 @@ impl Toolbar {
         let button_info: Vec<(&str, fn(&Canvas) -> MouseMode, fn() -> MouseMode)> = vec![
             ("Cursor", MouseMode::cursor, MouseMode::cursor_default),
             ("Pencil", MouseMode::pencil, MouseMode::pencil_default),
+            ("Eyedropper", MouseMode::eyedropper, MouseMode::eyedropper_default),
             ("Rectangle Select", MouseMode::rectangle_select, MouseMode::rectangle_select_default),
         ];
 

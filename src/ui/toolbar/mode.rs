@@ -1,11 +1,13 @@
 mod cursor;
 mod pencil;
 mod rectangle_select;
+mod eyedropper;
 
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};
 
 use cursor::CursorState;
 use pencil::PencilState;
+use self::eyedropper::EyedropperState;
 use self::rectangle_select::RectangleSelectState;
 use gtk::cairo::Context;
 use gtk::gdk::ModifierType;
@@ -15,6 +17,7 @@ pub enum MouseMode {
     Cursor(cursor::CursorState),
     Pencil(pencil::PencilState),
     RectangleSelect(rectangle_select::RectangleSelectState),
+    Eyedropper(eyedropper::EyedropperState),
 }
 
 #[derive(PartialEq)]
@@ -22,6 +25,7 @@ pub enum MouseModeVariant {
     Cursor,
     Pencil,
     RectangleSelect,
+    Eyedropper,
 }
 
 trait MouseModeState {
@@ -58,11 +62,20 @@ impl MouseMode {
         MouseMode::RectangleSelect(RectangleSelectState::default_no_canvas())
     }
 
+    pub fn eyedropper(canvas: &Canvas) -> MouseMode {
+        MouseMode::Eyedropper(EyedropperState::default(canvas))
+    }
+
+    pub fn eyedropper_default() -> MouseMode {
+        MouseMode::Eyedropper(EyedropperState::default_no_canvas())
+    }
+
     fn get_state(&mut self) -> &mut dyn MouseModeState {
         match self {
             MouseMode::Cursor(ref mut s) => s,
             MouseMode::Pencil(ref mut s) => s,
             MouseMode::RectangleSelect(ref mut s) => s,
+            MouseMode::Eyedropper(ref mut s) => s,
         }
     }
 
@@ -71,6 +84,7 @@ impl MouseMode {
             MouseMode::Cursor(ref s) => s,
             MouseMode::Pencil(ref s) => s,
             MouseMode::RectangleSelect(ref s) => s,
+            MouseMode::Eyedropper(ref s) => s,
         }
     }
 
@@ -103,6 +117,7 @@ impl MouseMode {
             MouseMode::Cursor(_) => MouseModeVariant::Cursor,
             MouseMode::Pencil(_) => MouseModeVariant::Pencil,
             MouseMode::RectangleSelect(_) => MouseModeVariant::RectangleSelect,
+            MouseMode::Eyedropper(_) => MouseModeVariant::Eyedropper,
         }
     }
 }

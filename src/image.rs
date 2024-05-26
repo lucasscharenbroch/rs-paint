@@ -40,6 +40,13 @@ impl Pixel {
         Pixel { r, g, b, a, }
     }
 
+    pub fn to_rgba_struct(&self) -> RGBA {
+        RGBA::new(self.r as f32 / 255.0,
+                  self.g as f32 / 255.0,
+                  self.b as f32 / 255.0,
+                  self.a as f32 / 255.0)
+    }
+
     fn to_drawable(&self) -> DrawablePixel {
         DrawablePixel::from_rgba(self.r, self.g, self.b, self.a)
     }

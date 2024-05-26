@@ -133,5 +133,6 @@ impl Palette {
 
     pub fn set_primary_color(&mut self, color: RGBA) {
         self.color_buttons[self.active_idx].borrow_mut().color = color;
+        self.color_buttons[self.active_idx].borrow_mut().drawing_area.queue_draw();
     }
 }
