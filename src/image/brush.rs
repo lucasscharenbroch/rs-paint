@@ -109,8 +109,8 @@ pub struct BrushToolbar {
 }
 
 const BRUSH_TYPES_AND_IDS: [(BrushType, &str); 5] = [
-    (BrushType::Square(5), "Square"),
     (BrushType::Round(5), "Round"),
+    (BrushType::Square(5), "Square"),
     (BrushType::Dither(5), "Dither"),
     (BrushType::Pen(5), "Pen"),
     (BrushType::Crayon(5), "Crayon"),
@@ -145,12 +145,12 @@ impl BrushToolbar {
         }
     }
 
-    pub fn brush_type(&self) -> &BrushType {
-        &self.brush_type
+    pub fn brush_type(&self) -> BrushType {
+        BRUSH_TYPES_AND_IDS[self.type_dropdown.selected() as usize].0
     }
 
     pub fn get_brush(&mut self, color: RGBA) -> &Brush {
-        self.brush.modify(color, self.brush_type);
+        self.brush.modify(color, self.brush_type());
         &self.brush
     }
 
