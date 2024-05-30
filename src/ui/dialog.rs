@@ -1,3 +1,5 @@
+use crate::image::generate::NewImageProps;
+
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
 use gtk::ColorDialog;
 use gtk::glib::{object::IsA, error::Error as GError};
@@ -44,7 +46,13 @@ fn ok_dialog_with_content(parent: &impl IsA<Window>, title: &str, inner_content:
     });
 }
 
-fn yes_no_dialog_with_content<F, G>(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>, on_yes: F, on_no: G)
+fn yes_no_dialog_with_content<F, G>(
+    parent: &impl IsA<Window>,
+    title: &str,
+    inner_content: &impl IsA<Widget>,
+    on_yes: F,
+    on_no: G
+)
 where
     F: Fn() + 'static,
     G: Fn() + 'static
@@ -160,7 +168,10 @@ where
     yes_no_dialog_with_content(parent, title, &text_label, on_yes, on_no);
 }
 
-pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(parent: Option<&impl IsA<Window>>, callback: P) {
+pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(
+    parent: Option<&impl IsA<Window>>,
+    callback: P
+) {
     let dialog = ColorDialog::builder()
         .with_alpha(true)
         .build();
@@ -169,4 +180,11 @@ pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(parent: Op
                        Some(&RGBA::new(0.5, 0.5, 0.5, 0.5)),
                        None::<&Cancellable>,
                        callback);
+}
+
+pub fn new_image_dialog<P: FnOnce(Result<NewImageProps, GError>) + 'static>(
+    parent: &impl IsA<Window>,
+    callback: P
+) {
+    todo!()
 }

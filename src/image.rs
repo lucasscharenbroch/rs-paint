@@ -1,5 +1,6 @@
 pub mod undo;
 pub mod brush;
+pub mod generate;
 
 extern crate image as image_lib;
 

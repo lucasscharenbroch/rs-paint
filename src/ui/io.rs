@@ -5,8 +5,9 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
+use super::dialog::new_image_dialog;
 use super::{dialog::{choose_file_dialog, ok_dialog}, UiState};
-use crate::image::Image;
+use crate::image::{Image, generate::generate};
 
 fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
     let list = ListStore::new::<FileFilter>();
@@ -108,6 +109,15 @@ pub fn export(ui_p: Rc<RefCell<UiState>>) {
 
             // export success
             ui_p.borrow_mut().notify_tab_successful_export();
+        }
+    }))
+}
+
+pub fn new(ui_p: Rc<RefCell<UiState>>) {
+    new_image_dialog(&ui_p.borrow().window, clone!(@strong ui_p => move |props| {
+        if let Ok(props) = props {
+            let image = generate(props);
+            UiState::new_tab(&ui_p, image, "[untitled]");
         }
     }))
 }

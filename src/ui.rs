@@ -13,7 +13,7 @@ use crate::image::{Image, UnifiedImage};
 use tab::{Tab, Tabbar};
 
 use gtk::prelude::*;
-use gtk::gdk::{Key, ModifierType, RGBA};
+use gtk::gdk::{Key, ModifierType};
 use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator, Box as GBox, Window, Widget};
 use std::rc::Rc;
 use std::cell::RefCell;
