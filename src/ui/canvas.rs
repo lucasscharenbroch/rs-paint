@@ -30,7 +30,6 @@ pub struct Canvas {
     single_shot_draw_hooks: Vec<Box<dyn Fn(&Context)>>,
     draw_hook: Option<Box<dyn Fn(&Context)>>,
     transparent_checkerboard: DrawableImage,
-    toolbar_p: Rc<RefCell<Toolbar>>,
 }
 
 impl Canvas {
@@ -64,7 +63,6 @@ impl Canvas {
             single_shot_draw_hooks: vec![],
             draw_hook: None,
             transparent_checkerboard: mk_transparent_checkerboard(),
-            toolbar_p: ui_p.borrow().toolbar_p.clone(),
         }));
 
         Self::init_internal_connections(&canvas_p);
@@ -465,10 +463,5 @@ impl Canvas {
 
     pub fn save_state_for_undo(&mut self) {
         self.image_hist.push_state();
-    }
-
-    // somewhat scuffed
-    pub fn get_toolbar_p(&self) -> Rc<RefCell<Toolbar>> {
-        self.toolbar_p.clone()
     }
 }
