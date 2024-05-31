@@ -1,6 +1,7 @@
 mod form;
 
 use crate::image::generate::NewImageProps;
+use self::form::{FormBuilder, TextField, Form};
 
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
 use gtk::ColorDialog;
@@ -10,6 +11,7 @@ use gtk::gdk::RGBA;
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
+
 
 pub enum CloseDialog {
     Yes,
@@ -233,11 +235,23 @@ pub fn new_image_dialog<P: FnOnce(Result<NewImageProps, GError>) + 'static>(
         .orientation(Orientation::Vertical)
         .build();
 
-    let on_ok = || {
+    let a = TextField::new("default text", "phantom text", Some("label"));
+    let b = TextField::new("default text", "phantom text", Some("label"));
+    let c = TextField::new("default text", "phantom text", Some("label"));
+
+    let form = Form::builder()
+        .title("New Image")
+        .with_field(&a)
+        .with_field(&b)
+        .with_field(&c)
+        .build();
+
+    let on_ok = move || {
+        println!("Got `{}` `{}` `{}`", a.value(), b.value(), c.value());
         todo!()
     };
 
     let on_cancel = || ();
 
-    ok_cancel_dialog(parent, "New Image", &content, on_ok, on_cancel)
+    ok_cancel_dialog(parent, "New Image", form.widget(), on_ok, on_cancel)
 }
