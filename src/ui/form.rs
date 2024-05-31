@@ -250,7 +250,6 @@ impl<T> FormField for RadioField<T> {
     }
 }
 
-
 pub struct Form {
     widget: GBox,
 }

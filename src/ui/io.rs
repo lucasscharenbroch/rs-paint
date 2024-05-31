@@ -115,7 +115,7 @@ pub fn export(ui_p: Rc<RefCell<UiState>>) {
 
 pub fn new(ui_p: Rc<RefCell<UiState>>) {
     new_image_dialog(&ui_p.borrow().window, clone!(@strong ui_p => move |props| {
-        if let Ok(props) = props {
+        if let Some(props) = props {
             let image = generate(props);
             UiState::new_tab(&ui_p, image, "[untitled]");
         }

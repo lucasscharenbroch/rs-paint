@@ -1,4 +1,5 @@
 use crate::image::generate::NewImageProps;
+use crate::ui::form::ColorField;
 use super::form::{Form, NaturalField, CheckboxField};
 
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
@@ -225,22 +226,25 @@ pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(
                        callback);
 }
 
-pub fn new_image_dialog<P: FnOnce(Result<NewImageProps, GError>) + 'static>(
+pub fn new_image_dialog<P: Fn(Option<NewImageProps>) + 'static>(
     parent: &impl IsA<Window>,
     callback: P
 ) {
     const DEFAULT_IMAGE_WIDTH: usize = 500;
     const DEFAULT_IMAGE_HEIGHT: usize = 500;
+    const DEFAULT_FILL_COLOR: RGBA = RGBA::new(0.0, 0.0, 0.0, 0.0);
 
     let width_field = NaturalField::new(Some("Width:"), 1, usize::MAX, 1, DEFAULT_IMAGE_WIDTH);
     let height_field = NaturalField::new(Some("Height:"), 1, usize::MAX, 1, DEFAULT_IMAGE_HEIGHT);
     let ratio_button = CheckboxField::new(Some("Maintain Aspect Ratio"), true);
+    let color_button = ColorField::new(Some("Fill Color"), DEFAULT_FILL_COLOR);
 
     let form = Form::builder()
         .title("New Image")
         .with_field(&width_field)
         .with_field(&height_field)
         .with_field(&ratio_button)
+        .with_field(&color_button)
         .build();
 
     struct AspectRatioState {
@@ -296,7 +300,13 @@ pub fn new_image_dialog<P: FnOnce(Result<NewImageProps, GError>) + 'static>(
     }));
 
     let on_ok = move || {
-        todo!()
+        let props = NewImageProps {
+            width: state_p.borrow().width_field.value(),
+            height: state_p.borrow().height_field.value(),
+            color: color_button.value(),
+        };
+        callback(Some(props));
+        CloseDialog::Yes
     };
 
     let on_cancel = || ();
