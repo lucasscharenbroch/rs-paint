@@ -30,7 +30,12 @@ impl PencilState {
     }
 
     fn draw_line_between(&self, line_pt0: (f64, f64), line_pt1: (f64, f64), canvas: &mut Canvas, toolbar: &mut Toolbar) {
-        let target_pixels = pixels_on_segment(line_pt0, line_pt1);
+        // half the distance, for now
+        let dx = line_pt0.0 - line_pt1.0;
+        let dy = line_pt0.1 - line_pt1.1;
+        let d = (dx.powi(2) + dy.powi(2)).sqrt();
+        let num_points = (d / 2.0) as usize + 1;
+        let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points);
         let blending_mode = toolbar.get_blending_mode();
         let brush = toolbar.get_brush();
 
@@ -78,78 +83,25 @@ impl PencilState {
     }
 }
 
-fn dfs_pix_where(
-    x0: usize,
-    y0: usize,
-    pred: &dyn Fn(usize, usize) -> bool,
-    vis: &mut HashSet<(usize, usize)>
-) {
-    vis.insert((x0, y0));
+// given a continuous line segment, return the given number
+// of discrete points (pixels) that "intersect" it
+fn pixels_along_segment(
+    (x0, y0): (f64, f64),
+    (x1, y1): (f64, f64),
+    num_pix: usize,
+) -> Vec<(usize, usize)> {
+    let total_dx = x1 - x0;
+    let total_dy = y1 - y0;
 
-    let x0 = x0 as i32;
-    let y0 = y0 as i32;
+    let dx = total_dx / (num_pix as f64);
+    let dy = total_dy / (num_pix as f64);
 
-    let surrounding = vec![
-        (x0 + 1, y0),
-        (x0, y0 + 1),
-        (x0 - 1, y0),
-        (x0, y0 - 1),
-    ];
-
-    surrounding.iter().for_each(|&(x, y)| {
-        if x < 0 || y < 0 {
-            return;
-        }
-
-        let x = x as usize;
-        let y = y as usize;
-
-        if vis.contains(&(x, y)) || !pred(x, y) {
-            return;
-        }
-
-        dfs_pix_where(x, y, pred, vis);
-    });
-}
-
-// given a continuous line segment, return the set of
-// discrete pixels that intersect it
-fn pixels_on_segment((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> HashSet<(usize, usize)> {
-    let max_x = x0.max(x1).floor();
-    let min_x = x0.min(x1).floor();
-    let max_y = y0.max(y1).floor();
-    let min_y = y0.min(y1).floor();
-
-    let pt_direction = move |(px, py): (f64, f64)| -> bool {
-        // dot-product of normal-vector of segment <y1 - y0, -(x1 - x0)>
-        // and vector between the segment's first point and the given point <px - x0, py - y0>
-        // sign flips when point crosses the line
-        (px - x0) * (y1 - y0) - (py - y0) * (x1 - x0) >= 0.0
-    };
-
-    let pix_intersects_line = move |px: usize, py: usize| -> bool {
-        let px = px as f64;
-        let py = py as f64;
-
-        let corners = vec![
-            (px, py), // top left
-            (px, py + 1.0),
-            (px + 1.0, py),
-            (px + 1.0, py + 1.0),
-        ];
-
-        let top_left_direction = pt_direction((px, py));
-
-        // one should be within the bounding-box of the segment
-        corners.iter().any(|&(x, y)| min_x <= x && x <= max_x && min_y <= y && y <= max_y)
-        &&
-        // can't all be on the same side of the segment
-        !corners.iter().skip(1).all(|&pt| pt_direction(pt) == top_left_direction)
-    };
-
-    let mut vis = HashSet::new();
-    dfs_pix_where(x0 as usize, y0 as usize, &pix_intersects_line, &mut vis);
-    vis
+    (0..num_pix).map(|i| {
+        let i = i as f64;
+        let x = x0 + dx * i;
+        let y = y0 + dy * i;
+        (x as usize, y as usize)
+    }).collect::<Vec<_>>()
 }
 
 impl super::MouseModeState for PencilState {
