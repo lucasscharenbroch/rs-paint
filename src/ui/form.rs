@@ -1,3 +1,4 @@
+use gtk::glib::VariantClass;
 use gtk::{prelude::*, Box as GBox, CheckButton, ColorDialog, ColorDialogButton, Entry, Label, Orientation, SpinButton, Widget};
 use gtk::gdk::RGBA;
 use gtk::glib::object::IsA;
@@ -168,9 +169,60 @@ impl FormField for CheckboxField {
     }
 }
 
-pub struct RadioField {
-    variants: Vec<String>,
-    default_variant_idx: usize,
+pub struct RadioField<T> {
+    buttons: Vec<CheckButton>,
+    wrapper: GBox,
+    variants: Vec<T>,
+}
+
+impl<T> RadioField<T> {
+    pub fn new(label: Option<&str>, variants: Vec<(&str, T)>, default: usize) -> Self {
+        let buttons = variants.iter().enumerate()
+            .map(|(idx, (label_text, x))| {
+            CheckButton::builder()
+                .label(*label_text)
+                .active(idx == default)
+                .build()
+        }).collect::<Vec<_>>();
+
+        // group buttons together
+        assert!(buttons.len() >= 1);
+        let first_button = &buttons[0];
+        buttons.iter().skip(1).for_each(|b| b.set_group(Some(first_button)));
+
+        let variants = variants.into_iter()
+            .map(|(_, x)| x)
+            .collect::<Vec<_>>();
+
+        let wrapper = GBox::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(4)
+            .build();
+
+        for b in buttons.iter() {
+            wrapper.append(b);
+        }
+
+        RadioField {
+            buttons,
+            wrapper,
+            variants,
+        }
+    }
+
+    pub fn value(&self) -> Option<&T> {
+        self.buttons.iter()
+            .enumerate()
+            .filter(|(_idx, b)| b.is_active())
+            .next()
+            .map(|(idx, _b)| &self.variants[idx]) // map over the Option
+    }
+}
+
+impl<T> FormField for RadioField<T> {
+    fn outer_widget(&self) -> &impl IsA<Widget> {
+        &self.wrapper
+    }
 }
 
 

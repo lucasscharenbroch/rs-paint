@@ -1,5 +1,5 @@
 use crate::image::generate::NewImageProps;
-use super::form::{Form, FormBuilder, NaturalField, TextField};
+use super::form::{Form, FormBuilder, NaturalField, RadioField, TextField};
 
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
 use gtk::ColorDialog;
@@ -233,25 +233,23 @@ pub fn new_image_dialog<P: FnOnce(Result<NewImageProps, GError>) + 'static>(
         .orientation(Orientation::Vertical)
         .build();
 
-    let a = NaturalField::new(Some("label1"), 2, 100, 5, 7);
-    let b = NaturalField::new(Some("label2"), 2, 100, 5, 7);
-    let c = NaturalField::new(Some("label3"), 2, 100, 5, 7);
-    let d = super::form::ColorField::new(Some("Select a color"), RGBA::new(1.0, 0.0, 0.0, 1.0));
-    let e = super::form::CheckboxField::new(Some("Checkbox label"), false);
-    let f = super::form::CheckboxField::new(Some("Checkbox label 2"), true);
+    let variants = vec![
+        ("one", 1),
+        ("two", 2),
+        ("three", 3),
+    ];
+
+    let a = RadioField::new(Some("label 1"), variants.clone(), 0);
+    let b = RadioField::new(None, variants, 10);
 
     let form = Form::builder()
         .title("New Image")
         .with_field(&a)
         .with_field(&b)
-        .with_field(&c)
-        .with_field(&d)
-        .with_field(&e)
-        .with_field(&f)
         .build();
 
     let on_ok = move || {
-        println!("Got `{}` `{}` `{}` `{}` `{}` `{}`", a.value(), b.value(), c.value(), d.value(), e.value(), f.value());
+        println!("Got `{:?}` `{:?}`", a.value(), b.value());
         todo!()
     };
 
