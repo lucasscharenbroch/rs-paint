@@ -2,6 +2,10 @@ use gtk::{prelude::*, Box as GBox, CheckButton, ColorDialog, ColorDialogButton, 
 use gtk::gdk::RGBA;
 use gtk::glib::object::IsA;
 
+fn new_label(text: &str) -> Label {
+    Label::new(Some(text))
+}
+
 pub trait FormField {
     fn outer_widget(&self) -> &impl IsA<Widget>;
 }
@@ -24,14 +28,7 @@ impl TextField {
             .build();
 
         wrapper.append(&text_box);
-
-        if let Some(label_text) = label {
-            let label = Label::builder()
-                .label(label_text)
-                .build();
-
-            wrapper.prepend(&label);
-        }
+        label.map(|label_text| wrapper.prepend(&new_label(label_text)));
 
         TextField {
             text_box,
@@ -66,14 +63,7 @@ impl NaturalField {
             .build();
 
         wrapper.append(&num_entry);
-
-        if let Some(label_text) = label {
-            let label = Label::builder()
-                .label(label_text)
-                .build();
-
-            wrapper.prepend(&label);
-        }
+        label.map(|label_text| wrapper.prepend(&new_label(label_text)));
 
         NaturalField {
             num_entry,
@@ -125,14 +115,7 @@ impl ColorField {
             .build();
 
         wrapper.append(&button);
-
-        if let Some(label_text) = label {
-            let label = Label::builder()
-                .label(label_text)
-                .build();
-
-            wrapper.prepend(&label);
-        }
+        label.map(|label_text| wrapper.prepend(&new_label(label_text)));
 
         ColorField {
             button,
@@ -220,13 +203,7 @@ impl<T> RadioField<T> {
             wrapper.append(b);
         }
 
-        if let Some(label_text) = label {
-            let label = Label::builder()
-                .label(label_text)
-                .build();
-
-            wrapper.prepend(&label);
-        }
+        label.map(|label_text| wrapper.prepend(&new_label(label_text)));
 
         RadioField {
             buttons,
