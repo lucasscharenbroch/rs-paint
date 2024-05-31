@@ -1,7 +1,5 @@
-mod form;
-
 use crate::image::generate::NewImageProps;
-use self::form::{Form, FormBuilder, NaturalField, TextField};
+use super::form::{Form, FormBuilder, NaturalField, TextField};
 
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
 use gtk::ColorDialog;
@@ -238,9 +236,9 @@ pub fn new_image_dialog<P: FnOnce(Result<NewImageProps, GError>) + 'static>(
     let a = NaturalField::new(Some("label1"), 2, 100, 5, 7);
     let b = NaturalField::new(Some("label2"), 2, 100, 5, 7);
     let c = NaturalField::new(Some("label3"), 2, 100, 5, 7);
-    let d = form::ColorField::new(Some("Select a color"), RGBA::new(1.0, 0.0, 0.0, 1.0));
-    let e = form::CheckboxField::new(Some("Checkbox label"), false);
-    let f = form::CheckboxField::new(Some("Checkbox label 2"), true);
+    let d = super::form::ColorField::new(Some("Select a color"), RGBA::new(1.0, 0.0, 0.0, 1.0));
+    let e = super::form::CheckboxField::new(Some("Checkbox label"), false);
+    let f = super::form::CheckboxField::new(Some("Checkbox label 2"), true);
 
     let form = Form::builder()
         .title("New Image")

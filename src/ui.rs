@@ -5,6 +5,7 @@ mod menu;
 mod dialog;
 mod io;
 mod tab;
+mod form;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
