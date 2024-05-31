@@ -1,3 +1,5 @@
+mod form;
+
 use crate::image::generate::NewImageProps;
 
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
@@ -8,6 +10,11 @@ use gtk::gdk::RGBA;
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
+
+pub enum CloseDialog {
+    Yes,
+    No,
+}
 
 fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>) {
     let ok_button = Button::builder()
@@ -56,7 +63,7 @@ fn binary_dialog<F, G>(
     on_no: G
 )
 where
-    F: Fn() + 'static,
+    F: Fn() -> CloseDialog + 'static,
     G: Fn() + 'static
 {
     let yes_button = Button::builder()
@@ -102,8 +109,9 @@ where
     let window_p = Rc::new(RefCell::new(dialog_window));
 
     yes_button.connect_clicked(clone!(@strong window_p => move |_button| {
-        on_yes();
-        window_p.borrow().close();
+        if let CloseDialog::Yes = on_yes() {
+            window_p.borrow().close();
+        }
     }));
 
     no_button.connect_clicked(clone!(@strong window_p => move |_button| {
@@ -120,7 +128,7 @@ fn yes_no_dialog<F, G>(
     on_no: G
 )
 where
-    F: Fn() + 'static,
+    F: Fn() -> CloseDialog + 'static,
     G: Fn() + 'static
 {
     binary_dialog("Yes", "No", parent, title, inner_content, on_yes, on_no)
@@ -134,7 +142,7 @@ fn ok_cancel_dialog<F, G>(
     on_cancel: G
 )
 where
-    F: Fn() + 'static,
+    F: Fn() -> CloseDialog + 'static,
     G: Fn() + 'static
 {
     binary_dialog("Ok", "Cancel", parent, title, inner_content, on_ok, on_cancel)
@@ -195,6 +203,11 @@ where
         .selectable(true)
         .build();
 
+    let on_yes = move || {
+        on_yes();
+        CloseDialog::Yes
+    };
+
     yes_no_dialog(parent, title, &text_label, on_yes, on_no);
 }
 
@@ -220,8 +233,11 @@ pub fn new_image_dialog<P: FnOnce(Result<NewImageProps, GError>) + 'static>(
         .orientation(Orientation::Vertical)
         .build();
 
-    let on_ok = || todo!();
-    let on_cancel = || todo!();
+    let on_ok = || {
+        todo!()
+    };
+
+    let on_cancel = || ();
 
     ok_cancel_dialog(parent, "New Image", &content, on_ok, on_cancel)
 }
