@@ -1,4 +1,5 @@
 use super::{Image, Pixel};
+use super::blend::BlendingMode;
 
 use gtk::gdk::RGBA;
 use gtk::gio::ListStore;
@@ -109,6 +110,7 @@ pub struct BrushToolbar {
     brush: Brush,
     brush_type: BrushType,
     type_dropdown: DropDown,
+    blending_mode_dropdown: DropDown,
     radius_selector: SpinButton,
     widget: GBox,
 }
@@ -119,6 +121,12 @@ const BRUSH_TYPES_AND_IDS: [(BrushType, &str); 5] = [
     (BrushType::Dither, "Dither"),
     (BrushType::Pen, "Pen"),
     (BrushType::Crayon, "Crayon"),
+];
+
+const BLENDING_MODES_AND_IDS: [(BlendingMode, &str); 3] = [
+    (BlendingMode::Average, "Average"),
+    (BlendingMode::Overwrite, "Overwrite"),
+    (BlendingMode::Paint, "Paint"),
 ];
 
 impl BrushToolbar {
@@ -139,18 +147,30 @@ impl BrushToolbar {
             .model(&type_list)
             .build();
 
+        let blending_mode_list = ListStore::new::<StringObject>();
+
+        for (_, id) in BLENDING_MODES_AND_IDS.iter() {
+            blending_mode_list.append(&StringObject::new(id))
+        }
+
+        let blending_mode_dropdown = DropDown::builder()
+            .model(&blending_mode_list)
+            .build();
+
         let radius_selector = SpinButton::with_range(1.0, 255.0, 1.0);
         radius_selector.set_value(5.0);
 
         let widget = GBox::new(Orientation::Horizontal, 5);
 
         widget.append(&type_dropdown);
+        widget.append(&blending_mode_dropdown);
         widget.append(&radius_selector);
 
         BrushToolbar {
             brush: Brush::from_props(props),
             brush_type,
             type_dropdown,
+            blending_mode_dropdown,
             radius_selector,
             widget
         }
@@ -171,5 +191,9 @@ impl BrushToolbar {
 
     pub fn widget(&self) -> &GBox {
         &self.widget
+    }
+
+    pub fn get_blending_mode(&self) -> BlendingMode {
+        BLENDING_MODES_AND_IDS[self.blending_mode_dropdown.selected() as usize].0
     }
 }

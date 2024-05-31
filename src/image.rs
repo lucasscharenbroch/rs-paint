@@ -1,6 +1,9 @@
 pub mod undo;
 pub mod brush;
 pub mod generate;
+pub mod blend;
+
+use blend::BlendingMode;
 
 extern crate image as image_lib;
 
@@ -50,15 +53,6 @@ impl Pixel {
 
     fn to_drawable(&self) -> DrawablePixel {
         DrawablePixel::from_rgba(self.r, self.g, self.b, self.a)
-    }
-
-    fn blend_onto(above: &Pixel, below: &Pixel) -> Pixel {
-        let o = above.a as f64 / 255.0;
-        let t = 1.0 - o;
-        Pixel::from_rgba((above.r as f64 * o + below.r as f64 * t) as u8,
-                         (above.g as f64 * o + below.g as f64 * t) as u8,
-                         (above.b as f64 * o + below.b as f64 * t) as u8,
-                         std::cmp::max(above.a, below.a))
     }
 
     fn scale_alpha(&self, amount: f64) -> Pixel {
@@ -262,14 +256,14 @@ impl UnifiedImage {
     }
 
     // draw `other` at (x, y)
-    pub fn sample(&mut self, other: &Image, x: i32, y: i32) {
+    pub fn sample(&mut self, other: &Image, blending_mode: &BlendingMode, x: i32, y: i32) {
         for i in 0..other.height {
             for j in 0..other.width {
                 let ip = i as i32 + y;
                 let jp = j as i32 + x;
 
                 if let Some(p) = self.try_pix_at(ip, jp) {
-                    *p = Pixel::blend_onto(&other.pixels[(i * other.width + j) as usize], &p);
+                    *p = blending_mode.blend(&other.pixels[(i * other.width + j) as usize], &p);
                 }
             }
         }

@@ -7,6 +7,7 @@ use super::canvas::Canvas;
 use super::UiState;
 use palette::Palette;
 use crate::image::brush::{Brush, BrushType, BrushToolbar};
+use crate::image::blend::BlendingMode;
 
 use gtk::prelude::*;
 use gtk::{Box as GBox, Orientation, ToggleButton};
@@ -148,5 +149,9 @@ impl Toolbar {
 
     fn get_brush(&mut self) -> &Brush {
         self.brush_toolbar.get_brush(self.primary_color())
+    }
+
+    fn get_blending_mode(&self) -> BlendingMode {
+        self.brush_toolbar.get_blending_mode()
     }
 }
