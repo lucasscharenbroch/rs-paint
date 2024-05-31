@@ -1,4 +1,5 @@
 use super::{Canvas, Toolbar};
+use crate::image::ImageLike;
 
 use std::collections::HashSet;
 use gtk::gdk::ModifierType;

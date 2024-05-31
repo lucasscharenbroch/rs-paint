@@ -84,6 +84,31 @@ impl Image {
     }
 }
 
+// used to allow usage of both `BrushImage` and `Image` in `sample`
+// also probably more uses later to mix and match image types
+pub trait ImageLike {
+    fn width(&self) -> usize;
+    fn height(&self) -> usize;
+    fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel>; // no bounds check!
+}
+
+impl ImageLike for Image {
+    #[inline]
+    fn width(&self) -> usize {
+        self.width
+    }
+
+    #[inline]
+    fn height(&self) -> usize {
+        self.height
+    }
+
+    #[inline]
+    fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel> {
+        Some(&self.pixels[r * self.width + c])
+    }
+}
+
 // i/o
 impl Image {
     pub fn from_file(path: &Path) -> Result<Image, String> {
@@ -142,13 +167,6 @@ impl Image {
         }
     }
 
-    pub fn width(&self) -> usize {
-        self.width
-    }
-
-    pub fn height(&self) -> usize {
-        self.height
-    }
 }
 
 // DrawablePixel / DrawableImage
@@ -256,14 +274,16 @@ impl UnifiedImage {
     }
 
     // draw `other` at (x, y)
-    pub fn sample(&mut self, other: &Image, blending_mode: &BlendingMode, x: i32, y: i32) {
-        for i in 0..other.height {
-            for j in 0..other.width {
+    pub fn sample(&mut self, other: &impl ImageLike, blending_mode: &BlendingMode, x: i32, y: i32) {
+        for i in 0..other.height() {
+            for j in 0..other.width() {
                 let ip = i as i32 + y;
                 let jp = j as i32 + x;
 
                 if let Some(p) = self.try_pix_at(ip, jp) {
-                    *p = blending_mode.blend(&other.pixels[(i * other.width + j) as usize], &p);
+                    if let Some(op) = other.try_pix_at(i as usize, j as usize) {
+                        *p = blending_mode.blend(op, &p);
+                    }
                 }
             }
         }

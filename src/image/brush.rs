@@ -1,4 +1,4 @@
-use super::{Image, Pixel};
+use super::{Image, ImageLike, Pixel};
 use super::blend::BlendingMode;
 
 use gtk::gdk::RGBA;
@@ -21,22 +21,57 @@ struct BrushProperties {
     color: RGBA,
 }
 
+pub struct BrushImage {
+    pixel_options: Vec<Option<Pixel>>,
+    width: usize,
+    height: usize,
+}
+
+impl BrushImage {
+    pub fn from_pixels_options(pixel_options: Vec<Vec<Option<Pixel>>>) -> Self {
+        let width = pixel_options.len();
+        let height = pixel_options[0].len();
+        let pixel_options = pixel_options.into_iter().flatten().collect::<Vec<_>>();
+
+        Self {
+            width,
+            height,
+            pixel_options,
+        }
+    }
+}
+
+impl ImageLike for BrushImage {
+    #[inline]
+    fn width(&self) -> usize {
+        self.width
+    }
+
+    #[inline]
+    fn height(&self) -> usize {
+        self.height
+    }
+
+    #[inline]
+    fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel> {
+        self.pixel_options[r * self.width + c].as_ref()
+    }
+}
+
 pub struct Brush {
     props: BrushProperties,
-    pub image: Image,
+    pub image: BrushImage,
 }
 
-const TRANS: Pixel = Pixel::from_rgba(0, 0, 0, 0);
-
-fn mk_square_brush_image(n: u8, color: RGBA) -> Image {
+fn mk_square_brush_image(n: u8, color: RGBA) -> BrushImage {
     let p = Pixel::from_rgba_struct(color);
-    Image::from_pixels(vec![vec![p; n as usize]; n as usize])
+    BrushImage::from_pixels_options(vec![vec![Some(p); n as usize]; n as usize])
 }
 
-fn mk_round_brush_image(n: u8, fade: bool, dither:bool, color: RGBA) -> Image {
+fn mk_round_brush_image(n: u8, fade: bool, dither:bool, color: RGBA) -> BrushImage {
     let p = Pixel::from_rgba_struct(color);
     let n = n as usize;
-    let mut pix = vec![vec![TRANS; n]; n];
+    let mut pix = vec![vec![None; n]; n];
 
     const CIRC_THRESH: f64 = 0.3;
 
@@ -49,19 +84,19 @@ fn mk_round_brush_image(n: u8, fade: bool, dither:bool, color: RGBA) -> Image {
 
             if opacity > CIRC_THRESH  && (!dither || i % 2 == j % 2) {
                 if fade {
-                    pix[i][j] = p.scale_alpha(opacity);
+                    pix[i][j] = Some(p.scale_alpha(opacity));
                 } else {
-                    pix[i][j] = p.clone();
+                    pix[i][j] = Some(p.clone());
                 }
             }
         }
     }
 
-    Image::from_pixels(pix)
+    BrushImage::from_pixels_options(pix)
 }
 
 impl Brush {
-    fn image_from_props(props: &BrushProperties) -> Image {
+    fn image_from_props(props: &BrushProperties) -> BrushImage {
         let r = props.radius;
         match props.brush_type {
             BrushType::Square => mk_square_brush_image(r, props.color),
