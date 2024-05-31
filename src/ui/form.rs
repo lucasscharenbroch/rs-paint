@@ -1,4 +1,3 @@
-use gtk::glib::VariantClass;
 use gtk::{prelude::*, Box as GBox, CheckButton, ColorDialog, ColorDialogButton, Entry, Label, Orientation, SpinButton, Widget};
 use gtk::gdk::RGBA;
 use gtk::glib::object::IsA;
@@ -85,6 +84,17 @@ impl NaturalField {
     pub fn value(&self) -> usize {
         self.num_entry.value() as usize
     }
+
+    pub fn set_value(&self, new_value: usize) {
+        self.num_entry.set_value(new_value as f64);
+    }
+
+    pub fn set_changed_hook<F: Fn(usize) + 'static>(&self, f: F)
+    {
+        self.num_entry.connect_value_changed(move |b| {
+            f(b.value() as usize)
+        });
+    }
 }
 
 impl FormField for NaturalField {
@@ -161,6 +171,13 @@ impl CheckboxField {
     pub fn value(&self) -> bool {
         self.button.is_active()
     }
+
+    pub fn set_toggled_hook<F: Fn(bool) + 'static>(&self, f: F)
+    {
+        self.button.connect_toggled(move |b| {
+            f(b.is_active())
+        });
+    }
 }
 
 impl FormField for CheckboxField {
@@ -178,7 +195,7 @@ pub struct RadioField<T> {
 impl<T> RadioField<T> {
     pub fn new(label: Option<&str>, variants: Vec<(&str, T)>, default: usize) -> Self {
         let buttons = variants.iter().enumerate()
-            .map(|(idx, (label_text, x))| {
+            .map(|(idx, (label_text, _x))| {
             CheckButton::builder()
                 .label(*label_text)
                 .active(idx == default)
@@ -201,6 +218,14 @@ impl<T> RadioField<T> {
 
         for b in buttons.iter() {
             wrapper.append(b);
+        }
+
+        if let Some(label_text) = label {
+            let label = Label::builder()
+                .label(label_text)
+                .build();
+
+            wrapper.prepend(&label);
         }
 
         RadioField {
@@ -227,7 +252,6 @@ impl<T> FormField for RadioField<T> {
 
 
 pub struct Form {
-    title: Option<String>,
     widget: GBox,
 }
 
@@ -242,7 +266,8 @@ impl Form {
 }
 
 pub struct FormBuilder {
-    form: Form,
+    title: Option<String>,
+    widget: GBox,
 }
 
 impl FormBuilder {
@@ -252,27 +277,33 @@ impl FormBuilder {
             .spacing(4)
             .build();
 
-        let form = Form {
+        FormBuilder {
             title: None,
             widget,
-        };
-
-        FormBuilder {
-            form,
         }
     }
 
     pub fn build(self) -> Form {
-        self.form
+        if let Some(title_str) = self.title {
+            let title_label = Label::builder()
+                .label(title_str)
+                .build();
+
+            self.widget.prepend(&title_label);
+        }
+
+        Form {
+            widget: self.widget,
+        }
     }
 
     pub fn title(mut self, new_title: &str) -> Self {
-        self.form.title = Some(String::from(new_title));
+        self.title = Some(String::from(new_title));
         self
     }
 
     pub fn with_field(mut self, new_field: &impl FormField) -> Self {
-        self.form.widget.append(new_field.outer_widget());
+        self.widget.append(new_field.outer_widget());
         self
     }
 }

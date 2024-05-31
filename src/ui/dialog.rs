@@ -1,5 +1,5 @@
 use crate::image::generate::NewImageProps;
-use super::form::{Form, FormBuilder, NaturalField, RadioField, TextField};
+use super::form::{Form, NaturalField, CheckboxField};
 
 use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
 use gtk::ColorDialog;
@@ -229,27 +229,73 @@ pub fn new_image_dialog<P: FnOnce(Result<NewImageProps, GError>) + 'static>(
     parent: &impl IsA<Window>,
     callback: P
 ) {
-    let content = GBox::builder()
-        .orientation(Orientation::Vertical)
-        .build();
+    const DEFAULT_IMAGE_WIDTH: usize = 500;
+    const DEFAULT_IMAGE_HEIGHT: usize = 500;
 
-    let variants = vec![
-        ("one", 1),
-        ("two", 2),
-        ("three", 3),
-    ];
-
-    let a = RadioField::new(Some("label 1"), variants.clone(), 0);
-    let b = RadioField::new(None, variants, 10);
+    let width_field = NaturalField::new(Some("Width:"), 1, usize::MAX, 1, DEFAULT_IMAGE_WIDTH);
+    let height_field = NaturalField::new(Some("Height:"), 1, usize::MAX, 1, DEFAULT_IMAGE_HEIGHT);
+    let ratio_button = CheckboxField::new(Some("Maintain Aspect Ratio"), true);
 
     let form = Form::builder()
         .title("New Image")
-        .with_field(&a)
-        .with_field(&b)
+        .with_field(&width_field)
+        .with_field(&height_field)
+        .with_field(&ratio_button)
         .build();
 
+    struct AspectRatioState {
+        old_width: usize,
+        old_height: usize,
+        enforce: bool,
+        width_field: NaturalField,
+        height_field: NaturalField,
+    }
+
+    impl AspectRatioState {
+        fn update_ratio(&mut self) {
+            self.old_width = self.width_field.value();
+            self.old_height = self.height_field.value();
+        }
+    }
+
+    let state_p = Rc::new(RefCell::new(AspectRatioState {
+        old_width: width_field.value(),
+        old_height: height_field.value(),
+        enforce: ratio_button.value(),
+        width_field,
+        height_field,
+    }));
+
+    ratio_button.set_toggled_hook(clone!(@strong state_p => move |now_active| {
+        state_p.borrow_mut().enforce = now_active;
+        if now_active {
+            state_p.borrow_mut().update_ratio();
+        }
+    }));
+
+    state_p.borrow().width_field.set_changed_hook(clone!(@strong state_p => move |new_width| {
+        if let Ok(state) = state_p.try_borrow_mut() {
+            if !state.enforce {
+                return
+            }
+
+            let width_change = new_width as f64 / (state.old_width as f64);
+            state.height_field.set_value((state.old_height as f64 * width_change).ceil() as usize);
+        }
+    }));
+
+    state_p.borrow().height_field.set_changed_hook(clone!(@strong state_p => move |new_height| {
+        if let Ok(state) = state_p.try_borrow_mut() {
+            if !state.enforce {
+                return
+            }
+
+            let height_change = new_height as f64 / (state.old_height as f64);
+            state.width_field.set_value((state.old_width as f64 * height_change).ceil() as usize);
+        }
+    }));
+
     let on_ok = move || {
-        println!("Got `{:?}` `{:?}`", a.value(), b.value());
         todo!()
     };
 
