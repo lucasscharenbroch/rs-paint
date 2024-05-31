@@ -139,6 +139,10 @@ impl Brush {
             image,
         }
     }
+
+    pub fn radius(&self) -> usize {
+        self.props.radius as usize
+    }
 }
 
 pub struct BrushToolbar {

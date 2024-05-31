@@ -15,6 +15,12 @@ enum PencilMode {
 pub struct PencilState {
     last_cursor_pos_pix: (f64, f64),
     mode: PencilMode,
+    // Pencil strokes are formed by drawing `BrushImage`s
+    // periodically on points along the line segments the mouse follows.
+    // When segments get really small, we don't want to sample at every segment
+    // (else the line gets too dark), so `dist_till_resample` is used to maintain
+    // a uniform sampling-to-distance, independent of the number of segments.
+    dist_till_resample: f64,
 }
 
 impl PencilState {
@@ -26,18 +32,31 @@ impl PencilState {
         PencilState {
             last_cursor_pos_pix: (0.0, 0.0),
             mode: PencilMode::TraceCursor,
+            dist_till_resample: 0.0,
         }
     }
 
-    fn draw_line_between(&self, line_pt0: (f64, f64), line_pt1: (f64, f64), canvas: &mut Canvas, toolbar: &mut Toolbar) {
+    fn draw_line_between(&mut self, line_pt0: (f64, f64), line_pt1: (f64, f64), canvas: &mut Canvas, toolbar: &mut Toolbar) {
         // half the distance, for now
         let dx = line_pt0.0 - line_pt1.0;
         let dy = line_pt0.1 - line_pt1.1;
         let d = (dx.powi(2) + dy.powi(2)).sqrt();
-        let num_points = (d / 2.0) as usize + 1;
-        let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points);
+
+        self.dist_till_resample -= d;
+        if self.dist_till_resample > 0.0 {
+            return; // no points to draw
+        }
+
         let blending_mode = toolbar.get_blending_mode();
         let brush = toolbar.get_brush();
+
+        const SAMPLE_DIST_FACTOR: f64 = 0.1;
+        // distance (in pixels) between two samples
+        let sample_distance = (brush.radius() as f64).powf(1.05) * SAMPLE_DIST_FACTOR;
+        let num_points = (-self.dist_till_resample / sample_distance).floor() as usize + 1;
+        self.dist_till_resample = self.dist_till_resample % sample_distance + sample_distance;
+
+        let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points);
 
         target_pixels.iter().for_each(|&(x, y)| {
             let x_offset = (brush.image.width() as i32 - 1) / 2;
@@ -106,6 +125,7 @@ fn pixels_along_segment(
 
 impl super::MouseModeState for PencilState {
     fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.dist_till_resample = 0.0;
         if mod_keys.intersects(ModifierType::SHIFT_MASK) {
             self.draw_to_cursor(canvas, toolbar);
             self.mode = PencilMode::DrawLineCooldown;
