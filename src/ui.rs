@@ -8,7 +8,7 @@ mod tab;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use dialog::{about_dialog, yes_no_dialog};
+use dialog::{about_dialog, yes_no_dialog_str};
 use crate::image::{Image, UnifiedImage};
 use tab::{Tab, Tabbar};
 
@@ -88,7 +88,7 @@ impl UiState {
 
         if let Some(target_tab) = ui_p.borrow().tabbar.tabs.get(target_idx) {
             if target_tab.modified_since_export() {
-                yes_no_dialog(ui_p.borrow().window(), "Close tab",
+                yes_no_dialog_str(ui_p.borrow().window(), "Close tab",
                               format!("`{}` has been modified since last exporting. Close anyway?", target_tab.name()).as_str(),
                               close_it,
                               || ());

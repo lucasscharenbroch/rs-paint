@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-fn ok_dialog_with_content(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>) {
+fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>) {
     let ok_button = Button::builder()
         .label("Ok")
         .margin_top(12)
@@ -46,7 +46,9 @@ fn ok_dialog_with_content(parent: &impl IsA<Window>, title: &str, inner_content:
     });
 }
 
-fn yes_no_dialog_with_content<F, G>(
+fn binary_dialog<F, G>(
+    yes_label: &str,
+    no_label: &str,
     parent: &impl IsA<Window>,
     title: &str,
     inner_content: &impl IsA<Widget>,
@@ -58,12 +60,12 @@ where
     G: Fn() + 'static
 {
     let yes_button = Button::builder()
-        .label("Yes")
+        .label(yes_label)
         .margin_end(2)
         .build();
 
     let no_button = Button::builder()
-        .label("No")
+        .label(no_label)
         .margin_end(2)
         .build();
 
@@ -110,6 +112,34 @@ where
     }));
 }
 
+fn yes_no_dialog<F, G>(
+    parent: &impl IsA<Window>,
+    title: &str,
+    inner_content: &impl IsA<Widget>,
+    on_yes: F,
+    on_no: G
+)
+where
+    F: Fn() + 'static,
+    G: Fn() + 'static
+{
+    binary_dialog("Yes", "No", parent, title, inner_content, on_yes, on_no)
+}
+
+fn ok_cancel_dialog<F, G>(
+    parent: &impl IsA<Window>,
+    title: &str,
+    inner_content: &impl IsA<Widget>,
+    on_ok: F,
+    on_cancel: G
+)
+where
+    F: Fn() + 'static,
+    G: Fn() + 'static
+{
+    binary_dialog("Ok", "Cancel", parent, title, inner_content, on_ok, on_cancel)
+}
+
 pub fn about_dialog(parent: &impl IsA<Window>) {
     let text_content = TextBuffer::builder()
         .text("Information about RS-Paint")
@@ -123,7 +153,7 @@ pub fn about_dialog(parent: &impl IsA<Window>) {
         .hexpand(true)
         .build();
 
-    ok_dialog_with_content(parent, "About Rs-Paint", &content)
+    ok_dialog(parent, "About Rs-Paint", &content)
 }
 
 pub fn choose_file_dialog<P: FnOnce(Result<File, GError>) + 'static>(
@@ -146,16 +176,16 @@ pub fn choose_file_dialog<P: FnOnce(Result<File, GError>) + 'static>(
     }
 }
 
-pub fn ok_dialog(parent: &impl IsA<Window>, title: &str, mesg: &str) {
+pub fn ok_dialog_str(parent: &impl IsA<Window>, title: &str, mesg: &str) {
     let text_label = Label::builder()
         .label(mesg)
         .selectable(true)
         .build();
 
-    ok_dialog_with_content(parent, title, &text_label)
+    ok_dialog(parent, title, &text_label)
 }
 
-pub fn yes_no_dialog<F, G>(parent: &impl IsA<Window>, title: &str, prompt: &str, on_yes: F, on_no: G)
+pub fn yes_no_dialog_str<F, G>(parent: &impl IsA<Window>, title: &str, prompt: &str, on_yes: F, on_no: G)
 where
     F: Fn() + 'static,
     G: Fn() + 'static,
@@ -165,7 +195,7 @@ where
         .selectable(true)
         .build();
 
-    yes_no_dialog_with_content(parent, title, &text_label, on_yes, on_no);
+    yes_no_dialog(parent, title, &text_label, on_yes, on_no);
 }
 
 pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(
@@ -186,5 +216,12 @@ pub fn new_image_dialog<P: FnOnce(Result<NewImageProps, GError>) + 'static>(
     parent: &impl IsA<Window>,
     callback: P
 ) {
-    todo!()
+    let content = GBox::builder()
+        .orientation(Orientation::Vertical)
+        .build();
+
+    let on_ok = || todo!();
+    let on_cancel = || todo!();
+
+    ok_cancel_dialog(parent, "New Image", &content, on_ok, on_cancel)
 }
