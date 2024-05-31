@@ -230,8 +230,8 @@ pub fn new_image_dialog<P: Fn(Option<NewImageProps>) + 'static>(
     parent: &impl IsA<Window>,
     callback: P
 ) {
-    const DEFAULT_IMAGE_WIDTH: usize = 500;
-    const DEFAULT_IMAGE_HEIGHT: usize = 500;
+    const DEFAULT_IMAGE_WIDTH: usize = 512;
+    const DEFAULT_IMAGE_HEIGHT: usize = 512;
     const DEFAULT_FILL_COLOR: RGBA = RGBA::new(0.0, 0.0, 0.0, 0.0);
 
     let width_field = NaturalField::new(Some("Width:"), 1, usize::MAX, 1, DEFAULT_IMAGE_WIDTH);

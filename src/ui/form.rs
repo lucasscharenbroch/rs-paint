@@ -2,7 +2,7 @@ use gtk::{prelude::*, Box as GBox, CheckButton, ColorDialog, ColorDialogButton, 
 use gtk::gdk::RGBA;
 use gtk::glib::object::IsA;
 
-trait FormField {
+pub trait FormField {
     fn outer_widget(&self) -> &impl IsA<Widget>;
 }
 

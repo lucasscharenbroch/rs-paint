@@ -10,10 +10,10 @@ mod form;
 use canvas::Canvas;
 use toolbar::Toolbar;
 use dialog::{about_dialog, yes_no_dialog_str};
-use crate::image::{Image, UnifiedImage};
+use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
 
-use gtk::prelude::*;
+use gtk::{gdk::RGBA, prelude::*};
 use gtk::gdk::{Key, ModifierType};
 use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator, Box as GBox, Window, Widget};
 use std::rc::Rc;
@@ -43,7 +43,8 @@ impl UiState {
     pub fn run_main_ui() -> gtk::glib::ExitCode {
         let app = Application::builder()
             .build();
-        let ui_p = Self::new();
+        let ui_p = Self::new_p();
+        Self::setup_default_image(&ui_p);
 
         app.connect_activate(clone!(@strong ui_p => move |app| {
             ui_p.borrow().window.set_application(Some(app));
@@ -150,7 +151,7 @@ impl UiState {
         new_idx
     }
 
-    fn new() -> Rc<RefCell<UiState>> {
+    fn new_p() -> Rc<RefCell<UiState>> {
         let ui_p = Rc::new(RefCell::new(UiState {
             toolbar_p: Toolbar::new_p(),
             tabbar: Tabbar::new(),
@@ -277,5 +278,16 @@ impl UiState {
         if let Some(tab) = self.active_tab_mut() {
             tab.notify_successful_export();
         }
+    }
+
+    fn setup_default_image(ui_p: &Rc<RefCell<Self>>) {
+        const DEFAULT_IMAGE_PROPS: NewImageProps = NewImageProps {
+            height: 512,
+            width: 512,
+            color: RGBA::new(0.0, 0.0, 0.0, 0.0),
+        };
+
+        let image = generate(DEFAULT_IMAGE_PROPS);
+        UiState::new_tab(ui_p, image, "[untitled]");
     }
 }
