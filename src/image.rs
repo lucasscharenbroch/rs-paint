@@ -2,6 +2,7 @@ pub mod undo;
 pub mod brush;
 pub mod generate;
 pub mod blend;
+pub mod transform;
 
 use blend::BlendingMode;
 

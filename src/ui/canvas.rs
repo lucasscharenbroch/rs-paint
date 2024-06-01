@@ -1,5 +1,5 @@
 use super::super::image::{Image, UnifiedImage, DrawableImage, mk_transparent_checkerboard};
-use super::super::image::undo::ImageHistory;
+use super::super::image::undo::{ImageHistory, action::ActionName};
 use super::selection::Selection;
 use super::UiState;
 use super::toolbar::Toolbar;
@@ -461,7 +461,7 @@ impl Canvas {
         self.image_hist.redo();
     }
 
-    pub fn save_state_for_undo(&mut self) {
-        self.image_hist.push_state();
+    pub fn save_state_for_undo(&mut self, culprit: ActionName) {
+        self.image_hist.push_current_state(culprit);
     }
 }

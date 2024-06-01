@@ -1,5 +1,6 @@
 use super::{Canvas, Toolbar};
 use crate::image::ImageLike;
+use crate::image::undo::action::ActionName;
 
 use std::collections::HashSet;
 use gtk::gdk::ModifierType;
@@ -145,7 +146,7 @@ impl super::MouseModeState for PencilState {
 
     fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         self.handle_drag_update(mod_keys, canvas, toolbar);
-        canvas.save_state_for_undo();
+        canvas.save_state_for_undo(ActionName::Pencil);
     }
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {

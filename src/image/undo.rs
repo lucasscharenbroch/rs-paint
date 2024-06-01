@@ -1,12 +1,17 @@
+pub mod action;
+
 use crate::image::DrawableImage;
+use self::action::UndoableAction;
 
 use super::{Image, UnifiedImage, Pixel};
+use action::{ActionName};
 
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>), // [(pos, old_pix, new_pix)]
     FullCopy(Image, Image), // (before, after)
+    ManualUndo(Box<dyn UndoableAction>),
 }
 
 impl ImageDiff {
@@ -38,6 +43,9 @@ impl ImageDiff {
                 (image.image.width, image.image.height) = (after.width, after.height);
                 image.drawable = DrawableImage::from_image(&image.image);
             },
+            ImageDiff::ManualUndo(ref action) => {
+                image.apply_action(action);
+            },
         }
     }
 
@@ -54,6 +62,9 @@ impl ImageDiff {
                 (image.image.width, image.image.height) = (before.width, before.height);
                 image.drawable = DrawableImage::from_image(&image.image);
             },
+            ImageDiff::ManualUndo(ref action) => {
+                image.unapply_action(action);
+            },
         }
     }
 }
@@ -65,16 +76,20 @@ pub struct ImageState {
 
 pub struct ImageStateDiff {
     image_diff: ImageDiff,
+    // ids are used as a quick "hash" of a commit
+    // to determine if an image has been changed
     old_id: usize,
     new_id: usize,
+    culprit: ActionName,
 }
 
 impl ImageStateDiff {
-    fn new(image_diff: ImageDiff, old_id: usize, new_id: usize) -> Self {
+    fn new(image_diff: ImageDiff, old_id: usize, new_id: usize, culprit: ActionName) -> Self {
         ImageStateDiff {
             image_diff,
             old_id,
-            new_id
+            new_id,
+            culprit,
         }
     }
 
@@ -123,15 +138,20 @@ impl ImageHistory {
         &mut self.now.img
     }
 
-    pub fn push_state(&mut self) {
-        let mod_pix_info = self.now.img.get_and_reset_modified();
-        let image_diff = ImageDiff::new(&self.now.img, mod_pix_info);
-        let image_state_diff = ImageStateDiff::new(image_diff, self.now.id, self.id_counter);
+    fn push_state_diff(&mut self, state_diff: ImageStateDiff) {
         self.now.id = self.id_counter;
         self.id_counter += 1;
 
-        self.undo_stack.push(image_state_diff);
+        self.undo_stack.push(state_diff);
         self.redo_stack = vec![];
+    }
+
+    pub fn push_current_state(&mut self, culprit: ActionName) {
+        let mod_pix_info = self.now.img.get_and_reset_modified();
+        let image_diff = ImageDiff::new(&self.now.img, mod_pix_info);
+        let image_state_diff = ImageStateDiff::new(image_diff, self.now.id, self.id_counter, culprit);
+
+        self.push_state_diff(image_state_diff);
     }
 
     pub fn undo(&mut self) {
