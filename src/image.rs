@@ -280,7 +280,7 @@ impl UnifiedImage {
                 let ip = i as i32 + y;
                 let jp = j as i32 + x;
 
-                if let Some(p) = self.try_pix_at(ip, jp) {
+                if let Some(p) = self.try_pix_at_mut(ip, jp) {
                     if let Some(op) = other.try_pix_at(i as usize, j as usize) {
                         *p = blending_mode.blend(op, &p);
                     }
@@ -289,7 +289,14 @@ impl UnifiedImage {
         }
     }
 
-    pub fn pix_at(&mut self, r: i32, c: i32) -> &mut Pixel {
+    #[inline]
+    pub fn pix_at(&self, r: i32, c: i32) -> &Pixel {
+        let i = (r * self.width() + c) as usize;
+        &self.image.pixels[i]
+    }
+
+    #[inline]
+    pub fn pix_at_mut(&mut self, r: i32, c: i32) -> &mut Pixel {
         let i = (r * self.width() + c) as usize;
         // only bother recording modified pixel if image hasn't been overwritten
         if let None = self.save_image_before_overwritten {
@@ -298,15 +305,21 @@ impl UnifiedImage {
         &mut self.image.pixels[i]
     }
 
-    pub fn try_pix_at(&mut self, r: i32, c: i32) -> Option<&mut Pixel> {
+    #[inline]
+    pub fn try_pix_at(&mut self, r: i32, c: i32) -> Option<&Pixel> {
         if r < 0 || c < 0 || r as usize >= self.image.height || c as usize >= self.image.width {
             None
         } else {
-            let i = (r * self.width() + c) as usize;
-            if let None = self.save_image_before_overwritten {
-                self.pix_modified_since_draw.entry(i).or_insert(self.image.pixels[i].clone());
-            }
-            Some(&mut self.image.pixels[i])
+            Some(self.pix_at(r, c))
+        }
+    }
+
+    #[inline]
+    pub fn try_pix_at_mut(&mut self, r: i32, c: i32) -> Option<&mut Pixel> {
+        if r < 0 || c < 0 || r as usize >= self.image.height || c as usize >= self.image.width {
+            None
+        } else {
+            Some(self.pix_at_mut(r, c))
         }
     }
 
