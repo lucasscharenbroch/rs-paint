@@ -68,17 +68,17 @@ fn mk_square_brush_image(n: u8, color: RGBA) -> BrushImage {
     BrushImage::from_pixels_options(vec![vec![Some(p); n as usize]; n as usize])
 }
 
-fn mk_round_brush_image(n: u8, fade: bool, dither:bool, color: RGBA) -> BrushImage {
+fn mk_round_brush_image(n: u8, fade: bool, dither: bool, color: RGBA) -> BrushImage {
     let p = Pixel::from_rgba_struct(color);
     let n = n as usize;
     let mut pix = vec![vec![None; n]; n];
 
-    const CIRC_THRESH: f64 = 0.3;
+    const CIRC_THRESH: f64 = 0.15;
 
     for i in 0..n {
         for j in 0..n {
-            let x = (n as f64 / 2.0) - (j as f64);
-            let y = (n as f64 / 2.0) - (i as f64);
+            let x = (n as f64 / 2.0) - (j as f64 + 0.5);
+            let y = (n as f64 / 2.0) - (i as f64 + 0.5);
             let dist = (x * x + y * y).sqrt();
             let opacity = 1.0 - (dist / (n as f64 / 2.0));
 
@@ -163,9 +163,9 @@ const BRUSH_TYPES_AND_IDS: [(BrushType, &str); 5] = [
 ];
 
 const BLENDING_MODES_AND_IDS: [(BlendingMode, &str); 3] = [
-    (BlendingMode::Average, "Average"),
     (BlendingMode::Overwrite, "Overwrite"),
     (BlendingMode::Paint, "Paint"),
+    (BlendingMode::Average, "Average"),
 ];
 
 impl BrushToolbar {
