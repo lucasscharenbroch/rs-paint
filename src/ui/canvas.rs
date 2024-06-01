@@ -469,9 +469,11 @@ impl Canvas {
 
     pub fn exec_doable_action(&mut self, action: &impl DoableAction) {
         self.image_hist.exec_doable_action(action);
+        self.update();
     }
 
     pub fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction>) {
         self.image_hist.exec_undoable_action(action);
+        self.update();
     }
 }
