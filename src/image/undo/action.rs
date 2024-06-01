@@ -28,12 +28,12 @@ pub trait UndoableAction {
 }
 
 impl ImageHistory {
-    fn exec_doable_action(&mut self, action: &impl DoableAction) {
+    pub fn exec_doable_action(&mut self, action: &impl DoableAction) {
         action.exec(self.now_mut());
         self.push_current_state(action.name());
     }
 
-    fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction>) {
+    pub fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction>) {
         let (mod_pix, maybe_new_image) = self.now.img.get_and_reset_modified();
         if !mod_pix.is_empty() || maybe_new_image.is_some() {
             // if self is modified in any way, push the sate with Anon

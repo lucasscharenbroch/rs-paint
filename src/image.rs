@@ -83,6 +83,19 @@ impl Image {
             pixels: pixels.into_iter().flatten().collect::<Vec<_>>(),
         }
     }
+
+    #[inline]
+    fn swap_pixels(&mut self, (r0, c0): (usize, usize), (r1, c1): (usize, usize)) {
+        self.pixels.swap(
+            r0 * self.width + c0,
+            r1 * self.width + c1,
+        );
+    }
+
+    #[inline]
+    fn pix_at_mut(&mut self, r: usize, c: usize) -> &mut Pixel {
+        &mut self.pixels[r * self.width + c]
+    }
 }
 
 // used to allow usage of both `BrushImage` and `Image` in `sample`

@@ -1,3 +1,5 @@
+use crate::image::undo::action::{DoableAction, UndoableAction};
+
 use super::super::image::{Image, UnifiedImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::undo::{ImageHistory, action::ActionName};
 use super::selection::Selection;
@@ -463,5 +465,13 @@ impl Canvas {
 
     pub fn save_state_for_undo(&mut self, culprit: ActionName) {
         self.image_hist.push_current_state(culprit);
+    }
+
+    pub fn exec_doable_action(&mut self, action: &impl DoableAction) {
+        self.image_hist.exec_doable_action(action);
+    }
+
+    pub fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction>) {
+        self.image_hist.exec_undoable_action(action);
     }
 }
