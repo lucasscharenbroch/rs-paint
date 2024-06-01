@@ -11,6 +11,7 @@ pub struct Tab {
     pub canvas_p: Rc<RefCell<Canvas>>,
     name: String,
     last_export_id: usize,
+    drawing_area: Rc<RefCell<Option<DrawingArea>>>,
 }
 
 impl Tab {
@@ -18,7 +19,8 @@ impl Tab {
         Tab {
             canvas_p: canvas_p.clone(),
             name: String::from(name),
-            last_export_id: canvas_p.borrow().undo_id()
+            last_export_id: canvas_p.borrow().undo_id(),
+            drawing_area: Rc::new(RefCell::new(None)),
         }
     }
 
@@ -70,8 +72,11 @@ impl Tab {
             canvas_p.borrow_mut().draw_thumbnail(area, cr, width, height);
         }));
 
+
         container.append(&text_label);
         container.append(&thumbnail_area);
+
+        *self.drawing_area.borrow_mut() = Some(thumbnail_area);
 
         let name_button = Button::builder()
             .child(&container)
@@ -106,6 +111,12 @@ impl Tab {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn redraw_thumbnail(&self) {
+        if let Some(drawing_area) = self.drawing_area.borrow().as_ref() {
+            drawing_area.queue_draw();
+        }
     }
 }
 

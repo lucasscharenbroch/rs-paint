@@ -32,6 +32,7 @@ pub struct Canvas {
     single_shot_draw_hooks: Vec<Box<dyn Fn(&Context)>>,
     draw_hook: Option<Box<dyn Fn(&Context)>>,
     transparent_checkerboard: DrawableImage,
+    ui_p: Rc<RefCell<UiState>>,
 }
 
 impl Canvas {
@@ -65,6 +66,7 @@ impl Canvas {
             single_shot_draw_hooks: vec![],
             draw_hook: None,
             transparent_checkerboard: mk_transparent_checkerboard(),
+            ui_p: ui_p.clone(),
         }));
 
         Self::init_internal_connections(&canvas_p);
@@ -412,6 +414,11 @@ impl Canvas {
     pub fn update(&mut self) {
         self.update_scrollbars();
         self.drawing_area.queue_draw();
+        if let Ok(ui) = self.ui_p.try_borrow() {
+            if let Some(tab) = ui.active_tab() {
+                tab.redraw_thumbnail();
+            }
+        }
     }
 
     pub fn update_with(&mut self, draw_hook: Box<dyn Fn(&Context)>) {

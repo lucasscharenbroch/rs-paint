@@ -65,7 +65,7 @@ impl UiState {
             ui_p.borrow().grid.remove(w);
         }
 
-        let new_widget = ui_p.borrow().tabbar.widget(ui_p);
+        let new_widget = ui_p.borrow_mut().tabbar.widget(ui_p);
         ui_p.borrow().grid.attach(&new_widget, 0, 0, 1, 1);
         ui_p.borrow_mut().tabbar_widget = Some(new_widget);
     }
