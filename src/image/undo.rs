@@ -1,10 +1,11 @@
 pub mod action;
+mod tree;
 
 use crate::image::DrawableImage;
 use self::action::UndoableAction;
-
 use super::{Image, UnifiedImage, Pixel};
 use action::{ActionName};
+use tree::UndoTree;
 
 use std::collections::HashMap;
 
@@ -12,6 +13,7 @@ enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>), // [(pos, old_pix, new_pix)]
     FullCopy(Image, Image), // (before, after)
     ManualUndo(Box<dyn UndoableAction>),
+    Null,
 }
 
 impl ImageDiff {
@@ -46,6 +48,7 @@ impl ImageDiff {
             ImageDiff::ManualUndo(ref action) => {
                 image.apply_action(action);
             },
+            ImageDiff::Null => (),
         }
     }
 
@@ -65,6 +68,7 @@ impl ImageDiff {
             ImageDiff::ManualUndo(ref action) => {
                 image.unapply_action(action);
             },
+            ImageDiff::Null => (),
         }
     }
 }
@@ -106,8 +110,7 @@ impl ImageStateDiff {
 
 pub struct ImageHistory {
     now: ImageState,
-    undo_stack: Vec<ImageStateDiff>,
-    redo_stack: Vec<ImageStateDiff>,
+    undo_tree: UndoTree,
     id_counter: usize,
 }
 
@@ -120,8 +123,7 @@ impl ImageHistory {
 
         ImageHistory {
             now: initial_state,
-            undo_stack: vec![],
-            redo_stack: vec![],
+            undo_tree: UndoTree::new(),
             id_counter: 1,
         }
     }
@@ -142,8 +144,7 @@ impl ImageHistory {
         self.now.id = self.id_counter;
         self.id_counter += 1;
 
-        self.undo_stack.push(state_diff);
-        self.redo_stack = vec![];
+        self.undo_tree.commit(state_diff);
     }
 
     pub fn push_current_state(&mut self, culprit: ActionName) {
@@ -155,16 +156,14 @@ impl ImageHistory {
     }
 
     pub fn undo(&mut self) {
-        if let Some(d) = self.undo_stack.pop() {
+        if let Some(d) = self.undo_tree.undo() {
             d.unapply_to(&mut self.now);
-            self.redo_stack.push(d);
         }
     }
 
     pub fn redo(&mut self) {
-        if let Some(d) = self.redo_stack.pop() {
+        if let Some(d) = self.undo_tree.redo() {
             d.apply_to(&mut self.now);
-            self.undo_stack.push(d);
         }
     }
 }

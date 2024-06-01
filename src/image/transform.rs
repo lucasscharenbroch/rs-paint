@@ -30,7 +30,7 @@ impl UndoableAction for Flip {
                         image.swap_pixels((i, j), (i, width - j - 1));
                     }
                 }
-            }
+            },
         }
     }
 
