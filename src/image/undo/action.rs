@@ -27,6 +27,10 @@ pub trait UndoableAction {
     fn undo(&self, image: &mut Image); // explicit undo provided
 }
 
+pub trait StaticUndoableAction: UndoableAction {
+    fn dyn_clone(&self) -> Box<dyn UndoableAction>;
+}
+
 impl ImageHistory {
     pub fn exec_doable_action(&mut self, action: &impl DoableAction) {
         action.exec(self.now_mut());

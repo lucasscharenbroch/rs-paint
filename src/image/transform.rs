@@ -1,6 +1,7 @@
-use super::undo::action::{UndoableAction, ActionName};
+use super::undo::action::{UndoableAction, StaticUndoableAction, ActionName};
 use super::Image;
 
+#[derive(Clone)]
 pub enum Flip {
     Horizontal,
     Vertical,
@@ -30,12 +31,17 @@ impl UndoableAction for Flip {
                     }
                 }
             }
-
         }
     }
 
     fn undo(&self, image: &mut Image) {
         // flips are their own inverse
         self.exec(image)
+    }
+}
+
+impl StaticUndoableAction for Flip {
+    fn dyn_clone(&self) -> Box<dyn UndoableAction> {
+        Box::new(self.clone())
     }
 }

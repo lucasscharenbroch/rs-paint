@@ -1,3 +1,6 @@
+use crate::image::undo::action::{StaticUndoableAction, UndoableAction};
+use crate::image::transform::*;
+
 use super::dialog::about_dialog;
 use super::io::{export, import, new};
 use super::UiState;
@@ -42,16 +45,38 @@ impl MenuBuilder {
 }
 
 pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
-    MenuBuilder::new()
-        .submenu("File",
-            MenuBuilder::new()
-                .item("New", "new", Box::new(clone!(@strong ui_state => move || new(ui_state.clone()))))
-                .item("Import", "import", Box::new(clone!(@strong ui_state => move || import(ui_state.clone()))))
-                .item("Export", "export", Box::new(clone!(@strong ui_state => move || export(ui_state.clone())))))
-        .submenu("Help",
+    let file_menu = MenuBuilder::new()
+        .item("New", "new", Box::new(clone!(@strong ui_state => move || new(ui_state.clone()))))
+        .item("Import", "import", Box::new(clone!(@strong ui_state => move || import(ui_state.clone()))))
+        .item("Export", "export", Box::new(clone!(@strong ui_state => move || export(ui_state.clone()))));
 
+    // image menu helpers
+
+    let mk_do_uaction = clone!(@strong ui_state => move |uaction: Box<dyn StaticUndoableAction>| {
+        clone!(@strong ui_state => move || {
+            if let Some(canvas_p) = ui_state.borrow().active_canvas_p() {
+                canvas_p.borrow_mut().exec_undoable_action(uaction.dyn_clone());
+            }
+        })
+    });
+
+    let flip_horiz_fn = Box::new(mk_do_uaction(Box::new(Flip::Horizontal)));
+    let flip_vert_fn = Box::new(mk_do_uaction(Box::new(Flip::Vertical)));
+
+    let image_menu = MenuBuilder::new()
+        .submenu("Flip",
             MenuBuilder::new()
-                .item("About", "about",
-                      Box::new(clone!(@strong ui_state => move || about_dialog(&ui_state.borrow().window)))))
+            .item("Flip Horizontally", "flip-horiz", flip_horiz_fn)
+            .item("Flip Vertically", "flip-vert", flip_vert_fn));
+
+
+    let help_menu = MenuBuilder::new()
+        .item("About", "about",
+                Box::new(clone!(@strong ui_state => move || about_dialog(&ui_state.borrow().window))));
+
+    MenuBuilder::new()
+        .submenu("File", file_menu)
+        .submenu("Image", image_menu)
+        .submenu("Help", help_menu)
         .build()
 }

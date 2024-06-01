@@ -254,12 +254,6 @@ impl UiState {
                 Key::a => {
                     about_dialog(&self.window);
                 }
-                Key::x => {
-                    if let Some(canvas_p) = self.active_canvas_p() {
-                        let flip = Box::new(crate::image::transform::Flip::Horizontal);
-                        canvas_p.borrow_mut().exec_undoable_action(flip);
-                    }
-                }
                 _ => (),
             }
         }
