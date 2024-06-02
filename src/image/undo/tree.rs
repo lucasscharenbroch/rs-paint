@@ -181,64 +181,30 @@ impl UndoTree {
 
         // undo menu is up           && we're setting this node to active
         // vvvvvvvvvvvvvvvvvvvvvvvvv    vvvvvvvvv
-        if node.widget.is_realized() && is_active {
-            println!("Im realized, {}", node.widget.is_ancestor(&self.widget));
-            println!("{:?}", node.widget.compute_point(&*self.root.container, &gtk::graphene::Point::new(1.0, 1.0)));
-            println!("{:?}", node.widget.compute_bounds(&*self.root.container));
-            println!("height/width: {} {}", node.widget.height(), node.widget.width());
-            let child = node.widget.first_child().unwrap().clone();
-            println!("XX {:?}", node.widget.compute_point(&child, &gtk::graphene::Point::new(1.0, 1.0)));
-            println!("XX {:?} {}", child.width(), child.height());
-            let parent = node.widget.parent().unwrap().clone();
-            println!("XX {:?} {}", parent.width(), parent.height());
+        if node.widget.is_realized() && !is_active {
 
+            let node_widget = &node.widget;
+            let root_container = &*self.root.container;
+            let window = &self.widget;
 
-            node.widget.connect_baseline_child_notify(|_| {
-                println!("++++++++++++++++++++++++++draw");
-            });
-
-            /*
-            node.widget.connect_realize(|_| {
-                println!("+++++++++++++++++++++++++++++++++++++ show");
-
-            });
-
-            node.widget.realize();
-            node.widget.parent().unwrap().realize();
-            */
-
-            /*
-            println!("{:?}", node.widget.compute_point(&*self.root.container, &gtk::graphene::Point::new(0.0, 0.0)));
-            let focus_pt = node.widget.compute_point(&*self.root.container, &gtk::graphene::Point::new(0.0, 0.0)).unwrap();
-
-            let v_adjustment = self.widget.vadjustment();
-            let value = v_adjustment.value();
-            let page_size = v_adjustment.page_size();
-            let y = focus_pt.y() as f64;
-            println!("{value:}, {y:}");
-
-            if y < value {
-                v_adjustment.set_value(y);
-            } else if y > value + page_size {
-                v_adjustment.set_value(y + page_size);
-            }
-            */
-
-            /*
-            node.widget.connect_realize(clone!(@strong scroll_win, @strong root_container, @strong node_widget => move|w| {
+            // Hack: if we call node.widget.compute_point directly,
+            // it will always return (0.0, 0.0), because the size isn't calculated yet.
+            // I don't know of any better way to wait for a layout-update,
+            // so we just call spawn_future_local, and hope that it's executed
+            // after the resize.
+            gtk::glib::spawn_future_local(clone!(@strong node_widget, @strong root_container, @strong window => async move {
                 let focus_pt = node_widget.compute_point(&root_container, &gtk::graphene::Point::new(0.0, 0.0)).unwrap();
-
-                let v_adjustment = scroll_win.vadjustment();
-                let lower = v_adjustment.lower();
-                let upper = v_adjustment.upper();
+                let v_adjustment = window.vadjustment();
                 let value = v_adjustment.value();
                 let page_size = v_adjustment.page_size();
-                let y = upper - (focus_pt.y() as f64);
-                println!("{:?} {:?} {} {}", v_adjustment.lower(), v_adjustment.upper(), v_adjustment.value(), focus_pt.y());
-                // v_adjustment.set_value(value - y);
-                // (value - y) is the desired change
+                let y = focus_pt.y() as f64;
+
+                if y < value {
+                    v_adjustment.set_value(y);
+                } else if y > value + page_size {
+                    v_adjustment.set_value(y + page_size);
+                }
             }));
-            */
         }
     }
 }
