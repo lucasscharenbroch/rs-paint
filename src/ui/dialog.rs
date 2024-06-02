@@ -48,9 +48,10 @@ pub fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl Is
 
     dialog_window.present();
 
-    ok_button.connect_clicked(move |_button| {
+    ok_button.connect_clicked(clone!(@strong inner_content => move |_button| {
+        content.remove(&inner_content);
         dialog_window.close();
-    });
+    }));
 }
 
 fn binary_dialog<F, G>(

@@ -13,6 +13,16 @@ struct UndoNode {
 }
 
 impl UndoNode {
+    fn new_container() -> Rc<GBox> {
+        let gbox = GBox::builder()
+            .orientation(Orientation::Vertical)
+            .spacing(4)
+            .margin_start(25)
+            .build();
+
+        Rc::new(gbox)
+    }
+
     fn new(parent_p: &Rc<UndoNode>, diff: ImageStateDiff) -> Self {
         let parent = Some(Rc::downgrade(parent_p));
 
@@ -24,7 +34,11 @@ impl UndoNode {
             // first child: use parent's container
             Rc::clone(&parent_p.container)
         } else {
-            Rc::new(GBox::new(Orientation::Vertical, 4))
+            let container = Self::new_container();
+
+            parent_p.container.insert_child_after(&*container, Some(&parent_p.widget));
+
+            container
         };
 
         container.append(&widget);
