@@ -1,13 +1,15 @@
 pub mod action;
 mod tree;
 
-use crate::image::DrawableImage;
+use crate::{image::DrawableImage, ui::UiState};
 use self::action::UndoableAction;
 use super::{Image, UnifiedImage, Pixel};
 use action::{ActionName};
+use gtk::{prelude::*, Widget};
 use tree::UndoTree;
 
-use std::collections::HashMap;
+use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap};
 
 enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>), // [(pos, old_pix, new_pix)]
@@ -165,5 +167,9 @@ impl ImageHistory {
         if let Some(d) = self.undo_tree.redo() {
             d.apply_to(&mut self.now);
         }
+    }
+
+    pub fn widget(&self) -> &impl IsA<Widget> {
+        self.undo_tree.widget()
     }
 }

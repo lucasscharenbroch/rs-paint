@@ -10,7 +10,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-
 struct MenuBuilder {
     menu: Menu,
     actions: Vec<SimpleAction>,
@@ -50,6 +49,9 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
         .item("Import", "import", Box::new(clone!(@strong ui_state => move || import(ui_state.clone()))))
         .item("Export", "export", Box::new(clone!(@strong ui_state => move || export(ui_state.clone()))));
 
+    let edit_menu = MenuBuilder::new()
+        .item("History", "history", Box::new(clone!(@strong ui_state => move || ui_state.borrow().history_popup())));
+
     // image menu helpers
 
     let mk_do_uaction = clone!(@strong ui_state => move |uaction: Box<dyn StaticUndoableAction>| {
@@ -76,6 +78,7 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
 
     MenuBuilder::new()
         .submenu("File", file_menu)
+        .submenu("Edit", edit_menu)
         .submenu("Image", image_menu)
         .submenu("Help", help_menu)
         .build()

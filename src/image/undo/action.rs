@@ -1,6 +1,7 @@
 use crate::image::{DrawableImage, Image, UnifiedImage};
 use super::{ImageDiff, ImageHistory, ImageStateDiff};
 
+#[derive(Debug)] // TODO remove/change
 // The algorithm that causes an undo commit:
 // solely used for display
 pub enum ActionName {

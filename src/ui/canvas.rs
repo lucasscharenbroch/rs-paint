@@ -6,7 +6,7 @@ use super::selection::Selection;
 use super::UiState;
 use super::toolbar::Toolbar;
 
-use gtk::prelude::*;
+use gtk::{prelude::*, Widget};
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
 use gtk::gdk::ModifierType;
 use gtk::{DrawingArea, EventControllerScroll, EventControllerScrollFlags, GestureDrag, EventControllerMotion};
@@ -482,5 +482,9 @@ impl Canvas {
     pub fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction>) {
         self.image_hist.exec_undoable_action(action);
         self.update();
+    }
+
+    pub fn history_widget(&self) -> &impl IsA<Widget> {
+        self.image_hist.widget()
     }
 }

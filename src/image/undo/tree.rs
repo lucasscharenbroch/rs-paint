@@ -2,27 +2,45 @@ use super::{ImageStateDiff, ImageDiff};
 
 use std::rc::{Rc, Weak};
 use std::cell::RefCell;
+use gtk::{prelude::*, Box as GBox, Orientation, Widget};
 
 struct UndoNode {
     parent: Option<Weak<UndoNode>>,
     children: RefCell<Vec<Rc<UndoNode>>>,
     value: Rc<ImageStateDiff>,
+    widget: GBox,
+    container: Rc<GBox>, // possibly inherited from parent
 }
 
 impl UndoNode {
     fn new(parent_p: &Rc<UndoNode>, diff: ImageStateDiff) -> Self {
         let parent = Some(Rc::downgrade(parent_p));
 
+        let inner_widget = gtk::Label::new(Some(format!("{:?}", diff.culprit).as_str()));
+        let widget = GBox::new(Orientation::Vertical, 0);
+        widget.append(&inner_widget);
+
+        let container = if parent_p.children.borrow().len() == 0 {
+            // first child: use parent's container
+            Rc::clone(&parent_p.container)
+        } else {
+            Rc::new(GBox::new(Orientation::Vertical, 4))
+        };
+
+        container.append(&widget);
+
         UndoNode {
             parent,
             value: Rc::new(diff),
             children: RefCell::new(vec![]),
+            widget,
+            container,
         }
     }
 }
 
 pub struct UndoTree {
-    head: Rc<UndoNode>,
+    root: Rc<UndoNode>,
     current: Rc<UndoNode>,
 }
 
@@ -35,16 +53,23 @@ impl UndoTree {
             culprit: crate::image::undo::action::ActionName::Anonymous,
         };
 
+        let widget = GBox::new(Orientation::Vertical, 0);
+        let container = Rc::new(GBox::new(Orientation::Vertical, 4));
+
+        widget.append(&*container);
+
         let root = UndoNode {
             parent: None,
             children: RefCell::new(vec![]),
             value: Rc::new(NULL_DIFF),
+            widget,
+            container,
         };
 
         let root_p = Rc::new(root);
 
         UndoTree {
-            head: Rc::clone(&root_p),
+            root: Rc::clone(&root_p),
             current: root_p,
         }
     }
@@ -76,5 +101,9 @@ impl UndoTree {
 
         self.current = new_current;
         Some(self.current.value.clone())
+    }
+
+    pub fn widget(&self) -> &impl IsA<Widget> {
+        &self.root.widget
     }
 }

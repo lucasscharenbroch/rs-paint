@@ -11,13 +11,12 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-
 pub enum CloseDialog {
     Yes,
     No,
 }
 
-fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>) {
+pub fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>) {
     let ok_button = Button::builder()
         .label("Ok")
         .margin_top(12)

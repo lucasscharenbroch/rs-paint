@@ -1,15 +1,15 @@
 mod canvas;
 mod toolbar;
 mod selection;
-mod menu;
 mod dialog;
+mod menu;
 mod io;
 mod tab;
 mod form;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use dialog::{about_dialog, yes_no_dialog_str};
+use dialog::{about_dialog, yes_no_dialog_str, ok_dialog};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
 
@@ -289,5 +289,13 @@ impl UiState {
 
         let image = generate(DEFAULT_IMAGE_PROPS);
         UiState::new_tab(ui_p, image, "[untitled]");
+    }
+
+    pub fn history_popup(&self) {
+        if let Some(canvas_p) = self.active_canvas_p() {
+            let canvas = canvas_p.borrow();
+            let history_widget = canvas.history_widget();
+            ok_dialog(self.window(), "Image History", history_widget);
+        }
     }
 }
