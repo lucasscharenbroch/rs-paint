@@ -178,6 +178,48 @@ impl UndoTree {
         &self.widget
     }
 
+    fn win_scroll_to_widget(window: &ScrolledWindow, widget: &impl IsA<Widget>) {
+        let reference_pt = widget.compute_point(window, &graphene::Point::new(0.0, 0.0)).unwrap();
+
+        let v_adjustment = window.vadjustment();
+        let v_value = v_adjustment.value();
+        let v_page_size = v_adjustment.page_size();
+        let y0 = reference_pt.y() as f64;
+        let widget_height = widget.height() as f64;
+        let y1 = y0 + widget_height;
+        let v_overshoot = 0.25 * v_page_size;
+        const V_MARGIN: f64 = 20.0;
+
+        if y0 < (0.0 + V_MARGIN) {
+            v_adjustment.set_value(v_value + y0 - v_overshoot);
+        } else if y1 > (v_page_size - V_MARGIN) {
+            v_adjustment.set_value(v_value + y1 - v_page_size + v_overshoot);
+        }
+
+        let h_adjustment = window.hadjustment();
+        let h_value = h_adjustment.value();
+        let h_page_size = h_adjustment.page_size();
+        let x0 = reference_pt.x() as f64;
+        let widget_width = widget.width() as f64;
+        let x1 = x0 + widget_width;
+        let h_overshoot = 0.25 * h_page_size;
+        const H_MARGIN: f64 = 20.0;
+
+        if x0 < (0.0 + H_MARGIN) {
+            h_adjustment.set_value(h_value + x0 - h_overshoot);
+        } else if x1 > (h_page_size - H_MARGIN) {
+            h_adjustment.set_value(h_value + x1 - h_page_size + h_overshoot);
+        }
+    }
+
+    fn scroll_to_node(&self, node: &UndoNode) {
+        Self::win_scroll_to_widget(&self.widget, &node.widget);
+    }
+
+    pub fn scroll_to_active_node(&self) {
+        self.scroll_to_node(&self.current);
+    }
+
     fn set_node_is_active(&self, node: &UndoNode, is_active: bool) {
         node.set_active(is_active);
 
@@ -193,37 +235,7 @@ impl UndoTree {
             // so we just wait 50 milliseconds, and hope that it's executed
             // after the resize.
             glib::timeout_add_local_once(Duration::from_millis(50), clone!(@strong node_widget, @strong window => move || {
-                let focus_pt = node_widget.compute_point(&window, &graphene::Point::new(0.0, 0.0)).unwrap();
-
-                let v_adjustment = window.vadjustment();
-                let v_value = v_adjustment.value();
-                let v_page_size = v_adjustment.page_size();
-                let y0 = focus_pt.y() as f64;
-                let widget_height = node_widget.height() as f64;
-                let y1 = y0 + widget_height;
-                let v_overshoot = 0.25 * v_page_size;
-                const V_MARGIN: f64 = 20.0;
-
-                if y0 < (0.0 + V_MARGIN) {
-                    v_adjustment.set_value(v_value + y0 - v_overshoot);
-                } else if y1 > (v_page_size - V_MARGIN) {
-                    v_adjustment.set_value(v_value + y1 - v_page_size + v_overshoot);
-                }
-
-                let h_adjustment = window.hadjustment();
-                let h_value = h_adjustment.value();
-                let h_page_size = h_adjustment.page_size();
-                let x0 = focus_pt.x() as f64;
-                let widget_width = node_widget.width() as f64;
-                let x1 = x0 + widget_width;
-                let h_overshoot = 0.25 * h_page_size;
-                const H_MARGIN: f64 = 20.0;
-
-                if x0 < (0.0 + H_MARGIN) {
-                    h_adjustment.set_value(h_value + x0 - h_overshoot);
-                } else if x1 > (h_page_size - H_MARGIN) {
-                    h_adjustment.set_value(h_value + x1 - h_page_size + h_overshoot);
-                }
+                Self::win_scroll_to_widget(&window, &node_widget);
             }));
         }
     }
