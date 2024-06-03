@@ -5,6 +5,7 @@ use std::cell::RefCell;
 use glib_macros::clone;
 use gtk::{pango, prelude::*, Align, Box as GBox, Label, Orientation, ScrolledWindow, Widget};
 use gtk::{glib, graphene};
+use core::time::Duration;
 
 struct UndoNode {
     parent: Option<Weak<UndoNode>>,
@@ -182,16 +183,16 @@ impl UndoTree {
 
         // undo menu is up           && we're setting this node to active
         // vvvvvvvvvvvvvvvvvvvvvvvvv    vvvvvvvvv
-        if node.widget.is_realized() && !is_active {
+        if node.widget.is_realized() && is_active {
             let node_widget = &node.widget;
             let window = &self.widget;
 
             // Hack: if we call node.widget.compute_point directly,
             // it will always return (0.0, 0.0), because the size isn't calculated yet.
             // I don't know of any better way to wait for a layout-update,
-            // so we just call spawn_future_local, and hope that it's executed
+            // so we just wait 50 milliseconds, and hope that it's executed
             // after the resize.
-            glib::spawn_future_local(clone!(@strong node_widget, @strong window => async move {
+            glib::timeout_add_local_once(Duration::from_millis(50), clone!(@strong node_widget, @strong window => move || {
                 let focus_pt = node_widget.compute_point(&window, &graphene::Point::new(0.0, 0.0)).unwrap();
                 let v_adjustment = window.vadjustment();
                 let value = v_adjustment.value();
@@ -200,10 +201,7 @@ impl UndoTree {
                 let widget_height = node_widget.height() as f64;
                 let y1 = y0 + widget_height;
 
-                println!("({y0}, {y1}) [{value} {}] (({} {})) ({})", value + page_size, v_adjustment.lower(), v_adjustment.upper(), page_size);
-
                 let overshoot = 0.25 * page_size;
-
                 const MARGIN: f64 = 20.0;
 
                 if y0 < (0.0 + MARGIN) {
