@@ -172,4 +172,8 @@ impl ImageHistory {
     pub fn widget(&self) -> &impl IsA<Widget> {
         self.undo_tree.widget()
     }
+
+    pub fn widget_scroll_to_active_commit(&self) {
+        self.undo_tree.scroll_to_active_node()
+    }
 }

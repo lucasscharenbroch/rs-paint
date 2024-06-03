@@ -212,12 +212,19 @@ impl UndoTree {
         }
     }
 
-    fn scroll_to_node(&self, node: &UndoNode) {
-        Self::win_scroll_to_widget(&self.widget, &node.widget);
+    fn win_scroll_to_widget_after_resize(window: &ScrolledWindow, widget: &impl IsA<Widget>) {
+            // Hack: if we call node.widget.compute_point directly,
+            // it will always return (0.0, 0.0), because the size isn't calculated yet.
+            // I don't know of any better way to wait for a layout-update,
+            // so we just wait 50 milliseconds, and hope that it's executed
+            // after the resize.
+            glib::timeout_add_local_once(Duration::from_millis(50), clone!(@strong window, @strong widget => move || {
+                Self::win_scroll_to_widget(&window, &widget);
+            }));
     }
 
     pub fn scroll_to_active_node(&self) {
-        self.scroll_to_node(&self.current);
+        Self::win_scroll_to_widget_after_resize(&self.widget, &self.current.widget);
     }
 
     fn set_node_is_active(&self, node: &UndoNode, is_active: bool) {
@@ -226,17 +233,7 @@ impl UndoTree {
         // undo menu is up           && we're setting this node to active
         // vvvvvvvvvvvvvvvvvvvvvvvvv    vvvvvvvvv
         if node.widget.is_realized() && is_active {
-            let node_widget = &node.widget;
-            let window = &self.widget;
-
-            // Hack: if we call node.widget.compute_point directly,
-            // it will always return (0.0, 0.0), because the size isn't calculated yet.
-            // I don't know of any better way to wait for a layout-update,
-            // so we just wait 50 milliseconds, and hope that it's executed
-            // after the resize.
-            glib::timeout_add_local_once(Duration::from_millis(50), clone!(@strong node_widget, @strong window => move || {
-                Self::win_scroll_to_widget(&window, &node_widget);
-            }));
+            Self::win_scroll_to_widget_after_resize(&self.widget, &node.widget);
         }
     }
 }

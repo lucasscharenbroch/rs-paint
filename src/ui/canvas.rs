@@ -484,7 +484,14 @@ impl Canvas {
         self.update();
     }
 
-    pub fn history_widget(&self) -> &impl IsA<Widget> {
-        self.image_hist.widget()
+    pub fn history_widget(canvas_p: &Rc<RefCell<Canvas>>) -> Widget {
+        let canvas = canvas_p.borrow();
+        let widget = canvas.image_hist.widget();
+
+        widget.connect_realize(clone!(@strong canvas_p => move |_| {
+            canvas_p.borrow().image_hist.widget_scroll_to_active_commit();
+        }));
+
+        widget.clone().into()
     }
 }
