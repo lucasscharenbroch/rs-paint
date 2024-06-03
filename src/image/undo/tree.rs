@@ -223,7 +223,7 @@ impl UndoTree {
             }));
     }
 
-    pub fn scroll_to_active_node(&self) {
+    pub fn scroll_to_active_node_after_resize(&self) {
         Self::win_scroll_to_widget_after_resize(&self.widget, &self.current.widget);
     }
 

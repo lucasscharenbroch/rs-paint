@@ -169,11 +169,10 @@ impl ImageHistory {
         }
     }
 
-    pub fn widget(&self) -> &impl IsA<Widget> {
-        self.undo_tree.widget()
-    }
+    pub fn widget_scrolled_to_active_commit(&self) -> &impl IsA<Widget> {
+        // this "waits for redraw", so it's fine to call it here
+        self.undo_tree.scroll_to_active_node_after_resize();
 
-    pub fn widget_scroll_to_active_commit(&self) {
-        self.undo_tree.scroll_to_active_node()
+        self.undo_tree.widget()
     }
 }

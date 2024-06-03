@@ -293,9 +293,10 @@ impl UiState {
 
     pub fn history_popup(&self) {
         if let Some(canvas_p) = self.active_canvas_p() {
-            let history_widget = Canvas::history_widget(canvas_p);
+            let canvas = canvas_p.borrow();
+            let history_widget = canvas.history_widget();
 
-            ok_dialog(self.window(), "Image History", &history_widget);
+            ok_dialog(self.window(), "Image History", history_widget);
         }
     }
 }
