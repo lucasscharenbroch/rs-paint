@@ -46,12 +46,16 @@ pub fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl Is
         .child(&content)
         .build();
 
-    dialog_window.present();
-
-    ok_button.connect_clicked(clone!(@strong inner_content => move |_button| {
+    dialog_window.connect_close_request(clone!(@strong inner_content => move |_| {
         content.remove(&inner_content);
+        gtk::glib::Propagation::Proceed
+    }));
+
+    ok_button.connect_clicked(clone!(@strong dialog_window => move |_button| {
         dialog_window.close();
     }));
+
+    dialog_window.present();
 }
 
 fn binary_dialog<F, G>(
