@@ -3,7 +3,7 @@ use super::{ImageStateDiff, ImageDiff};
 use std::rc::{Rc, Weak};
 use std::cell::RefCell;
 use glib_macros::clone;
-use gtk::{pango, prelude::*, Align, Box as GBox, Label, Orientation, ScrolledWindow, Widget};
+use gtk::{pango, prelude::*, Align, Box as GBox, Button, Orientation, ScrolledWindow, Widget, Label};
 use gtk::{glib, graphene};
 use core::time::Duration;
 
@@ -29,13 +29,13 @@ impl UndoNode {
         Rc::new(gbox)
     }
 
-    fn new_widget(label: &Label) -> GBox {
+    fn new_widget(button: &Button) -> GBox {
         let widget = GBox::builder()
             .halign(Align::Start)
             .spacing(0)
             .build();
 
-        widget.append(label);
+        widget.append(button);
 
         widget
     }
@@ -44,7 +44,12 @@ impl UndoNode {
         let parent = Some(Rc::downgrade(parent_p));
 
         let label = Label::new(Some(format!("{:?}", diff.culprit).as_str()));
-        let widget = Self::new_widget(&label);
+
+        let button = Button::builder()
+            .child(&label)
+            .build();
+
+        let widget = Self::new_widget(&button);
 
         let container = if parent_p.children.borrow().len() == 0 {
             // first child: use parent's container
@@ -97,7 +102,12 @@ impl UndoTree {
         };
 
         let label = Label::new(Some("(Root)"));
-        let widget = UndoNode::new_widget(&label);
+
+        let button = Button::builder()
+            .child(&label)
+            .build();
+
+        let widget = UndoNode::new_widget(&button);
 
         let container = Rc::new(GBox::builder()
             .orientation(Orientation::Vertical)
