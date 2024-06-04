@@ -8,7 +8,6 @@ use action::{ActionName};
 use gtk::{prelude::*, Widget};
 use tree::UndoTree;
 
-use std::rc::Rc;
 use std::{cell::RefCell, collections::HashMap};
 
 enum ImageDiff {
@@ -174,5 +173,20 @@ impl ImageHistory {
         self.undo_tree.scroll_to_active_node_after_resize();
 
         self.undo_tree.widget()
+    }
+
+    fn id_exists(&self, id: usize) -> bool {
+        self.id_counter > id
+    }
+
+    // locate the given commit-id in the tree, then
+    // apply the diffs along the path to that commit
+    pub fn migrate_to_commit(&mut self, target_id: usize) {
+        assert!(self.id_exists(target_id), "can't migrate to a non-existant commit");
+        let diffs = self.undo_tree.traverse_to(target_id);
+
+        for diff in diffs {
+            diff(&mut self.now)
+        }
     }
 }

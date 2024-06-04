@@ -1,4 +1,6 @@
-use super::{ImageStateDiff, ImageDiff};
+use crate::image::UnifiedImage;
+
+use super::{ImageStateDiff, ImageDiff, ImageState};
 
 use std::rc::{Rc, Weak};
 use std::cell::RefCell;
@@ -6,6 +8,7 @@ use glib_macros::clone;
 use gtk::{pango, prelude::*, Align, Box as GBox, Button, Orientation, ScrolledWindow, Widget, Label};
 use gtk::{glib, graphene};
 use core::time::Duration;
+use std::collections::{HashMap, VecDeque, HashSet};
 
 struct UndoNode {
     parent: Option<Weak<UndoNode>>,
@@ -83,6 +86,12 @@ impl UndoNode {
         }
 
         self.label.set_attributes(Some(&attributes));
+    }
+
+    fn id(&self) -> usize {
+        // while nodes represent commits, we'll associate
+        // them with the state *after* the commit (like with git)
+        self.value.new_id
     }
 }
 
@@ -245,5 +254,69 @@ impl UndoTree {
         if node.widget.is_realized() && is_active {
             Self::win_scroll_to_widget_after_resize(&self.widget, &node.widget);
         }
+    }
+
+    // Finds the path from self.current to the
+    // node with the given id, returning the diff
+    // functions necessary to convert the image to the target,
+    // setting current to the target.
+    pub fn traverse_to(&self, target_id: usize) -> Vec<Box<dyn Fn(&mut ImageState)>> {
+        let mut q = VecDeque::new();
+        // parent map (also serves as visited map)
+        let mut pi: HashMap<usize, Option<Rc<UndoNode>>> = HashMap::new();
+
+        q.push_back(self.current.clone());
+        pi.insert(self.current.id(), None);
+
+        while let Some(curr) = q.pop_front() {
+            let mut neighbors = curr.children.borrow().iter()
+                .cloned()
+                .collect::<Vec<_>>();
+
+            // add parent (if present)
+            neighbors.extend(curr.parent.iter().map(|p| p.upgrade().unwrap()));
+
+            for neigh in neighbors.iter() {
+                if pi.contains_key(&neigh.id()) {
+                    continue; // already visited neigh
+                }
+
+                pi.insert(neigh.id(), Some(curr.clone()));
+                q.push_back(neigh.clone());
+
+                if neigh.id() == target_id {
+                    // found target: now form diff chain, walking backwards from target to self.current
+                    let mut curr = neigh;
+                    let mut diff_chain: Vec<Box<dyn Fn(&mut ImageState)>> = vec![
+                        // the last thing we do is apply the target commit's diff
+                        Box::new(clone!(@strong curr => move |img| curr.value.apply_to(img)))
+                    ];
+
+                    while let Some(pred) = &pi[&curr.id()] {
+                        if let Some(parent) = &curr.parent {
+                            if parent.upgrade().unwrap().id() == pred.id() {
+                                // pred is parent: curr needs to be unapplied
+                                diff_chain.push(Box::new(
+                                    clone!(@strong curr => move |img| curr.value.unapply_to(img))
+                                ));
+                            }
+                        } else {
+                            // pred is child: curr needs to be applied
+                            diff_chain.push(Box::new(
+                                clone!(@strong curr => move |img| curr.value.apply_to(img))
+                            ));
+
+                        }
+
+                        curr = pred;
+                    }
+
+                    diff_chain.reverse();
+                    return diff_chain;
+                }
+            }
+        }
+
+        panic!("Couldn't reach node with id {target_id}");
     }
 }
