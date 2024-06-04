@@ -69,6 +69,16 @@ impl Canvas {
             ui_p: ui_p.clone(),
         }));
 
+        let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
+            f(&mut canvas_p.borrow_mut().image_hist);
+        }));
+
+        let update_canvas = Rc::new(clone!(@strong canvas_p => move || {
+            canvas_p.borrow_mut().update();
+        }));
+
+        canvas_p.borrow_mut().image_hist.set_hooks(mod_hist, update_canvas);
+
         Self::init_internal_connections(&canvas_p);
         Self::init_ui_state_connections(&canvas_p, &ui_p);
 

@@ -9,6 +9,7 @@ use gtk::{prelude::*, Widget};
 use tree::UndoTree;
 
 use std::{cell::RefCell, collections::HashMap};
+use std::rc::Rc;
 
 enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>), // [(pos, old_pix, new_pix)]
@@ -188,5 +189,13 @@ impl ImageHistory {
         for diff in diffs {
             diff(&mut self.now)
         }
+    }
+
+    pub fn set_hooks(
+        &mut self,
+        mod_self: Rc<dyn Fn(Box<dyn Fn(&mut Self)>)>,
+        update_canvas: Rc<dyn Fn()>,
+    ) {
+        self.undo_tree.set_hooks(mod_self, update_canvas);
     }
 }

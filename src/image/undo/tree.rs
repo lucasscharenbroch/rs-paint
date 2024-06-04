@@ -1,6 +1,7 @@
 use crate::image::UnifiedImage;
-
 use super::{ImageStateDiff, ImageDiff, ImageState};
+use super::action::ActionName;
+use super::ImageHistory;
 
 use std::rc::{Rc, Weak};
 use std::cell::RefCell;
@@ -9,7 +10,6 @@ use gtk::{pango, prelude::*, Align, Box as GBox, Button, Orientation, ScrolledWi
 use gtk::{glib, graphene};
 use core::time::Duration;
 use std::collections::{HashMap, VecDeque, HashSet};
-use super::action::ActionName;
 
 struct UndoNode {
     parent: Option<Weak<UndoNode>>,
@@ -17,6 +17,7 @@ struct UndoNode {
     value: Rc<ImageStateDiff>,
     widget: GBox,
     label: Label,
+    button: Button,
     container: Rc<GBox>, // possibly inherited from parent
 }
 
@@ -44,15 +45,19 @@ impl UndoNode {
         widget
     }
 
+    fn new_button(label: &Label) -> Button {
+        let button = Button::builder()
+            .child(label)
+            .build();
+
+        button
+    }
+
     fn new(parent_p: &Rc<UndoNode>, diff: ImageStateDiff) -> Self {
         let parent = Some(Rc::downgrade(parent_p));
 
         let label = Label::new(Some(format!("{:?}", diff.culprit).as_str()));
-
-        let button = Button::builder()
-            .child(&label)
-            .build();
-
+        let button = Self::new_button(&label);
         let widget = Self::new_widget(&button);
 
         let container = if parent_p.children.borrow().len() == 0 {
@@ -74,6 +79,7 @@ impl UndoNode {
             children: RefCell::new(vec![]),
             widget,
             label,
+            button,
             container,
         }
     }
@@ -94,12 +100,37 @@ impl UndoNode {
         // them with the state *after* the commit (like with git)
         self.value.new_id
     }
+
+    fn connect_hooks(&self, tree: &UndoTree) {
+        // hooks should be set before calling this
+        let mod_hist = tree.mod_hist.as_ref().unwrap().clone();
+        let update_canvas = tree.update_canvas.as_ref().unwrap().clone();
+        let target_id = self.id();
+
+        self.button.connect_clicked(clone!(@strong mod_hist, @strong update_canvas => move |_| {
+            let f = Box::new(move |hist: &mut ImageHistory| {
+                hist.migrate_to_commit(target_id);
+            });
+
+            mod_hist(f);
+            update_canvas();
+        }));
+    }
 }
 
 pub struct UndoTree {
     root: Rc<UndoNode>,
     current: Rc<UndoNode>,
     widget: ScrolledWindow,
+    // `mod_hist` is a gross hack to avoid explicitly wrapping `ImageHistory`
+    // in a pointer (this is undesirable because `Canvas` uses lots of
+    // returned references to its `image_hist` field, which is annoying to
+    // do when it's wrapped in a pointer).
+    // It's used to pass a self-pointer into widget handlers.
+    mod_hist: Option<Rc<dyn Fn(Box<dyn Fn(&mut ImageHistory)>)>>,
+    // Yet another attempt to keep some semblance of encapsulation.
+    // It's probably ideal to refactor the ui out entirely.
+    update_canvas: Option<Rc<dyn Fn()>>,
 }
 
 impl UndoTree {
@@ -112,11 +143,7 @@ impl UndoTree {
         };
 
         let label = Label::new(Some("(Root)"));
-
-        let button = Button::builder()
-            .child(&label)
-            .build();
-
+        let button = UndoNode::new_button(&label);
         let widget = UndoNode::new_widget(&button);
 
         let container = Rc::new(GBox::builder()
@@ -133,6 +160,7 @@ impl UndoTree {
             value: Rc::new(NULL_DIFF),
             widget,
             label,
+            button,
             container,
         };
 
@@ -156,6 +184,8 @@ impl UndoTree {
             root: Rc::clone(&root_p),
             current: root_p,
             widget,
+            mod_hist: None,
+            update_canvas: None,
         }
     }
 
@@ -167,6 +197,7 @@ impl UndoTree {
 
     pub fn commit(&mut self, diff: ImageStateDiff) {
         let new_current = Rc::new(UndoNode::new(&self.current, diff));
+        new_current.connect_hooks(&self);
         self.current.children.borrow_mut().push(Rc::clone(&new_current));
         self.update_current(new_current);
     }
@@ -261,7 +292,7 @@ impl UndoTree {
     // node with the given id, returning the diff
     // functions necessary to convert the image to the target,
     // setting current to the target.
-    pub fn traverse_to(&self, target_id: usize) -> Vec<Box<dyn Fn(&mut ImageState)>> {
+    pub fn traverse_to(&mut self, target_id: usize) -> Vec<Box<dyn Fn(&mut ImageState)>> {
         let mut q = VecDeque::new();
         // parent map (also serves as visited map)
         let mut pi: HashMap<usize, Option<Rc<UndoNode>>> = HashMap::new();
@@ -287,6 +318,7 @@ impl UndoTree {
 
                 if neigh.id() == target_id {
                     // found target: now form diff chain, walking backwards from target to self.current
+                    let target = neigh;
                     let mut curr = neigh;
                     let mut diff_chain: Vec<Box<dyn Fn(&mut ImageState)>> = vec![];
                     // `diff_chain` will gather the diff-functions to walk the tree:
@@ -319,6 +351,7 @@ impl UndoTree {
                         curr = pred;
                     }
 
+                    self.update_current(target.clone());
                     diff_chain.reverse();
                     return diff_chain;
                 }
@@ -326,5 +359,15 @@ impl UndoTree {
         }
 
         panic!("Couldn't reach node with id {target_id}");
+    }
+
+    pub fn set_hooks(
+        &mut self,
+        mod_hist: Rc<dyn Fn(Box<dyn Fn(&mut ImageHistory)>)>,
+        update_canvas: Rc<dyn Fn()>,
+    ) {
+        self.mod_hist = Some(mod_hist);
+        self.update_canvas = Some(update_canvas);
+        self.root.connect_hooks(&self);
     }
 }
