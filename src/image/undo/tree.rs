@@ -293,6 +293,10 @@ impl UndoTree {
     // functions necessary to convert the image to the target,
     // setting current to the target.
     pub fn traverse_to(&mut self, target_id: usize) -> Vec<Box<dyn Fn(&mut ImageState)>> {
+        if target_id == self.current.id() {
+            return vec![];
+        }
+
         let mut q = VecDeque::new();
         // parent map (also serves as visited map)
         let mut pi: HashMap<usize, Option<Rc<UndoNode>>> = HashMap::new();
