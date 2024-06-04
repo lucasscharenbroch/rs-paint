@@ -289,18 +289,30 @@ impl UndoTree {
                     // found target: now form diff chain, walking backwards from target to self.current
                     let mut curr = neigh;
                     let mut diff_chain: Vec<Box<dyn Fn(&mut ImageState)>> = vec![];
+                    // `diff_chain` will gather the diff-functions to walk the tree:
+                    // there is one diff-function per edge.
+                    // To apply an edge: apply its child.
+                    // To unapply an edge: unapply its parent.
+                    // This sounds a little funny, because the nodes themselves are commits, yet
+                    // they also represent the state *after* the respective commit is applied.
+                    //                         Y
+                    //          (unapply X) /     \ (apply TARGET)
+                    //                     X      TARGET
+                    //  (unapply CURRENT) /
+                    //              CURRENT
 
+                    // walk the edges, in reverse order
                     while let Some(pred) = &pi[&curr.id()] {
                         // it would be nice to use a let-chain here... (it's unstable though)
                         if curr.parent.as_ref().map(|parent| parent.upgrade().unwrap().id() == pred.id()).unwrap_or(false) {
-                            // pred is parent: curr needs to be applied
+                            // pred is parent: apply the edge (apply curr)
                             diff_chain.push(Box::new(
                                 clone!(@strong curr => move |img| curr.value.apply_to(img))
                             ));
                         } else {
-                            // pred is child: curr needs to be unapplied
+                            // pred is child: unapply the edge (unapply pred)
                             diff_chain.push(Box::new(
-                                clone!(@strong curr => move |img| curr.value.unapply_to(img))
+                                clone!(@strong pred => move |img| pred.value.unapply_to(img))
                             ));
                         }
 
