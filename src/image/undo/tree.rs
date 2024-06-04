@@ -9,6 +9,7 @@ use gtk::{pango, prelude::*, Align, Box as GBox, Button, Orientation, ScrolledWi
 use gtk::{glib, graphene};
 use core::time::Duration;
 use std::collections::{HashMap, VecDeque, HashSet};
+use super::action::ActionName;
 
 struct UndoNode {
     parent: Option<Weak<UndoNode>>,
@@ -107,7 +108,7 @@ impl UndoTree {
             image_diff: ImageDiff::Null,
             old_id: 0,
             new_id: 0,
-            culprit: crate::image::undo::action::ActionName::Anonymous,
+            culprit: ActionName::Anonymous,
         };
 
         let label = Label::new(Some("(Root)"));
@@ -287,25 +288,20 @@ impl UndoTree {
                 if neigh.id() == target_id {
                     // found target: now form diff chain, walking backwards from target to self.current
                     let mut curr = neigh;
-                    let mut diff_chain: Vec<Box<dyn Fn(&mut ImageState)>> = vec![
-                        // the last thing we do is apply the target commit's diff
-                        Box::new(clone!(@strong curr => move |img| curr.value.apply_to(img)))
-                    ];
+                    let mut diff_chain: Vec<Box<dyn Fn(&mut ImageState)>> = vec![];
 
                     while let Some(pred) = &pi[&curr.id()] {
-                        if let Some(parent) = &curr.parent {
-                            if parent.upgrade().unwrap().id() == pred.id() {
-                                // pred is parent: curr needs to be unapplied
-                                diff_chain.push(Box::new(
-                                    clone!(@strong curr => move |img| curr.value.unapply_to(img))
-                                ));
-                            }
-                        } else {
-                            // pred is child: curr needs to be applied
+                        // it would be nice to use a let-chain here... (it's unstable though)
+                        if curr.parent.as_ref().map(|parent| parent.upgrade().unwrap().id() == pred.id()).unwrap_or(false) {
+                            // pred is parent: curr needs to be applied
                             diff_chain.push(Box::new(
                                 clone!(@strong curr => move |img| curr.value.apply_to(img))
                             ));
-
+                        } else {
+                            // pred is child: curr needs to be unapplied
+                            diff_chain.push(Box::new(
+                                clone!(@strong curr => move |img| curr.value.unapply_to(img))
+                            ));
                         }
 
                         curr = pred;
