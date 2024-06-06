@@ -101,6 +101,7 @@ impl UiState {
                               move || f(Err(())));
                 return;
              }
+             // fall through (let go of borrow in ui_p)
         } else {
             panic!("Trying to close non-existant tab index: {target_idx}");
         }
@@ -203,6 +204,12 @@ impl UiState {
         }));
 
         ui_p.borrow().window.add_controller(key_controller);
+
+        ui_p.borrow().window.connect_close_request(clone!(@strong ui_p => move |app| {
+            // don't close: call quit instead
+            Self::quit(ui_p.clone());
+            gtk::glib::signal::Propagation::Stop
+        }));
     }
 
     // hack a mod-key-update handler:
@@ -325,17 +332,37 @@ impl UiState {
         }
     }
 
-    pub fn quit(ui_p: Rc<RefCell<Self>>) {
-        // close all tabs as normal, to raise any "unsaved-changes" dialogs
-        if let Some(_) = ui_p.borrow().active_tab() {
+    fn try_close_all_tabs_then<F>(ui_p: &Rc<RefCell<Self>>, f: F)
+    where
+        F: Fn(Result<(), ()>) + 'static
+    {
+        if ui_p.borrow().active_tab().is_some() {
             Self::try_close_tab_then(&ui_p.clone(), 0, Rc::new(clone!(@strong ui_p => move |tab_close_success| {
                 if let Ok(()) = tab_close_success {
                     Self::quit(ui_p.clone());
                 }
             })));
-            return;
-        } else { // when all tabs are closed...
-            ui_p.borrow().application.quit();
+            f(Err(()));
+        } else {
+            f(Ok(()));
         }
+    }
+
+    fn try_clean_up_before_quit_then<F>(ui_p: &Rc<RefCell<Self>>, f: F)
+    where
+        F: Fn(Result<(), ()>) + 'static
+    {
+        // just a wrapper for now; maybe do other checks
+
+        // close all tabs as normal, to raise any "unsaved-changes" dialogs
+        Self::try_close_all_tabs_then(&ui_p.clone(), f);
+    }
+
+    pub fn quit(ui_p: Rc<RefCell<Self>>) {
+        Self::try_clean_up_before_quit_then(&ui_p.clone(), move |ok_to_quit| {
+            if let Ok(()) = ok_to_quit {
+                ui_p.borrow().application.quit();
+            }
+        })
     }
 }
