@@ -63,61 +63,63 @@ pub fn image_export_formats() -> Vec<Vec<&'static str>> {
     ]
 }
 
-pub fn import(ui_p: Rc<RefCell<UiState>>) {
-    let valid_filetypes = mk_file_filter_list(image_import_formats());
+impl UiState {
+    pub fn import(ui_p: Rc<RefCell<UiState>>) {
+        let valid_filetypes = mk_file_filter_list(image_import_formats());
 
-    choose_file_dialog(&ui_p.borrow().window, "Choose an image to import",
-                "Import", &valid_filetypes, false,
-                clone!(@strong ui_p => move |res| {
-        if let Ok(res) = res {
-            let path = res.path().unwrap();
-            let path = path.as_path();
-            let name = path.file_name().and_then(|os| os.to_str()).unwrap_or("[Untitled]");
-            match Image::from_file(path) {
-                Ok(img) => {
-                    UiState::new_tab(&ui_p, img, name);
-                },
-                Err(mesg) => {
-                    ok_dialog_str(ui_p.borrow().window(), "Import Error",
-                              format!("Error during import: {}", mesg).as_str());
+        choose_file_dialog(&ui_p.borrow().window, "Choose an image to import",
+                    "Import", &valid_filetypes, false,
+                    clone!(@strong ui_p => move |res| {
+            if let Ok(res) = res {
+                let path = res.path().unwrap();
+                let path = path.as_path();
+                let name = path.file_name().and_then(|os| os.to_str()).unwrap_or("[Untitled]");
+                match Image::from_file(path) {
+                    Ok(img) => {
+                        UiState::new_tab(&ui_p, img, name);
+                    },
+                    Err(mesg) => {
+                        ok_dialog_str(ui_p.borrow().window(), "Import Error",
+                                format!("Error during import: {}", mesg).as_str());
+                    }
                 }
             }
-        }
-    }))
-}
+        }))
+    }
 
-pub fn export(ui_p: Rc<RefCell<UiState>>) {
-    let valid_filetypes = mk_file_filter_list(image_export_formats());
+    pub fn export(ui_p: Rc<RefCell<UiState>>) {
+        let valid_filetypes = mk_file_filter_list(image_export_formats());
 
-    choose_file_dialog(&ui_p.borrow().window, "Export image",
-                "Export", &valid_filetypes, true,
-                clone!(@strong ui_p => move |res| {
-        if let Ok(res) = res {
-            let path = res.path().unwrap();
-            let path = path.as_path();
-            if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-                if let Err(mesg) = canvas_p.borrow().image_ref().image().to_file(path) {
+        choose_file_dialog(&ui_p.borrow().window, "Export image",
+                    "Export", &valid_filetypes, true,
+                    clone!(@strong ui_p => move |res| {
+            if let Ok(res) = res {
+                let path = res.path().unwrap();
+                let path = path.as_path();
+                if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+                    if let Err(mesg) = canvas_p.borrow().image_ref().image().to_file(path) {
+                        ok_dialog_str(ui_p.borrow().window(), "Export Error",
+                                format!("Error during export: {}", mesg).as_str());
+                        return;
+                    }
+                } else {
                     ok_dialog_str(ui_p.borrow().window(), "Export Error",
-                              format!("Error during export: {}", mesg).as_str());
+                            "No image to export");
                     return;
                 }
-            } else {
-                ok_dialog_str(ui_p.borrow().window(), "Export Error",
-                          "No image to export");
-                return;
+
+                // export success
+                ui_p.borrow_mut().notify_tab_successful_export();
             }
+        }))
+    }
 
-            // export success
-            ui_p.borrow_mut().notify_tab_successful_export();
-        }
-    }))
-}
-
-pub fn new(ui_p: Rc<RefCell<UiState>>) {
-    new_image_dialog(&ui_p.borrow().window, clone!(@strong ui_p => move |props| {
-        if let Some(props) = props {
-            let image = generate(props);
-            UiState::new_tab(&ui_p, image, "[untitled]");
-        }
-    }))
+    pub fn new(ui_p: Rc<RefCell<UiState>>) {
+        new_image_dialog(&ui_p.borrow().window, clone!(@strong ui_p => move |props| {
+            if let Some(props) = props {
+                let image = generate(props);
+                UiState::new_tab(&ui_p, image, "[untitled]");
+            }
+        }))
+    }
 }

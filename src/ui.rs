@@ -12,7 +12,6 @@ use toolbar::Toolbar;
 use dialog::{about_dialog, yes_no_dialog_str, ok_dialog};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
-use io::{new, import, export};
 
 use gtk::{gdk::RGBA, prelude::*};
 use gtk::gdk::{Key, ModifierType};
@@ -256,13 +255,13 @@ impl UiState {
                     about_dialog(&ui_p.borrow().window);
                 }
                 Key::n => {
-                    new(ui_p.clone());
+                    Self::new(ui_p.clone());
                 }
                 Key::i => {
-                    import(ui_p.clone());
+                    Self::import(ui_p.clone());
                 }
                 Key::e => {
-                    export(ui_p.clone());
+                    Self::export(ui_p.clone());
                 }
                 _ => (),
             }
