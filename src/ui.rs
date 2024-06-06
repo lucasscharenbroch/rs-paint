@@ -263,6 +263,7 @@ impl UiState {
                 Key::e => {
                     Self::export(ui_p.clone());
                 }
+                // Remember to add any new shortcuts to `dialog::keyboard_shortcuts_dialog`
                 _ => (),
             }
         }

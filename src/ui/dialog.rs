@@ -2,7 +2,7 @@ use crate::image::generate::NewImageProps;
 use crate::ui::form::ColorField;
 use super::form::{Form, NaturalField, CheckboxField};
 
-use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox, AboutDialog};
+use gtk::{prelude::*, Window, Widget, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
 use gtk::ColorDialog;
 use gtk::glib::{object::IsA, error::Error as GError};
 use gtk::gio::{File, Cancellable};
@@ -154,7 +154,7 @@ where
 }
 
 pub fn about_dialog(parent: &impl IsA<Window>) {
-    let dialog = AboutDialog::builder()
+    let dialog = gtk::AboutDialog::builder()
         .program_name("RS-Paint")
         .comments("A lightweight image editor, written in Rust using GTK4.")
         .website_label("Github")
@@ -164,6 +164,25 @@ pub fn about_dialog(parent: &impl IsA<Window>) {
         .deletable(true)
         .transient_for(parent)
         .build();
+
+    dialog.present();
+}
+
+pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
+    let dialog = gtk::ShortcutsWindow::builder()
+        .transient_for(parent)
+        .build();
+
+    /*
+        Key::equal => {
+        Key::minus => {
+        Key::z => {
+        Key::y => {
+        Key::a => {
+        Key::n => {
+        Key::i => {
+        Key::e => {
+    */
 
     dialog.present();
 }

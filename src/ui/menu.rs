@@ -1,7 +1,7 @@
 use crate::image::undo::action::{StaticUndoableAction, UndoableAction};
 use crate::image::transform::*;
 
-use super::dialog::about_dialog;
+use super::dialog::{about_dialog, keyboard_shortcuts_dialog};
 use super::UiState;
 
 use gtk::gio::{Menu, SimpleAction};
@@ -72,6 +72,8 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
 
 
     let help_menu = MenuBuilder::new()
+        .item("Keyboard Shortcuts", "keyboard-shortcuts",
+                Box::new(clone!(@strong ui_state => move || keyboard_shortcuts_dialog(&ui_state.borrow().window))))
         .item("About", "about",
                 Box::new(clone!(@strong ui_state => move || about_dialog(&ui_state.borrow().window))));
 
