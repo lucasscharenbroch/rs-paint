@@ -2,7 +2,7 @@ use crate::image::generate::NewImageProps;
 use crate::ui::form::ColorField;
 use super::form::{Form, NaturalField, CheckboxField};
 
-use gtk::{prelude::*, Window, Widget, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
+use gtk::{prelude::*, Align, Box as GBox, Button, FileDialog, Label, Orientation, ShortcutsGroup, ShortcutsShortcut, TextBuffer, Widget, Window};
 use gtk::ColorDialog;
 use gtk::glib::{object::IsA, error::Error as GError};
 use gtk::gio::{File, Cancellable};
@@ -169,20 +169,59 @@ pub fn about_dialog(parent: &impl IsA<Window>) {
 }
 
 pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
+    fn shortcut_from_specs((name, keys): &(&str, &str)) -> gtk::ShortcutsShortcut {
+        gtk::ShortcutsShortcut::builder()
+            .title(*name)
+            .shortcut_type(gtk::ShortcutType::Accelerator)
+            .accelerator(*keys)
+            .build()
+    }
+
+    fn group_from_specs(title: &str, specs: &[(&str, &str)]) -> ShortcutsGroup {
+        let res = gtk::ShortcutsGroup::builder()
+            .title(title)
+            .build();
+
+        specs.iter().for_each(|specs| res.add_shortcut(&shortcut_from_specs(specs)));
+
+        res
+    }
+
+    let zoom = group_from_specs("Zoom", &[
+        ("Zoom In", "<Ctrl>equal"),
+        ("Zoom Out", "<Ctrl>minus"),
+    ]);
+
+    let undo = group_from_specs("Undo", &[
+        ("Undo", "<Ctrl>z"),
+        ("Redo", "<Ctrl>y"),
+    ]);
+
+    let misc = group_from_specs("Miscellaneous", &[
+        ("About RS-Paint", "<Ctrl>a"),
+    ]);
+
+
+    let io = group_from_specs("I/O", &[
+        ("New Image", "<Ctrl>n"),
+        ("Import Image", "<Ctrl>i"),
+        ("Export Image", "<Ctrl>e"),
+    ]);
+
+
+    let main_section = gtk::ShortcutsSection::builder()
+        .build();
+
+    main_section.add_group(&zoom);
+    main_section.add_group(&undo);
+    main_section.add_group(&misc);
+    main_section.add_group(&io);
+
     let dialog = gtk::ShortcutsWindow::builder()
         .transient_for(parent)
         .build();
 
-    /*
-        Key::equal => {
-        Key::minus => {
-        Key::z => {
-        Key::y => {
-        Key::a => {
-        Key::n => {
-        Key::i => {
-        Key::e => {
-    */
+    dialog.add_section(&main_section);
 
     dialog.present();
 }
