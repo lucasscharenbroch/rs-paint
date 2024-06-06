@@ -2,7 +2,7 @@ use crate::image::generate::NewImageProps;
 use crate::ui::form::ColorField;
 use super::form::{Form, NaturalField, CheckboxField};
 
-use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox};
+use gtk::{prelude::*, Window, Widget, TextView, TextBuffer, FileDialog, Button, Label, Orientation, Align, Box as GBox, AboutDialog};
 use gtk::ColorDialog;
 use gtk::glib::{object::IsA, error::Error as GError};
 use gtk::gio::{File, Cancellable};
@@ -154,19 +154,18 @@ where
 }
 
 pub fn about_dialog(parent: &impl IsA<Window>) {
-    let text_content = TextBuffer::builder()
-        .text("Information about RS-Paint")
+    let dialog = AboutDialog::builder()
+        .program_name("RS-Paint")
+        .comments("A lightweight image editor, written in Rust using GTK4.")
+        .website_label("Github")
+        .website("https://github.com/lucasscharenbroch/rs-paint")
+        .authors(vec!["Lucas Scharenbroch"])
+        .version("1.0")
+        .deletable(true)
+        .transient_for(parent)
         .build();
 
-    let content = TextView::builder()
-        .buffer(&text_content)
-        .editable(false)
-        .cursor_visible(false)
-        .vexpand(true)
-        .hexpand(true)
-        .build();
-
-    ok_dialog(parent, "About Rs-Paint", &content)
+    dialog.present();
 }
 
 pub fn choose_file_dialog<P: FnOnce(Result<File, GError>) + 'static>(
