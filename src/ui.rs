@@ -12,6 +12,7 @@ use toolbar::Toolbar;
 use dialog::{about_dialog, yes_no_dialog_str, ok_dialog};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
+use io::{new, import, export};
 
 use gtk::{gdk::RGBA, prelude::*};
 use gtk::gdk::{Key, ModifierType};
@@ -182,7 +183,7 @@ impl UiState {
         let key_controller = EventControllerKey::new();
 
         key_controller.connect_key_pressed(clone!(@strong ui_p => move |_, key, _, mod_keys| {
-            ui_p.borrow_mut().handle_keypress(key, mod_keys);
+            Self::handle_keypress(&ui_p, key, mod_keys);
             Propagation::Proceed
         }));
 
@@ -221,45 +222,54 @@ impl UiState {
         }
     }
 
-    fn handle_keypress(&mut self, key: Key, mod_keys: ModifierType) {
+    fn handle_keypress(ui_p: &Rc<RefCell<Self>>, key: Key, mod_keys: ModifierType) {
         const ZOOM_INC: f64 = 1.0;
 
         // control-key bindings
         if mod_keys == ModifierType::CONTROL_MASK {
             match key {
                 Key::equal => {
-                    if let Some(canvas_p) = self.active_canvas_p() {
+                    if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
                         canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
                         canvas_p.borrow_mut().update();
                     }
                 },
                 Key::minus => {
-                    if let Some(canvas_p) = self.active_canvas_p() {
+                    if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
                         canvas_p.borrow_mut().inc_zoom(-ZOOM_INC);
                         canvas_p.borrow_mut().update();
                     }
                 },
                 Key::z => {
-                    if let Some(canvas_p) = self.active_canvas_p() {
+                    if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
                         canvas_p.borrow_mut().undo();
                         canvas_p.borrow_mut().update();
                     }
                 },
                 Key::y => {
-                    if let Some(canvas_p) = self.active_canvas_p() {
+                    if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
                         canvas_p.borrow_mut().redo();
                         canvas_p.borrow_mut().update();
                     }
                 },
                 Key::a => {
-                    about_dialog(&self.window);
+                    about_dialog(&ui_p.borrow().window);
+                }
+                Key::n => {
+                    new(ui_p.clone());
+                }
+                Key::i => {
+                    import(ui_p.clone());
+                }
+                Key::e => {
+                    export(ui_p.clone());
                 }
                 _ => (),
             }
         }
 
         if let Some(mod_keys) = Self::try_update_mod_keys(key, mod_keys, true) {
-            self.handle_mod_keys_update(mod_keys);
+            ui_p.borrow_mut().handle_mod_keys_update(mod_keys);
         }
 
     }
