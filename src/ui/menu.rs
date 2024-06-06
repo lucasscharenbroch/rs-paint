@@ -46,7 +46,8 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
     let file_menu = MenuBuilder::new()
         .item("New", "new", Box::new(clone!(@strong ui_state => move || UiState::new(ui_state.clone()))))
         .item("Import", "import", Box::new(clone!(@strong ui_state => move || UiState::import(ui_state.clone()))))
-        .item("Export", "export", Box::new(clone!(@strong ui_state => move || UiState::export(ui_state.clone()))));
+        .item("Export", "export", Box::new(clone!(@strong ui_state => move || UiState::export(ui_state.clone()))))
+        .item("Quit", "quit", Box::new(clone!(@strong ui_state => move || UiState::quit(ui_state.clone()))));
 
     let edit_menu = MenuBuilder::new()
         .item("History", "history", Box::new(clone!(@strong ui_state => move || ui_state.borrow().history_popup())));

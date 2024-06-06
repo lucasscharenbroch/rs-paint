@@ -199,8 +199,8 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
 
     let misc = group_from_specs("Miscellaneous", &[
         ("About RS-Paint", "<Ctrl>a"),
+        ("Quit", "<Ctrl>q"),
     ]);
-
 
     let io = group_from_specs("I/O", &[
         ("New Image", "<Ctrl>n"),

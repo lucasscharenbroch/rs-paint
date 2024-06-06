@@ -37,13 +37,14 @@ pub struct UiState {
     toolbar_p: Rc<RefCell<Toolbar>>,
     grid: Grid,
     window: ApplicationWindow,
+    application: Application,
 }
 
 impl UiState {
     pub fn run_main_ui() -> gtk::glib::ExitCode {
         let app = Application::builder()
             .build();
-        let ui_p = Self::new_p();
+        let ui_p = Self::new_p(app.clone());
         Self::setup_default_image(&ui_p);
 
         app.connect_activate(clone!(@strong ui_p => move |app| {
@@ -82,10 +83,14 @@ impl UiState {
         }
     }
 
-    fn try_close_tab(ui_p: &Rc<RefCell<Self>>, target_idx: usize) {
-        let close_it = clone!(@strong ui_p => move || {
+    fn try_close_tab_then<F>(ui_p: &Rc<RefCell<Self>>, target_idx: usize, f: Rc<F>)
+    where
+        F: Fn(Result<(), ()>) + 'static
+    {
+        let close_it = clone!(@strong ui_p, @strong f => move || {
             ui_p.borrow_mut().close_tab(target_idx);
             UiState::update_tabbar_widget(&ui_p);
+            f(Ok(()));
         });
 
         if let Some(target_tab) = ui_p.borrow().tabbar.tabs.get(target_idx) {
@@ -93,12 +98,18 @@ impl UiState {
                 yes_no_dialog_str(ui_p.borrow().window(), "Close tab",
                               format!("`{}` has been modified since last exporting. Close anyway?", target_tab.name()).as_str(),
                               close_it,
-                              || ());
+                              move || f(Err(())));
                 return;
-            }
+             }
+        } else {
+            panic!("Trying to close non-existant tab index: {target_idx}");
         }
 
         close_it();
+    }
+
+    fn try_close_tab(ui_p: &Rc<RefCell<Self>>, target_idx: usize) {
+        Self::try_close_tab_then(ui_p, target_idx, Rc::new(|_| ()));
     }
 
     fn close_tab(&mut self, target_idx: usize) {
@@ -151,7 +162,7 @@ impl UiState {
         new_idx
     }
 
-    fn new_p() -> Rc<RefCell<UiState>> {
+    fn new_p(application: Application) -> Rc<RefCell<UiState>> {
         let ui_p = Rc::new(RefCell::new(UiState {
             toolbar_p: Toolbar::new_p(),
             tabbar: Tabbar::new(),
@@ -161,6 +172,7 @@ impl UiState {
                 .show_menubar(true)
                 .title("RS-Paint")
                 .build(),
+            application,
         }));
 
         Toolbar::init_ui_hooks(&ui_p);
@@ -263,6 +275,9 @@ impl UiState {
                 Key::e => {
                     Self::export(ui_p.clone());
                 }
+                Key::q => {
+                    Self::quit(ui_p.clone());
+                }
                 // Remember to add any new shortcuts to `dialog::keyboard_shortcuts_dialog`
                 _ => (),
             }
@@ -307,6 +322,20 @@ impl UiState {
             let history_widget = canvas.history_widget();
 
             ok_dialog(self.window(), "Image History", history_widget);
+        }
+    }
+
+    pub fn quit(ui_p: Rc<RefCell<Self>>) {
+        // close all tabs as normal, to raise any "unsaved-changes" dialogs
+        if let Some(_) = ui_p.borrow().active_tab() {
+            Self::try_close_tab_then(&ui_p.clone(), 0, Rc::new(clone!(@strong ui_p => move |tab_close_success| {
+                if let Ok(()) = tab_close_success {
+                    Self::quit(ui_p.clone());
+                }
+            })));
+            return;
+        } else { // when all tabs are closed...
+            ui_p.borrow().application.quit();
         }
     }
 }
