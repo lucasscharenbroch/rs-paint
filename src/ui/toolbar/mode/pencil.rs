@@ -120,8 +120,13 @@ fn pixels_along_segment(
         let i = i as f64;
         let x = x0 + dx * i;
         let y = y0 + dy * i;
-        (x as usize, y as usize)
-    }).collect::<Vec<_>>()
+        (x, y)
+    })
+    // filter out the negatives, else they'll be converted to 0
+    // (and stick to the side of the image)
+    .filter(|(x, y)| *x > 0.0 && *y > 0.0)
+    .map(|(x, y)| (x as usize, y as usize))
+    .collect::<Vec<_>>()
 }
 
 impl super::MouseModeState for PencilState {
