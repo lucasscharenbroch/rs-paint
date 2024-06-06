@@ -14,11 +14,18 @@ use std::collections::{HashMap, VecDeque, HashSet};
 struct UndoNode {
     parent: Option<Weak<UndoNode>>,
     children: RefCell<Vec<Rc<UndoNode>>>,
+    recent_child_idx: RefCell<usize>,
     value: Rc<ImageStateDiff>,
     widget: GBox,
     label: Label,
     button: Button,
     container: Rc<GBox>, // possibly inherited from parent
+}
+
+impl PartialEq for UndoNode {
+    fn eq(&self, other: &UndoNode) -> bool {
+        self.value.new_id == other.value.new_id
+    }
 }
 
 impl UndoNode {
@@ -77,6 +84,7 @@ impl UndoNode {
             parent,
             value: Rc::new(diff),
             children: RefCell::new(vec![]),
+            recent_child_idx: RefCell::new(0),
             widget,
             label,
             button,
@@ -157,6 +165,7 @@ impl UndoTree {
         let root = UndoNode {
             parent: None,
             children: RefCell::new(vec![]),
+            recent_child_idx: RefCell::new(0),
             value: Rc::new(NULL_DIFF),
             widget,
             label,
@@ -205,7 +214,9 @@ impl UndoTree {
     pub fn undo(&mut self) -> Option<Rc<ImageStateDiff>> {
         if let Some(ref parent_p) = self.current.parent {
             let ret = self.current.value.clone();
-            self.update_current(parent_p.upgrade().unwrap());
+            let parent = parent_p.upgrade().unwrap();
+            *parent.recent_child_idx.borrow_mut() = parent.children.borrow().iter().position(|c| **c == *self.current).unwrap();
+            self.update_current(parent);
             Some(ret)
         } else {
             None
@@ -215,7 +226,8 @@ impl UndoTree {
     // just return the first child for this one
     // (no primitive binding for multi-level undo)
     pub fn redo(&mut self) -> Option<Rc<ImageStateDiff>> {
-        let new_current = if let Some(new_current) = self.current.children.borrow().get(0) {
+        let new_current = if let Some(new_current) =
+                self.current.children.borrow().get(*self.current.recent_child_idx.borrow()) {
             new_current.clone()
         } else {
             return None;
