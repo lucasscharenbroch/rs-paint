@@ -241,50 +241,18 @@ impl UiState {
     }
 
     fn handle_keypress(ui_p: &Rc<RefCell<Self>>, key: Key, mod_keys: ModifierType) {
-        const ZOOM_INC: f64 = 1.0;
-
         // control-key bindings
         if mod_keys == ModifierType::CONTROL_MASK {
             match key {
-                Key::equal => {
-                    if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-                        canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
-                        canvas_p.borrow_mut().update();
-                    }
-                },
-                Key::minus => {
-                    if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-                        canvas_p.borrow_mut().inc_zoom(-ZOOM_INC);
-                        canvas_p.borrow_mut().update();
-                    }
-                },
-                Key::z => {
-                    if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-                        canvas_p.borrow_mut().undo();
-                        canvas_p.borrow_mut().update();
-                    }
-                },
-                Key::y => {
-                    if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-                        canvas_p.borrow_mut().redo();
-                        canvas_p.borrow_mut().update();
-                    }
-                },
-                Key::a => {
-                    about_dialog(&ui_p.borrow().window);
-                }
-                Key::n => {
-                    Self::new(ui_p.clone());
-                }
-                Key::i => {
-                    Self::import(ui_p.clone());
-                }
-                Key::e => {
-                    Self::export(ui_p.clone());
-                }
-                Key::q => {
-                    Self::quit(ui_p.clone());
-                }
+                Key::equal => Self::zoom_in(ui_p.clone()),
+                Key::minus => Self::zoom_out(ui_p.clone()),
+                Key::z => Self::undo(ui_p.clone()),
+                Key::y => Self::redo(ui_p.clone()),
+                Key::a => about_dialog(&ui_p.borrow().window),
+                Key::n => Self::new(ui_p.clone()),
+                Key::i => Self::import(ui_p.clone()),
+                Key::e => Self::export(ui_p.clone()),
+                Key::q => Self::quit(ui_p.clone()),
                 // Remember to add any new shortcuts to `dialog::keyboard_shortcuts_dialog`
                 _ => (),
             }
@@ -364,5 +332,37 @@ impl UiState {
                 ui_p.borrow().application.quit();
             }
         })
+    }
+
+    pub fn zoom_in(ui_p: Rc<RefCell<Self>>) {
+        const ZOOM_INC: f64 = 1.0;
+
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().inc_zoom(ZOOM_INC);
+            canvas_p.borrow_mut().update();
+        }
+    }
+
+    pub fn zoom_out(ui_p: Rc<RefCell<Self>>) {
+        const ZOOM_INC: f64 = 1.0;
+
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().inc_zoom(-ZOOM_INC);
+            canvas_p.borrow_mut().update();
+        }
+    }
+
+    pub fn undo(ui_p: Rc<RefCell<Self>>) {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().undo();
+            canvas_p.borrow_mut().update();
+        }
+    }
+
+    pub fn redo(ui_p: Rc<RefCell<Self>>) {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().redo();
+            canvas_p.borrow_mut().update();
+        }
     }
 }
