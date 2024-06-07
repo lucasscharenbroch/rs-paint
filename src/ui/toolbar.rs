@@ -1,5 +1,5 @@
+pub mod mode;
 mod palette;
-mod mode;
 
 use gtk::gdk::RGBA;
 use mode::MouseMode;

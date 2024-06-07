@@ -2,6 +2,7 @@ use crate::image::undo::action::{DoableAction, UndoableAction};
 
 use super::super::image::{Image, UnifiedImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::undo::{ImageHistory, action::ActionName};
+use super::super::image::transform::Crop;
 use super::selection::Selection;
 use super::UiState;
 use super::toolbar::Toolbar;
@@ -496,5 +497,17 @@ impl Canvas {
 
     pub fn history_widget(&self) -> &impl IsA<Widget> {
         self.image_hist.widget_scrolled_to_active_commit()
+    }
+
+    pub fn crop_to(&mut self, x: usize, y: usize, w: usize, h: usize) {
+        let img_width = self.image().width() as usize;
+        let img_height = self.image().height() as usize;
+
+        if w == 0 || h == 0 || x + w >= img_width || y + h >= img_height {
+            panic!("Out of bounds crop: x={x} y={y} w={w} h={h} img_width={img_width} img_height={img_height}");
+        }
+
+        let crop = Crop::new(x, y, w, h);
+        self.exec_undoable_action(Box::new(crop));
     }
 }

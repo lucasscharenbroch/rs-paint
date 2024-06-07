@@ -34,7 +34,7 @@ impl ImageDiff {
         }
     }
 
-    pub fn apply_to(&self, image: &mut UnifiedImage) {
+    pub fn apply_to(&mut self, image: &mut UnifiedImage) {
         match self {
             ImageDiff::Diff(ref pixs) => {
                 for (i, _before, after) in pixs.iter() {
@@ -47,27 +47,27 @@ impl ImageDiff {
                 (image.image.width, image.image.height) = (after.width, after.height);
                 image.drawable = DrawableImage::from_image(&image.image);
             },
-            ImageDiff::ManualUndo(ref action) => {
+            ImageDiff::ManualUndo(action) => {
                 image.apply_action(action);
             },
             ImageDiff::Null => (),
         }
     }
 
-    pub fn unapply_to(&self, image: &mut UnifiedImage) {
+    pub fn unapply_to(&mut self, image: &mut UnifiedImage) {
         match self {
-            &ImageDiff::Diff(ref pixs) => {
+            ImageDiff::Diff(ref pixs) => {
                 for (i, before, _after) in pixs.iter() {
                     image.image.pixels[*i] = before.clone();
                     image.drawable.pixels[*i] = before.to_drawable();
                 }
             },
-            &ImageDiff::FullCopy(ref before, ref _after) => {
+            ImageDiff::FullCopy(ref before, ref _after) => {
                 image.image.pixels = before.pixels.clone();
                 (image.image.width, image.image.height) = (before.width, before.height);
                 image.drawable = DrawableImage::from_image(&image.image);
             },
-            ImageDiff::ManualUndo(ref action) => {
+            ImageDiff::ManualUndo(action) => {
                 image.unapply_action(action);
             },
             ImageDiff::Null => (),
@@ -99,12 +99,12 @@ impl ImageStateDiff {
         }
     }
 
-    fn apply_to(&self, image_state: &mut ImageState) {
+    fn apply_to(&mut self, image_state: &mut ImageState) {
         self.image_diff.apply_to(&mut image_state.img);
         image_state.id = self.new_id;
     }
 
-    fn unapply_to(&self, image_state: &mut ImageState) {
+    fn unapply_to(&mut self, image_state: &mut ImageState) {
         self.image_diff.unapply_to(&mut image_state.img);
         image_state.id = self.old_id;
     }
@@ -159,13 +159,13 @@ impl ImageHistory {
 
     pub fn undo(&mut self) {
         if let Some(d) = self.undo_tree.undo() {
-            d.unapply_to(&mut self.now);
+            d.borrow_mut().unapply_to(&mut self.now);
         }
     }
 
     pub fn redo(&mut self) {
         if let Some(d) = self.undo_tree.redo() {
-            d.apply_to(&mut self.now);
+            d.borrow_mut().apply_to(&mut self.now);
         }
     }
 

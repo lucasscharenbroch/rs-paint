@@ -9,9 +9,10 @@ mod form;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use dialog::{about_dialog, yes_no_dialog_str, ok_dialog};
+use dialog::{about_dialog, ok_dialog, ok_dialog_str, yes_no_dialog_str};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
+use toolbar::mode::{MouseMode, rectangle_select::RectangleSelectState};
 
 use gtk::{gdk::RGBA, prelude::*};
 use gtk::gdk::{Key, ModifierType};
@@ -369,5 +370,25 @@ impl UiState {
 
     pub fn undo_history(ui_p: Rc<RefCell<Self>>) {
         ui_p.borrow().history_popup();
+    }
+
+    fn crop_to_selection(ui_p: Rc<RefCell<UiState>>) {
+        let ui = ui_p.borrow();
+        let toolbar = ui.toolbar_p.borrow_mut();
+
+        if let MouseMode::RectangleSelect(state) = toolbar.mouse_mode() {
+            if let RectangleSelectState::Selected(x, y, w, h) = state {
+                if let Some(canvas_p) = ui.active_canvas_p() {
+                    canvas_p.borrow_mut().crop_to(*x as usize, *y as usize, *w as usize, *h as usize);
+                    return;
+                }
+            }
+        }
+
+        ok_dialog_str(
+            ui.window(),
+            "Make a Selection First",
+            "Use the rectangle select tool to select a region to crop."
+        );
     }
 }

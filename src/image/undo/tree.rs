@@ -15,7 +15,7 @@ struct UndoNode {
     parent: Option<Weak<UndoNode>>,
     children: RefCell<Vec<Rc<UndoNode>>>,
     recent_child_idx: RefCell<usize>,
-    value: Rc<ImageStateDiff>,
+    value: Rc<RefCell<ImageStateDiff>>,
     widget: GBox,
     label: Label,
     button: Button,
@@ -24,7 +24,7 @@ struct UndoNode {
 
 impl PartialEq for UndoNode {
     fn eq(&self, other: &UndoNode) -> bool {
-        self.value.new_id == other.value.new_id
+        self.value.borrow().new_id == other.value.borrow().new_id
     }
 }
 
@@ -82,7 +82,7 @@ impl UndoNode {
 
         UndoNode {
             parent,
-            value: Rc::new(diff),
+            value: Rc::new(RefCell::new(diff)),
             children: RefCell::new(vec![]),
             recent_child_idx: RefCell::new(0),
             widget,
@@ -106,7 +106,7 @@ impl UndoNode {
     fn id(&self) -> usize {
         // while nodes represent commits, we'll associate
         // them with the state *after* the commit (like with git)
-        self.value.new_id
+        self.value.borrow().new_id
     }
 
     fn connect_hooks(&self, tree: &UndoTree) {
@@ -166,7 +166,7 @@ impl UndoTree {
             parent: None,
             children: RefCell::new(vec![]),
             recent_child_idx: RefCell::new(0),
-            value: Rc::new(NULL_DIFF),
+            value: Rc::new(RefCell::new(NULL_DIFF)),
             widget,
             label,
             button,
@@ -211,7 +211,7 @@ impl UndoTree {
         self.update_current(new_current);
     }
 
-    pub fn undo(&mut self) -> Option<Rc<ImageStateDiff>> {
+    pub fn undo(&mut self) -> Option<Rc<RefCell<ImageStateDiff>>> {
         if let Some(ref parent_p) = self.current.parent {
             let ret = self.current.value.clone();
             let parent = parent_p.upgrade().unwrap();
@@ -225,7 +225,7 @@ impl UndoTree {
 
     // just return the first child for this one
     // (no primitive binding for multi-level undo)
-    pub fn redo(&mut self) -> Option<Rc<ImageStateDiff>> {
+    pub fn redo(&mut self) -> Option<Rc<RefCell<ImageStateDiff>>> {
         let new_current = if let Some(new_current) =
                 self.current.children.borrow().get(*self.current.recent_child_idx.borrow()) {
             new_current.clone()
@@ -355,12 +355,12 @@ impl UndoTree {
                         if curr.parent.as_ref().map(|parent| parent.upgrade().unwrap().id() == pred.id()).unwrap_or(false) {
                             // pred is parent: apply the edge (apply curr)
                             diff_chain.push(Box::new(
-                                clone!(@strong curr => move |img| curr.value.apply_to(img))
+                                clone!(@strong curr => move |img| curr.value.borrow_mut().apply_to(img))
                             ));
                         } else {
                             // pred is child: unapply the edge (unapply pred)
                             diff_chain.push(Box::new(
-                                clone!(@strong pred => move |img| pred.value.unapply_to(img))
+                                clone!(@strong pred => move |img| pred.value.borrow_mut().unapply_to(img))
                             ));
                         }
 

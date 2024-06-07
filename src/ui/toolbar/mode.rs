@@ -1,6 +1,6 @@
+pub mod rectangle_select;
 mod cursor;
 mod pencil;
-mod rectangle_select;
 mod eyedropper;
 
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};

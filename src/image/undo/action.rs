@@ -14,6 +14,7 @@ pub enum ActionName {
     Flip,
     Scale,
     LevelShift,
+    Crop,
 }
 
 pub trait DoableAction {
@@ -24,8 +25,8 @@ pub trait DoableAction {
 
 pub trait UndoableAction {
     fn name(&self) -> ActionName;
-    fn exec(&self, image: &mut Image);
-    fn undo(&self, image: &mut Image); // explicit undo provided
+    fn exec(&mut self, image: &mut Image);
+    fn undo(&mut self, image: &mut Image); // explicit undo provided
 }
 
 pub trait StaticUndoableAction: UndoableAction {
@@ -38,14 +39,14 @@ impl ImageHistory {
         self.push_current_state(action.name());
     }
 
-    pub fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction>) {
+    pub fn exec_undoable_action(&mut self, mut action: Box<dyn UndoableAction>) {
         let (mod_pix, maybe_new_image) = self.now.img.get_and_reset_modified();
         if !mod_pix.is_empty() || maybe_new_image.is_some() {
             // if self is modified in any way, push the sate with Anon
             self.push_current_state(ActionName::Anonymous);
         }
 
-        self.now_mut().apply_action(&action);
+        self.now_mut().apply_action(&mut action);
         self.push_undo_action(action);
     }
 
@@ -62,12 +63,12 @@ impl ImageHistory {
 }
 
 impl UnifiedImage {
-    pub fn apply_action(&mut self, action: &Box<dyn UndoableAction>) {
+    pub fn apply_action(&mut self, action: &mut Box<dyn UndoableAction>) {
         action.exec(&mut self.image);
         self.drawable = DrawableImage::from_image(&self.image);
     }
 
-    pub fn unapply_action(&mut self, action: &Box<dyn UndoableAction>) {
+    pub fn unapply_action(&mut self, action: &mut Box<dyn UndoableAction>) {
         action.undo(&mut self.image);
         self.drawable = DrawableImage::from_image(&self.image);
     }

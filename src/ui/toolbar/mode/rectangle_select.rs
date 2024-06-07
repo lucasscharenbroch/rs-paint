@@ -87,7 +87,15 @@ impl RectangleSelectState {
 }
 
 impl super::MouseModeState for RectangleSelectState {
-    fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+    fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+        if mod_keys.contains(ModifierType::CONTROL_MASK) {
+            if let Self::Selected(x, y, w, h) = self {
+                canvas.crop_to(*x as usize, *y as usize, *w as usize, *h as usize);
+                *self = Self::Unselected;
+                return;
+            }
+        }
+
         let (ax, ay) = canvas.cursor_pos_pix();
         *self = Self::Selecting(ax, ay);
         canvas.set_selection(Selection::NoSelection);
