@@ -1,3 +1,5 @@
+pub mod gadget;
+
 use gtk::{prelude::*, Box as GBox, CheckButton, ColorDialog, ColorDialogButton, Entry, Label, Orientation, SpinButton, Widget};
 use gtk::gdk::RGBA;
 use gtk::glib::object::IsA;
@@ -278,7 +280,7 @@ impl FormBuilder {
         self
     }
 
-    pub fn with_field(mut self, new_field: &impl FormField) -> Self {
+    pub fn with_field(self, new_field: &impl FormField) -> Self {
         self.widget.append(new_field.outer_widget());
         self
     }
