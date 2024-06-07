@@ -9,7 +9,7 @@ mod form;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use dialog::{about_dialog, ok_dialog, ok_dialog_str, yes_no_dialog_str};
+use dialog::{about_dialog, ok_dialog, ok_dialog_str, scale_dialog, yes_no_dialog_str};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
 use toolbar::mode::{MouseMode, rectangle_select::RectangleSelectState};
@@ -391,5 +391,13 @@ impl UiState {
             "Make a Selection First",
             "Use the rectangle select tool to select a region to crop."
         );
+    }
+
+    fn scale(ui_p: Rc<RefCell<Self>>) {
+        scale_dialog(&ui_p.borrow().window, clone!(@strong ui_p => move |action| {
+            if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+                canvas_p.borrow_mut().exec_doable_action(&action);
+            }
+        }));
     }
 }

@@ -23,6 +23,10 @@ pub trait DoableAction {
     // undo is imlpicit: it will be done by diffing the image
 }
 
+pub trait StaticDoableAction: DoableAction {
+    fn dyn_clone(&self) -> Box<dyn DoableAction>;
+}
+
 pub trait UndoableAction {
     fn name(&self) -> ActionName;
     fn exec(&mut self, image: &mut Image);

@@ -1,6 +1,7 @@
 use crate::image::generate::NewImageProps;
 use crate::ui::form::ColorField;
 use super::form::{Form, NaturalField, CheckboxField};
+use crate::image::scale::Scale;
 
 use gtk::{prelude::*, Align, Box as GBox, Button, FileDialog, Label, Orientation, ShortcutsGroup, ShortcutsShortcut, TextBuffer, Widget, Window};
 use gtk::ColorDialog;
@@ -288,7 +289,7 @@ pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(
                        callback);
 }
 
-pub fn new_image_dialog<P: Fn(Option<NewImageProps>) + 'static>(
+pub fn new_image_dialog<P: Fn(NewImageProps) + 'static>(
     parent: &impl IsA<Window>,
     callback: P
 ) {
@@ -367,11 +368,30 @@ pub fn new_image_dialog<P: Fn(Option<NewImageProps>) + 'static>(
             height: state_p.borrow().height_field.value(),
             color: color_button.value(),
         };
-        callback(Some(props));
+        callback(props);
         CloseDialog::Yes
     };
 
     let on_cancel = || ();
 
     ok_cancel_dialog(parent, "New Image", form.widget(), on_ok, on_cancel)
+}
+
+pub fn scale_dialog<P: Fn(Scale) + 'static>(
+    parent: &impl IsA<Window>,
+    callback: P
+) {
+    let form = Form::builder()
+        .title("Scale Image")
+        .build();
+
+    let on_ok = move || {
+        let props = todo!();
+        callback(props);
+        CloseDialog::Yes
+    };
+
+    let on_cancel = || ();
+
+    ok_cancel_dialog(parent, "Scale", form.widget(), on_ok, on_cancel);
 }
