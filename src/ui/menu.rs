@@ -64,12 +64,22 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
 
     let flip_horiz_fn = Box::new(mk_do_uaction(Box::new(Flip::Horizontal)));
     let flip_vert_fn = Box::new(mk_do_uaction(Box::new(Flip::Vertical)));
+    let flip_transpose_fn = Box::new(mk_do_uaction(Box::new(Flip::Transpose)));
+    let rotate_clockwise_fn = Box::new(mk_do_uaction(Box::new(Rotate::Clockwise)));
+    let rotate_counter_clockwise_fn = Box::new(mk_do_uaction(Box::new(Rotate::CounterClockwise)));
+    let rotate_180_fn = Box::new(mk_do_uaction(Box::new(Rotate::OneEighty)));
 
     let image_menu = MenuBuilder::new()
         .submenu("Flip",
             MenuBuilder::new()
-            .item("Flip Horizontally", "flip-horiz", flip_horiz_fn)
-            .item("Flip Vertically", "flip-vert", flip_vert_fn));
+            .item("Horizontally", "flip-horiz", flip_horiz_fn)
+            .item("Vertically", "flip-vert", flip_vert_fn)
+            .item("Transpose", "flip-transpose", flip_transpose_fn))
+        .submenu("Rotate",
+            MenuBuilder::new()
+            .item("90\u{00B0} Clockwise", "rotate-90-clockwise", rotate_clockwise_fn)
+            .item("90\u{00B0} Counter-Clockwise", "rotate-90-counter-clockwise", rotate_counter_clockwise_fn)
+            .item("180\u{00B0}", "rotate-180", rotate_180_fn));
 
 
     let help_menu = MenuBuilder::new()
