@@ -374,14 +374,15 @@ impl UiState {
 
     fn crop_to_selection(ui_p: Rc<RefCell<UiState>>) {
         let ui = ui_p.borrow();
-        let toolbar = ui.toolbar_p.borrow_mut();
+        let mut toolbar = ui.toolbar_p.borrow_mut();
 
         if let MouseMode::RectangleSelect(state) = toolbar.mouse_mode() {
             if let RectangleSelectState::Selected(x, y, w, h) = state {
-                if let Some(canvas_p) = ui.active_canvas_p() {
-                    canvas_p.borrow_mut().crop_to(*x as usize, *y as usize, *w as usize, *h as usize);
-                    return;
-                }
+                let canvas_p = ui.active_canvas_p().unwrap();
+                canvas_p.borrow_mut().crop_to(*x as usize, *y as usize, *w as usize, *h as usize);
+                toolbar.set_mouse_mode(MouseMode::RectangleSelect(RectangleSelectState::Unselected));
+                canvas_p.borrow_mut().set_selection(selection::Selection::NoSelection);
+                return;
             }
         }
 

@@ -92,6 +92,7 @@ impl super::MouseModeState for RectangleSelectState {
             if let Self::Selected(x, y, w, h) = self {
                 canvas.crop_to(*x as usize, *y as usize, *w as usize, *h as usize);
                 *self = Self::Unselected;
+                canvas.set_selection(Selection::NoSelection);
                 return;
             }
         }

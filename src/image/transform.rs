@@ -142,9 +142,9 @@ impl Crop {
 
     // Whether an index of the flat pixel array should be removed in the crop
     #[inline]
-    fn should_keep_pix_at_idx(&self, idx: usize) -> bool {
-        let (i, j) = (idx / self.w, idx % self.w);
-        i >= self.x && i < self.x + self.w && j >= self.y && j < self.y + self.h
+    fn should_keep_pix_at_idx(&self, old_w: usize, idx: usize) -> bool {
+        let (i, j) = (idx / old_w, idx % old_w);
+        j >= self.x && j < self.x + self.w && i >= self.y && i < self.y + self.h
     }
 }
 
@@ -159,10 +159,14 @@ impl UndoableAction for Crop {
 
             let old_h = image.height;
             let old_w = image.width;
-            let (kept_pixels, scrapped_pixels): (Vec<_>, Vec<_>) = image.pixels.iter()
+            let (scrapped_pixels, kept_pixels): (Vec<_>, Vec<_>) = image.pixels.iter()
                 .enumerate()
                 .partition_map(|(idx, pix)| {
-                    if self.should_keep_pix_at_idx(idx) { Either::Right(pix.clone()) } else { Either::Left(pix.clone()) }
+                    if self.should_keep_pix_at_idx(old_w, idx) {
+                        Either::Right(pix.clone())
+                    } else {
+                        Either::Left(pix.clone())
+                    }
                 });
 
             self.undo_info = Some(CropUndoInfo {
@@ -173,10 +177,12 @@ impl UndoableAction for Crop {
 
             kept_pixels
         } else {
+            let old_w = self.undo_info.as_ref().unwrap().old_w;
+
             image.pixels.iter()
                 .enumerate()
                 .filter_map(|(idx, pix)| {
-                    if self.should_keep_pix_at_idx(idx) {
+                    if self.should_keep_pix_at_idx(old_w, idx) {
                         Some(pix.clone())
                     } else {
                         None
@@ -200,7 +206,7 @@ impl UndoableAction for Crop {
         let mut kept_idx = 0;
 
         for idx in 0..old_sz {
-            if self.should_keep_pix_at_idx(idx) {
+            if self.should_keep_pix_at_idx(undo_info.old_w, idx) {
                 old_pix.push(image.pixels[kept_idx].clone());
                 kept_idx += 1;
             } else {
