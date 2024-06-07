@@ -248,6 +248,7 @@ impl UiState {
                 Key::minus => Self::zoom_out(ui_p.clone()),
                 Key::z => Self::undo(ui_p.clone()),
                 Key::y => Self::redo(ui_p.clone()),
+                Key::h => Self::undo_history(ui_p.clone()),
                 Key::a => about_dialog(&ui_p.borrow().window),
                 Key::n => Self::new(ui_p.clone()),
                 Key::i => Self::import(ui_p.clone()),
@@ -364,5 +365,9 @@ impl UiState {
             canvas_p.borrow_mut().redo();
             canvas_p.borrow_mut().update();
         }
+    }
+
+    pub fn undo_history(ui_p: Rc<RefCell<Self>>) {
+        ui_p.borrow().history_popup();
     }
 }

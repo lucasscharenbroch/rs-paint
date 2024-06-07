@@ -4,7 +4,8 @@ use crate::image::transform::*;
 use super::dialog::{about_dialog, keyboard_shortcuts_dialog};
 use super::UiState;
 
-use gtk::gio::{Menu, SimpleAction};
+use gtk::gio::{Menu, MenuItem, SimpleAction};
+use gtk::glib::Variant;
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
@@ -37,6 +38,16 @@ impl MenuBuilder {
         self
     }
 
+    fn item_with_keybind(mut self, keybind: &str, label: &str, action_name: &str, action_fn: Box<dyn Fn()>) -> MenuBuilder {
+        let menu_item = MenuItem::new(Some(label), Some(("app.".to_string() + action_name).as_str()));
+        menu_item.set_attribute_value("accel", Some(&Variant::from(keybind)));
+        self.menu.append_item(&menu_item);
+        let action = SimpleAction::new(action_name, None);
+        action.connect_activate(move |_, _| action_fn());
+        self.actions.push(action);
+        self
+    }
+
     fn build(self) -> (Menu, Vec<SimpleAction>) {
         (self.menu, self.actions)
     }
@@ -44,15 +55,15 @@ impl MenuBuilder {
 
 pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
     let file_menu = MenuBuilder::new()
-        .item("New", "new", Box::new(clone!(@strong ui_state => move || UiState::new(ui_state.clone()))))
-        .item("Import", "import", Box::new(clone!(@strong ui_state => move || UiState::import(ui_state.clone()))))
-        .item("Export", "export", Box::new(clone!(@strong ui_state => move || UiState::export(ui_state.clone()))))
-        .item("Quit", "quit", Box::new(clone!(@strong ui_state => move || UiState::quit(ui_state.clone()))));
+        .item_with_keybind("<Ctrl>n", "New", "new", Box::new(clone!(@strong ui_state => move || UiState::new(ui_state.clone()))))
+        .item_with_keybind("<Ctrl>i", "Import", "import", Box::new(clone!(@strong ui_state => move || UiState::import(ui_state.clone()))))
+        .item_with_keybind("<Ctrl>e", "Export", "export", Box::new(clone!(@strong ui_state => move || UiState::export(ui_state.clone()))))
+        .item_with_keybind("<Ctrl>q", "Quit", "quit", Box::new(clone!(@strong ui_state => move || UiState::quit(ui_state.clone()))));
 
     let edit_menu = MenuBuilder::new()
-        .item("Undo", "undop", Box::new(clone!(@strong ui_state => move || UiState::undo(ui_state.clone()))))
-        .item("Redo", "redo", Box::new(clone!(@strong ui_state => move || UiState::redo(ui_state.clone()))))
-        .item("History", "history", Box::new(clone!(@strong ui_state => move || ui_state.borrow().history_popup())));
+        .item_with_keybind("<Ctrl>z", "Undo", "undop", Box::new(clone!(@strong ui_state => move || UiState::undo(ui_state.clone()))))
+        .item_with_keybind("<Ctrl>y", "Redo", "redo", Box::new(clone!(@strong ui_state => move || UiState::redo(ui_state.clone()))))
+        .item_with_keybind("<Ctrl>h", "History", "history", Box::new(clone!(@strong ui_state => move || UiState::undo_history(ui_state.clone()))));
 
     // image menu helpers
 
@@ -87,7 +98,7 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
     let help_menu = MenuBuilder::new()
         .item("Keyboard Shortcuts", "keyboard-shortcuts",
                 Box::new(clone!(@strong ui_state => move || keyboard_shortcuts_dialog(&ui_state.borrow().window))))
-        .item("About", "about",
+        .item_with_keybind("<Ctrl>a", "About", "about",
                 Box::new(clone!(@strong ui_state => move || about_dialog(&ui_state.borrow().window))));
 
     MenuBuilder::new()

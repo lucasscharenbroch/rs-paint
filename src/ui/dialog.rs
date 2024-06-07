@@ -195,6 +195,7 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
     let undo = group_from_specs("Undo", &[
         ("Undo", "<Ctrl>z"),
         ("Redo", "<Ctrl>y"),
+        ("Undo History", "<Ctrl>h"),
     ]);
 
     let misc = group_from_specs("Miscellaneous", &[
