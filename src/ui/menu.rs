@@ -50,6 +50,8 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
         .item("Quit", "quit", Box::new(clone!(@strong ui_state => move || UiState::quit(ui_state.clone()))));
 
     let edit_menu = MenuBuilder::new()
+        .item("Undo", "undop", Box::new(clone!(@strong ui_state => move || UiState::undo(ui_state.clone()))))
+        .item("Redo", "redo", Box::new(clone!(@strong ui_state => move || UiState::redo(ui_state.clone()))))
         .item("History", "history", Box::new(clone!(@strong ui_state => move || ui_state.borrow().history_popup())));
 
     // image menu helpers
