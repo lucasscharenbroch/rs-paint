@@ -41,6 +41,7 @@ pub fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl Is
 
     content.append(inner_content);
     content.append(&ok_button);
+    content.set_focus_child(Some(&ok_button));
 
     let dialog_window = Window::builder()
         .transient_for(parent)
@@ -58,6 +59,7 @@ pub fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl Is
     }));
 
     dialog_window.present();
+    dialog_window.grab_focus();
 }
 
 fn binary_dialog<F, G>(
@@ -67,7 +69,8 @@ fn binary_dialog<F, G>(
     title: &str,
     inner_content: &impl IsA<Widget>,
     on_yes: F,
-    on_no: G
+    on_no: G,
+    focus_yes_button: bool,
 )
 where
     F: Fn() -> CloseDialog + 'static,
@@ -90,6 +93,11 @@ where
 
     button_wrapper.append(&no_button);
     button_wrapper.append(&yes_button);
+    button_wrapper.set_focus_child(Some(if focus_yes_button {
+        &yes_button
+    } else {
+        &no_button
+    }));
 
     let content = GBox::builder()
         .orientation(Orientation::Vertical)
@@ -104,6 +112,7 @@ where
 
     content.append(inner_content);
     content.append(&button_wrapper);
+    content.set_focus_child(Some(&button_wrapper));
 
     let dialog_window = Window::builder()
         .transient_for(parent)
@@ -112,6 +121,7 @@ where
         .build();
 
     dialog_window.present();
+    dialog_window.grab_focus();
 
     let window_p = Rc::new(RefCell::new(dialog_window));
 
@@ -132,13 +142,22 @@ fn yes_no_dialog<F, G>(
     title: &str,
     inner_content: &impl IsA<Widget>,
     on_yes: F,
-    on_no: G
+    on_no: G,
 )
 where
     F: Fn() -> CloseDialog + 'static,
     G: Fn() + 'static
 {
-    binary_dialog("Yes", "No", parent, title, inner_content, on_yes, on_no)
+    binary_dialog(
+            "Yes",
+        "No",
+        parent,
+        title,
+        inner_content,
+        on_yes,
+        on_no,
+        true,
+    )
 }
 
 fn ok_cancel_dialog<F, G>(
@@ -152,7 +171,39 @@ where
     F: Fn() -> CloseDialog + 'static,
     G: Fn() + 'static
 {
-    binary_dialog("Ok", "Cancel", parent, title, inner_content, on_ok, on_cancel)
+    binary_dialog(
+        "Ok",
+        "Cancel",
+        parent,
+        title,
+        inner_content,
+        on_ok,
+        on_cancel,
+        true
+    );
+}
+
+fn discard_cancel_dialog<F, G>(
+    parent: &impl IsA<Window>,
+    title: &str,
+    inner_content: &impl IsA<Widget>,
+    on_discard: F,
+    on_cancel: G
+)
+where
+    F: Fn() -> CloseDialog + 'static,
+    G: Fn() + 'static
+{
+    binary_dialog(
+        "Discard",
+        "Cancel",
+        parent,
+        title,
+        inner_content,
+        on_discard,
+        on_cancel,
+        false
+    );
 }
 
 pub fn about_dialog(parent: &impl IsA<Window>) {
@@ -274,6 +325,24 @@ where
     };
 
     yes_no_dialog(parent, title, &text_label, on_yes, on_no);
+}
+
+pub fn discard_cancel_dialog_str<F, G>(parent: &impl IsA<Window>, title: &str, prompt: &str, on_yes: F, on_no: G)
+where
+    F: Fn() + 'static,
+    G: Fn() + 'static,
+{
+    let text_label = Label::builder()
+        .label(prompt)
+        .selectable(true)
+        .build();
+
+    let on_yes = move || {
+        on_yes();
+        CloseDialog::Yes
+    };
+
+    discard_cancel_dialog(parent, title, &text_label, on_yes, on_no);
 }
 
 pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(
