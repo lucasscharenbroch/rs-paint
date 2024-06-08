@@ -9,7 +9,7 @@ mod form;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use dialog::{about_dialog, ok_dialog_, ok_dialog_str_, scale_dialog, expand_dialog, cancel_discard_dialog_str};
+use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, close_dialog, ok_dialog_str_, scale_dialog, CloseDialog};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
 use toolbar::mode::{MouseMode, rectangle_select::RectangleSelectState};
@@ -305,7 +305,7 @@ impl UiState {
             let canvas = canvas_p.borrow();
             let history_widget = canvas.history_widget();
 
-            ok_dialog_(self.window(), "Image History", history_widget);
+            close_dialog(self.window(), "Image History", history_widget, || CloseDialog::Yes);
         }
     }
 

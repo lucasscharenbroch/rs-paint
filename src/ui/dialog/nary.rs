@@ -121,6 +121,7 @@ macro_rules! nary_dialog {
 
 nary_dialog!(yes_no, yes, no);
 nary_dialog!(ok, ok);
+nary_dialog!(close, close);
 nary_dialog!(ok_cancel, ok, cancel);
 nary_dialog!(cancel_discard, cancel, discard);
 
