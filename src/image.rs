@@ -3,7 +3,7 @@ pub mod brush;
 pub mod generate;
 pub mod blend;
 pub mod transform;
-pub mod scale;
+pub mod resize;
 
 use blend::BlendingMode;
 

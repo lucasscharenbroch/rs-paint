@@ -15,6 +15,7 @@ pub enum ActionName {
     Scale,
     LevelShift,
     Crop,
+    Expand,
 }
 
 pub trait DoableAction {

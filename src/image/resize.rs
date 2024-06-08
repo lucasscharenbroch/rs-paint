@@ -1,4 +1,4 @@
-use super::undo::action::{DoableAction, StaticDoableAction, ActionName};
+use super::undo::action::{ActionName, DoableAction, StaticDoableAction, UndoableAction, StaticUndoableAction};
 use super::{Image, ImageLike, Pixel, UnifiedImage};
 
 #[derive(Clone)]
@@ -140,4 +140,30 @@ fn bilinear(image: &Image, x: f32, y: f32) -> Pixel {
     let bottom_two_avg = Pixel::weighted_avg(&p01, &p11, percent_left);
 
     Pixel::weighted_avg(&top_two_avg, &bottom_two_avg, percent_up)
+}
+
+#[derive(Clone)]
+pub struct Expand {
+    added_w: usize,
+    added_h: usize,
+}
+
+impl UndoableAction for Expand {
+    fn name(&self) -> ActionName {
+        ActionName::Expand
+    }
+
+    fn exec(&mut self, image: &mut Image) {
+        todo!()
+    }
+
+    fn undo(&mut self, image: &mut Image) {
+        todo!()
+    }
+}
+
+impl StaticUndoableAction for Expand {
+    fn dyn_clone(&self) -> Box<dyn UndoableAction> {
+        Box::new(self.clone())
+    }
 }

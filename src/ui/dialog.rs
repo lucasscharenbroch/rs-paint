@@ -8,7 +8,7 @@ use crate::image::generate::NewImageProps;
 use crate::ui::form::ColorField;
 use super::form::DropdownField;
 use super::form::{Form, gadget::AspectRatioGadget};
-use crate::image::scale::{Scale, ScaleMethod};
+use crate::image::resize::{Scale, ScaleMethod, Expand};
 
 use gtk::{prelude::*, FileDialog, Window};
 use gtk::ColorDialog;
@@ -116,4 +116,22 @@ pub fn scale_dialog<P: Fn(Scale) + 'static>(
     let on_cancel = || CloseDialog::Yes;
 
     ok_cancel_dialog(parent, "Scale", form.widget(), on_ok, on_cancel);
+}
+
+pub fn expand_dialog<P: Fn(Expand) + 'static>(
+    parent: &impl IsA<Window>,
+    callback: P
+) {
+    let form = Form::builder()
+        .title("Expand Image")
+        .build();
+
+    let on_ok = move || {
+        callback(todo!());
+        CloseDialog::Yes
+    };
+
+    let on_cancel = || CloseDialog::Yes;
+
+    ok_cancel_dialog(parent, "Expand", form.widget(), on_ok, on_cancel);
 }
