@@ -2,7 +2,7 @@ use crate::image::undo::action::{DoableAction, UndoableAction};
 
 use super::super::image::{Image, UnifiedImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::undo::{ImageHistory, action::ActionName};
-use super::super::image::transform::Crop;
+use super::super::image::resize::Crop;
 use super::selection::Selection;
 use super::UiState;
 use super::toolbar::Toolbar;
