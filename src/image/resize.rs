@@ -161,11 +161,11 @@ pub enum ExpandJustification {
 
 impl ExpandJustification {
     /// Is `idx` within the justified window of size (`old_w`, `old_h`)
-    /// within the image of size (`new_w`, `new_h`)
+    /// within the image of size (`new_w`, `new_h`)?
     #[inline]
     fn take_idx(&self, idx: usize, old_w: usize, old_h: usize, new_w: usize, new_h: usize) -> bool {
         let new_sz = new_w * new_h;
-        let (r, c) = (idx / new_sz, idx % new_sz);
+        let (r, c) = (idx / new_w, idx % new_w);
 
         let r_in_window = match self {
             ExpandJustification::TopLeft |
@@ -175,10 +175,9 @@ impl ExpandJustification {
             ExpandJustification::MiddleCenter |
             ExpandJustification::MiddleRight => {
                 let center = new_h / 2;
-                let low_half = old_h / 2; // truncate, if odd
-                let high_half = (old_h + 1) / 2; // round up, if odd
+                let low_half = old_h / 2;
                 let low_r = center - low_half;
-                let high_r = center + high_half;
+                let high_r = low_r + old_h;
                 r >= low_r && r < high_r
             },
             ExpandJustification::BottomLeft |
@@ -195,9 +194,8 @@ impl ExpandJustification {
             ExpandJustification::BottomCenter => {
                 let center = new_w / 2;
                 let low_half = old_w / 2; // truncate, if odd
-                let high_half = (old_w + 1) / 2; // round up, if odd
                 let low_c = center - low_half;
-                let high_c = center + high_half;
+                let high_c = low_c + old_w;
                 c >= low_c && c < high_c
             },
             ExpandJustification::TopRight |
@@ -225,7 +223,7 @@ pub struct Expand {
 }
 
 impl Expand {
-    fn new(
+    pub fn new(
         added_w:usize,
         added_h: usize,
         justification: ExpandJustification,
@@ -273,6 +271,7 @@ impl UndoableAction for Expand {
             }
         }
 
+        assert!(new_w * new_h == new_pix.len());
         image.pixels = new_pix;
         image.width = new_w;
         image.height = new_h;
@@ -285,12 +284,13 @@ impl UndoableAction for Expand {
         let old_sz = old_w * old_h;
         let mut old_pix = Vec::with_capacity(old_sz);
 
-        for idx in 0..old_sz {
+        for idx in 0..(image.height * image.width) {
             if self.justification.take_idx(idx, old_w, old_h, image.width, image.height) {
                 old_pix.push(image.pixels[idx].clone());
             }
         }
 
+        assert!(old_sz == old_pix.len());
         image.height = old_h;
         image.width = old_w;
         image.pixels = old_pix;

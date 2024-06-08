@@ -41,11 +41,13 @@ impl AspectRatioGadget {
     }
 
     pub fn new_p(
+        width_label: &str,
+        height_label: &str,
         default_width: usize,
         default_height: usize,
     ) -> Rc<RefCell<Self>> {
-        let width_field = NaturalField::new(Some("Width:"), 1, usize::MAX, 1, default_width);
-        let height_field = NaturalField::new(Some("Height:"), 1, usize::MAX, 1, default_height);
+        let width_field = NaturalField::new(Some(width_label), 1, usize::MAX, 1, default_width);
+        let height_field = NaturalField::new(Some(height_label), 1, usize::MAX, 1, default_height);
         let ratio_button = CheckboxField::new(Some("Maintain Aspect Ratio"), true);
 
         let state_p = Rc::new(RefCell::new(AspectRatioGadget {

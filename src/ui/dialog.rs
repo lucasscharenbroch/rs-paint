@@ -8,7 +8,7 @@ use crate::image::generate::NewImageProps;
 use crate::ui::form::ColorField;
 use super::form::DropdownField;
 use super::form::{Form, gadget::AspectRatioGadget};
-use crate::image::resize::{Scale, ScaleMethod, Expand};
+use crate::image::resize::{Scale, ScaleMethod, Expand, ExpandJustification};
 
 use gtk::{prelude::*, FileDialog, Window};
 use gtk::ColorDialog;
@@ -63,7 +63,12 @@ pub fn new_image_dialog<P: Fn(NewImageProps) + 'static>(
     const DEFAULT_IMAGE_HEIGHT: usize = 512;
     const DEFAULT_FILL_COLOR: RGBA = RGBA::new(0.0, 0.0, 0.0, 0.0);
 
-    let height_width_gadget = AspectRatioGadget::new_p(DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT);
+    let height_width_gadget = AspectRatioGadget::new_p(
+        "Width",
+        "Height",
+        DEFAULT_IMAGE_WIDTH,
+        DEFAULT_IMAGE_HEIGHT
+    );
     let color_button = ColorField::new(Some("Fill Color"), DEFAULT_FILL_COLOR);
 
     let form = Form::builder()
@@ -93,7 +98,12 @@ pub fn scale_dialog<P: Fn(Scale) + 'static>(
     default_h: usize,
     callback: P
 ) {
-    let height_width_gadget = AspectRatioGadget::new_p(default_w, default_h);
+    let height_width_gadget = AspectRatioGadget::new_p(
+        "Width",
+        "Height",
+        default_w,
+        default_h
+    );
     let methods = vec![
         ("Bilinear", ScaleMethod::Bilinear),
         ("Nearest Neighbor", ScaleMethod::NearestNeighbor),
@@ -122,12 +132,34 @@ pub fn expand_dialog<P: Fn(Expand) + 'static>(
     parent: &impl IsA<Window>,
     callback: P
 ) {
+    const DEFAULT_EXPANSION_WIDTH: usize = 10;
+    const DEFAULT_EXPANSION_HEIGHT: usize = 10;
+    const DEFAULT_FILL_COLOR: RGBA = RGBA::new(0.0, 0.0, 0.0, 0.0);
+
+    let height_width_gadget = AspectRatioGadget::new_p(
+        "Width Expansion",
+        "Height Expansion",
+        DEFAULT_EXPANSION_WIDTH,
+        DEFAULT_EXPANSION_HEIGHT,
+    );
+
+    let color_button = ColorField::new(Some("Fill Color"), DEFAULT_FILL_COLOR);
+
     let form = Form::builder()
         .title("Expand Image")
+        .with_gadget(&*height_width_gadget.borrow())
+        .with_field(&color_button)
         .build();
 
     let on_ok = move || {
-        callback(todo!());
+        let hw = height_width_gadget.borrow();
+        let action = Expand::new(
+            hw.width(),
+            hw.height(),
+            ExpandJustification::MiddleCenter,
+            color_button.value(),
+        );
+        callback(action);
         CloseDialog::Yes
     };
 
