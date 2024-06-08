@@ -1,6 +1,8 @@
 use super::undo::action::{ActionName, DoableAction, StaticDoableAction, UndoableAction, StaticUndoableAction};
 use super::{Image, ImageLike, Pixel, UnifiedImage};
 
+use gtk::gdk::{Toplevel, RGBA};
+
 #[derive(Clone)]
 pub enum ScaleMethod {
     NearestNeighbor,
@@ -142,10 +144,101 @@ fn bilinear(image: &Image, x: f32, y: f32) -> Pixel {
     Pixel::weighted_avg(&top_two_avg, &bottom_two_avg, percent_up)
 }
 
+/// Specifies where to place the current image with respect
+/// to the added pixels
+#[derive(Clone)]
+pub enum ExpandJustification {
+    TopLeft,
+    TopCenter,
+    TopRight,
+    MiddleLeft,
+    MiddleCenter,
+    MiddleRight,
+    BottomLeft,
+    BottomCenter,
+    BottomRight,
+}
+
+impl ExpandJustification {
+    /// Is `idx` within the justified window of size (`old_w`, `old_h`)
+    /// within the image of size (`new_w`, `new_h`)
+    #[inline]
+    fn take_idx(&self, idx: usize, old_w: usize, old_h: usize, new_w: usize, new_h: usize) -> bool {
+        let new_sz = new_w * new_h;
+        let (r, c) = (idx / new_sz, idx % new_sz);
+
+        let r_in_window = match self {
+            ExpandJustification::TopLeft |
+            ExpandJustification::TopCenter |
+            ExpandJustification::TopRight => r < old_h,
+            ExpandJustification::MiddleLeft |
+            ExpandJustification::MiddleCenter |
+            ExpandJustification::MiddleRight => {
+                let center = new_h / 2;
+                let low_half = old_h / 2; // truncate, if odd
+                let high_half = (old_h + 1) / 2; // round up, if odd
+                let low_r = center - low_half;
+                let high_r = center + high_half;
+                r >= low_r && r < high_r
+            },
+            ExpandJustification::BottomLeft |
+            ExpandJustification::BottomCenter |
+            ExpandJustification::BottomRight => r >= new_h - old_h,
+        };
+
+        let c_in_window = match self {
+            ExpandJustification::TopLeft |
+            ExpandJustification::MiddleLeft |
+            ExpandJustification::BottomLeft  => c < old_w,
+            ExpandJustification::TopCenter |
+            ExpandJustification::MiddleCenter |
+            ExpandJustification::BottomCenter => {
+                let center = new_w / 2;
+                let low_half = old_w / 2; // truncate, if odd
+                let high_half = (old_w + 1) / 2; // round up, if odd
+                let low_c = center - low_half;
+                let high_c = center + high_half;
+                c >= low_c && c < high_c
+            },
+            ExpandJustification::TopRight |
+            ExpandJustification::MiddleRight |
+            ExpandJustification::BottomRight => c >= new_w - old_w,
+        };
+
+        r_in_window && c_in_window
+    }
+}
+
+#[derive(Clone)]
+struct ExpandUndoInfo {
+    old_w: usize,
+    old_h: usize,
+}
+
 #[derive(Clone)]
 pub struct Expand {
     added_w: usize,
     added_h: usize,
+    justification: ExpandJustification,
+    new_pix_color: RGBA,
+    undo_info: Option<ExpandUndoInfo>,
+}
+
+impl Expand {
+    fn new(
+        added_w:usize,
+        added_h: usize,
+        justification: ExpandJustification,
+        new_pix_color: RGBA
+    ) -> Self {
+        Expand {
+            added_h,
+            added_w,
+            justification,
+            new_pix_color,
+            undo_info: None,
+        }
+    }
 }
 
 impl UndoableAction for Expand {
@@ -154,11 +247,53 @@ impl UndoableAction for Expand {
     }
 
     fn exec(&mut self, image: &mut Image) {
-        todo!()
+        let old_w = image.width;
+        let old_h = image.height;
+
+        if let None = self.undo_info {
+            self.undo_info = Some(ExpandUndoInfo {
+                old_h,
+                old_w,
+            });
+        }
+
+        let new_w = image.width + self.added_w;
+        let new_h = image.height + self.added_h;
+        let new_sz = new_w * new_h;
+
+        let mut new_pix = Vec::with_capacity(new_sz);
+        let mut old_idx = 0;
+
+        for idx in 0..new_sz {
+            if self.justification.take_idx(idx, old_w, old_h, new_w, new_h) {
+                new_pix.push(image.pixels[old_idx].clone());
+                old_idx += 1;
+            } else {
+                new_pix.push(Pixel::from_rgba_struct(self.new_pix_color));
+            }
+        }
+
+        image.pixels = new_pix;
+        image.width = new_w;
+        image.height = new_h;
     }
 
     fn undo(&mut self, image: &mut Image) {
-        todo!()
+        let undo_info = self.undo_info.as_ref().unwrap();
+        let old_w = undo_info.old_w;
+        let old_h = undo_info.old_h;
+        let old_sz = old_w * old_h;
+        let mut old_pix = Vec::with_capacity(old_sz);
+
+        for idx in 0..old_sz {
+            if self.justification.take_idx(idx, old_w, old_h, image.width, image.height) {
+                old_pix.push(image.pixels[idx].clone());
+            }
+        }
+
+        image.height = old_h;
+        image.width = old_w;
+        image.pixels = old_pix;
     }
 }
 
