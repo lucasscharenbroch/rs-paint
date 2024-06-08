@@ -147,7 +147,7 @@ fn bilinear(image: &Image, x: f32, y: f32) -> Pixel {
 
 /// Specifies where to place the current image with respect
 /// to the added pixels
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum ExpandJustification {
     TopLeft,
     TopCenter,

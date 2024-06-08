@@ -5,7 +5,7 @@ pub use info::{about_dialog, keyboard_shortcuts_dialog};
 pub use nary::*;
 
 use crate::image::generate::NewImageProps;
-use crate::ui::form::ColorField;
+use crate::ui::form::{ColorField, ExpandJustificationField};
 use super::form::DropdownField;
 use super::form::{Form, gadget::AspectRatioGadget};
 use crate::image::resize::{Scale, ScaleMethod, Expand, ExpandJustification};
@@ -144,9 +144,11 @@ pub fn expand_dialog<P: Fn(Expand) + 'static>(
     );
 
     let color_button = ColorField::new(Some("Fill Color"), DEFAULT_FILL_COLOR);
+    let justification_field = ExpandJustificationField::new(ExpandJustification::MiddleCenter);
 
     let form = Form::builder()
         .title("Expand Image")
+        .with_field(&justification_field)
         .with_gadget(&*height_width_gadget.borrow())
         .with_field(&color_button)
         .build();
@@ -156,7 +158,7 @@ pub fn expand_dialog<P: Fn(Expand) + 'static>(
         let action = Expand::new(
             hw.width(),
             hw.height(),
-            ExpandJustification::MiddleCenter,
+            justification_field.value(),
             color_button.value(),
         );
         callback(action);

@@ -1,9 +1,14 @@
 pub mod gadget;
 
+use crate::image::resize::ExpandJustification;
+
 use gtk::{prelude::*, Box as GBox, CheckButton, ColorDialog, ColorDialogButton, Entry, Label, Orientation, SpinButton, Widget};
 use gtk::gdk::RGBA;
 use gtk::glib::object::IsA;
 use gtk::{glib, gio};
+use std::rc::Rc;
+use std::cell::RefCell;
+use glib_macros::clone;
 
 fn new_label(text: &str) -> Label {
     Label::new(Some(text))
@@ -279,6 +284,90 @@ impl<T> FormField for DropdownField<T> {
     }
 }
 
+pub struct ExpandJustificationField {
+    buttons: Rc<RefCell<Vec<gtk::ToggleButton>>>,
+    wrapper: GBox,
+}
+
+impl ExpandJustificationField {
+    const VALS: [ExpandJustification; 9] = [
+        ExpandJustification::TopLeft,
+        ExpandJustification::TopCenter,
+        ExpandJustification::TopRight,
+        ExpandJustification::MiddleLeft,
+        ExpandJustification::MiddleCenter,
+        ExpandJustification::MiddleRight,
+        ExpandJustification::BottomLeft,
+        ExpandJustification::BottomCenter,
+        ExpandJustification::BottomRight,
+    ];
+
+    pub fn new(initial_value: ExpandJustification) -> Self {
+        let wrapper = GBox::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(4)
+            .build();
+
+        let inner_wrapper = GBox::builder()
+            .orientation(Orientation::Vertical)
+            .spacing(4)
+            .build();
+
+        wrapper.append(&gtk::Label::new(Some("Justification:")));
+        wrapper.append(&inner_wrapper);
+
+        let mut buttons: Rc<RefCell<Vec<gtk::ToggleButton>>> = Rc::new(RefCell::new(vec![]));
+
+        for r in 0..3 {
+            let row_widget = GBox::builder()
+                .orientation(Orientation::Horizontal)
+                .spacing(4)
+                .build();
+
+            for c in 0..3 {
+                let b = gtk::ToggleButton::builder()
+                    .active(Self::VALS[r * 3 + c] == initial_value)
+                    .build();
+
+                b.connect_clicked(clone!(@strong buttons => move |b| {
+                    for other in buttons.borrow().iter() {
+                        if other != b {
+                            other.set_active(false);
+                        }
+                    }
+
+                    b.set_active(true);
+                }));
+
+                row_widget.append(&b);
+                buttons.borrow_mut().push(b);
+            }
+
+            inner_wrapper.append(&row_widget);
+        }
+
+        ExpandJustificationField {
+            buttons,
+            wrapper,
+        }
+    }
+
+    pub fn value(&self) -> ExpandJustification {
+        for (idx, b) in self.buttons.borrow().iter().enumerate() {
+            if b.is_active() {
+                return Self::VALS[idx].clone();
+            }
+        }
+
+        panic!("No button in ExpandJustificationField is toggled");
+    }
+}
+
+impl FormField for ExpandJustificationField {
+    fn outer_widget(&self) -> &impl IsA<Widget> {
+        &self.wrapper
+    }
+}
 
 pub struct Form {
     widget: GBox,
