@@ -6,244 +6,121 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-fn unary_dialog(
-    label: &str,
-    parent: &impl IsA<Window>,
-    title: &str,
-    inner_content: &impl IsA<Widget>
-) {
-    let ok_button = Button::builder()
-        .label(label)
-        .margin_top(12)
-        .margin_bottom(12)
-        .margin_start(12)
-        .margin_end(12)
-        .halign(Align::Center)
-        .build();
+// e.g. nary_dialog!(yes_no, yes, no)
+macro_rules! nary_dialog {
+    ( $name:ident, $( $variant:ident ),+ ) => { paste::item! {
+        pub fn [< $name _dialog >]<$([< F $variant>]),*>(
+            parent: &impl IsA<Window>,
+            title: &str,
+            inner_content: &impl IsA<Widget>,
+            $(
+            [< on_ $variant >]: [< F $variant >],
+            )*
+        )
+        where
+            $(
+                [< F $variant >]: Fn() -> CloseDialog + 'static
+            ),*
+        {
+            $(
+                let [< $variant _button >] = Button::builder()
+                .label(stringify!($variant))
+                .margin_end(2)
+                .build();
+            )*
 
-    let content = GBox::builder()
-        .orientation(Orientation::Vertical)
-        .margin_top(12)
-        .margin_bottom(12)
-        .margin_start(12)
-        .margin_end(12)
-        .spacing(12)
-        .hexpand(true)
-        .vexpand(true)
-        .build();
+            let button_wrapper = GBox::builder()
+                .orientation(Orientation::Horizontal)
+                .halign(Align::Center)
+                .build();
 
-    content.append(inner_content);
-    content.append(&ok_button);
-    content.set_focus_child(Some(&ok_button));
 
-    let dialog_window = Window::builder()
-        .transient_for(parent)
-        .title(title)
-        .child(&content)
-        .build();
+            $(
+            button_wrapper.append(&[< $variant _button >]);
+            )*
+            // TODO set focus
 
-    dialog_window.connect_close_request(clone!(@strong inner_content => move |_| {
-        content.remove(&inner_content);
-        gtk::glib::Propagation::Proceed
-    }));
+            let content = GBox::builder()
+                .orientation(Orientation::Vertical)
+                .margin_top(12)
+                .margin_bottom(12)
+                .margin_start(12)
+                .margin_end(12)
+                .spacing(12)
+                .hexpand(true)
+                .vexpand(true)
+                .build();
 
-    ok_button.connect_clicked(clone!(@strong dialog_window => move |_button| {
-        dialog_window.close();
-    }));
+            content.append(inner_content);
+            content.append(&button_wrapper);
+            content.set_focus_child(Some(&button_wrapper));
 
-    dialog_window.present();
-    dialog_window.grab_focus();
-}
+            let dialog_window = Window::builder()
+                .transient_for(parent)
+                .title(title)
+                .child(&content)
+                .build();
 
-fn binary_dialog<F, G>(
-    yes_label: &str,
-    no_label: &str,
-    parent: &impl IsA<Window>,
-    title: &str,
-    inner_content: &impl IsA<Widget>,
-    on_yes: F,
-    on_no: G,
-    focus_yes_button: bool,
-)
-where
-    F: Fn() -> CloseDialog + 'static,
-    G: Fn() + 'static
-{
-    let yes_button = Button::builder()
-        .label(yes_label)
-        .margin_end(2)
-        .build();
+            dialog_window.connect_close_request(clone!(@strong inner_content => move |_| {
+                content.remove(&inner_content);
+                gtk::glib::Propagation::Proceed
+            }));
 
-    let no_button = Button::builder()
-        .label(no_label)
-        .margin_end(2)
-        .build();
+            dialog_window.present();
+            dialog_window.grab_focus();
 
-    let button_wrapper = GBox::builder()
-        .orientation(Orientation::Horizontal)
-        .halign(Align::Center)
-        .build();
+            let window_p = Rc::new(RefCell::new(dialog_window));
 
-    button_wrapper.append(&no_button);
-    button_wrapper.append(&yes_button);
-    button_wrapper.set_focus_child(Some(if focus_yes_button {
-        &yes_button
-    } else {
-        &no_button
-    }));
-
-    let content = GBox::builder()
-        .orientation(Orientation::Vertical)
-        .margin_top(12)
-        .margin_bottom(12)
-        .margin_start(12)
-        .margin_end(12)
-        .spacing(12)
-        .hexpand(true)
-        .vexpand(true)
-        .build();
-
-    content.append(inner_content);
-    content.append(&button_wrapper);
-    content.set_focus_child(Some(&button_wrapper));
-
-    let dialog_window = Window::builder()
-        .transient_for(parent)
-        .title(title)
-        .child(&content)
-        .build();
-
-    dialog_window.present();
-    dialog_window.grab_focus();
-
-    let window_p = Rc::new(RefCell::new(dialog_window));
-
-    yes_button.connect_clicked(clone!(@strong window_p => move |_button| {
-        if let CloseDialog::Yes = on_yes() {
-            window_p.borrow().close();
+            $(
+                [< $variant _button >].connect_clicked(clone!(@strong window_p => move |_button| {
+                    if let CloseDialog::Yes = [< on_ $variant >]() {
+                        window_p.borrow().close();
+                    }
+                }));
+            )*
         }
-    }));
 
-    no_button.connect_clicked(clone!(@strong window_p => move |_button| {
-        on_no();
-        window_p.borrow().close();
-    }));
+        pub fn [< $name _dialog_str >]<$([< F $variant>]),*>(
+            parent: &impl IsA<Window>,
+            title: &str,
+            prompt: &str,
+            $(
+            [< on_ $variant >]: [< F $variant >],
+            )*
+        )
+        where
+            $(
+                [< F $variant >]: Fn() -> CloseDialog + 'static
+            ),*
+        {
+
+            let text_label = Label::builder()
+                .label(prompt)
+                .selectable(true)
+                .build();
+
+            [< $name _dialog >](parent, title, &text_label, $([< on_ $variant >]),*);
+        }
+    } }
 }
 
-pub fn ok_dialog(parent: &impl IsA<Window>, title: &str, inner_content: &impl IsA<Widget>) {
-    unary_dialog("Ok", parent, title, inner_content);
-}
+nary_dialog!(yes_no, yes, no);
+nary_dialog!(ok, ok);
+nary_dialog!(ok_cancel, ok, cancel);
+nary_dialog!(discard_cancel, discard, cancel);
 
-pub fn ok_dialog_str(parent: &impl IsA<Window>, title: &str, mesg: &str) {
-    let text_label = Label::builder()
-        .label(mesg)
-        .selectable(true)
-        .build();
-
-    ok_dialog(parent, title, &text_label)
-}
-
-fn yes_no_dialog<F, G>(
+pub fn ok_dialog_(
     parent: &impl IsA<Window>,
     title: &str,
     inner_content: &impl IsA<Widget>,
-    on_yes: F,
-    on_no: G,
-)
-where
-    F: Fn() -> CloseDialog + 'static,
-    G: Fn() + 'static
-{
-    binary_dialog(
-            "Yes",
-        "No",
-        parent,
-        title,
-        inner_content,
-        on_yes,
-        on_no,
-        true,
-    )
+) {
+    ok_dialog(parent, title, inner_content, || CloseDialog::Yes);
 }
 
-pub fn yes_no_dialog_str<F, G>(parent: &impl IsA<Window>, title: &str, prompt: &str, on_yes: F, on_no: G)
-where
-    F: Fn() + 'static,
-    G: Fn() + 'static,
-{
-    let text_label = Label::builder()
-        .label(prompt)
-        .selectable(true)
-        .build();
-
-    let on_yes = move || {
-        on_yes();
-        CloseDialog::Yes
-    };
-
-    yes_no_dialog(parent, title, &text_label, on_yes, on_no);
-}
-
-pub fn ok_cancel_dialog<F, G>(
+pub fn ok_dialog_str_(
     parent: &impl IsA<Window>,
     title: &str,
-    inner_content: &impl IsA<Widget>,
-    on_ok: F,
-    on_cancel: G
-)
-where
-    F: Fn() -> CloseDialog + 'static,
-    G: Fn() + 'static
-{
-    binary_dialog(
-        "Ok",
-        "Cancel",
-        parent,
-        title,
-        inner_content,
-        on_ok,
-        on_cancel,
-        true
-    );
-}
-
-fn discard_cancel_dialog<F, G>(
-    parent: &impl IsA<Window>,
-    title: &str,
-    inner_content: &impl IsA<Widget>,
-    on_discard: F,
-    on_cancel: G
-)
-where
-    F: Fn() -> CloseDialog + 'static,
-    G: Fn() + 'static
-{
-    binary_dialog(
-        "Discard",
-        "Cancel",
-        parent,
-        title,
-        inner_content,
-        on_discard,
-        on_cancel,
-        false
-    );
-}
-
-pub fn discard_cancel_dialog_str<F, G>(parent: &impl IsA<Window>, title: &str, prompt: &str, on_yes: F, on_no: G)
-where
-    F: Fn() + 'static,
-    G: Fn() + 'static,
-{
-    let text_label = Label::builder()
-        .label(prompt)
-        .selectable(true)
-        .build();
-
-    let on_yes = move || {
-        on_yes();
-        CloseDialog::Yes
-    };
-
-    discard_cancel_dialog(parent, title, &text_label, on_yes, on_no);
+    prompt: &str,
+) {
+    ok_dialog_str(parent, title, prompt, || CloseDialog::Yes);
 }

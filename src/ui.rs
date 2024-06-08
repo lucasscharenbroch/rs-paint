@@ -9,7 +9,7 @@ mod form;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use dialog::{about_dialog, ok_dialog, ok_dialog_str, scale_dialog, yes_no_dialog_str, discard_cancel_dialog_str};
+use dialog::{about_dialog, ok_dialog_, ok_dialog_str_, scale_dialog, yes_no_dialog_str, discard_cancel_dialog_str};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
 use toolbar::mode::{MouseMode, rectangle_select::RectangleSelectState};
@@ -92,14 +92,21 @@ impl UiState {
             ui_p.borrow_mut().close_tab(target_idx);
             UiState::update_tabbar_widget(&ui_p);
             f(Ok(()));
+            dialog::CloseDialog::Yes
         });
 
         if let Some(target_tab) = ui_p.borrow().tabbar.tabs.get(target_idx) {
             if target_tab.modified_since_export() {
-                discard_cancel_dialog_str(ui_p.borrow().window(), "Close tab",
-                              format!("`{}` has been modified since last exporting. Discard unsaved changes?", target_tab.name()).as_str(),
-                              close_it,
-                              move || f(Err(())));
+                discard_cancel_dialog_str(
+                    ui_p.borrow().window(),
+                    "Close tab",
+                    format!("`{}` has been modified since last exporting. Discard unsaved changes?", target_tab.name()).as_str(),
+                    close_it,
+                    move || {
+                        f(Err(()));
+                        dialog::CloseDialog::Yes
+                    },
+                );
                 return;
              }
              // fall through (let go of borrow in ui_p)
@@ -298,7 +305,7 @@ impl UiState {
             let canvas = canvas_p.borrow();
             let history_widget = canvas.history_widget();
 
-            ok_dialog(self.window(), "Image History", history_widget);
+            ok_dialog_(self.window(), "Image History", history_widget);
         }
     }
 
@@ -386,7 +393,7 @@ impl UiState {
             }
         }
 
-        ok_dialog_str(
+        ok_dialog_str_(
             ui.window(),
             "Make a Selection First",
             "Use the rectangle select tool to select a region to crop."

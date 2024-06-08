@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use glib_macros::clone;
 
 use super::dialog::new_image_dialog;
-use super::{dialog::{choose_file_dialog, ok_dialog_str}, UiState};
+use super::{dialog::{choose_file_dialog, ok_dialog_str_}, UiState};
 use crate::image::{Image, generate::generate};
 
 fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
@@ -79,8 +79,11 @@ impl UiState {
                         UiState::new_tab(&ui_p, img, name);
                     },
                     Err(mesg) => {
-                        ok_dialog_str(ui_p.borrow().window(), "Import Error",
-                                format!("Error during import: {}", mesg).as_str());
+                        ok_dialog_str_(
+                            ui_p.borrow().window(),
+                            "Import Error",
+                            format!("Error during import: {}", mesg).as_str()
+                        );
                     }
                 }
             }
@@ -98,13 +101,19 @@ impl UiState {
                 let path = path.as_path();
                 if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
                     if let Err(mesg) = canvas_p.borrow().image_ref().image().to_file(path) {
-                        ok_dialog_str(ui_p.borrow().window(), "Export Error",
-                                format!("Error during export: {}", mesg).as_str());
+                        ok_dialog_str_(
+                            ui_p.borrow().window(),
+                            "Export Error",
+                            format!("Error during export: {}", mesg).as_str()
+                        );
                         return;
                     }
                 } else {
-                    ok_dialog_str(ui_p.borrow().window(), "Export Error",
-                            "No image to export");
+                    ok_dialog_str_(
+                        ui_p.borrow().window(),
+                        "Export Error",
+                        "No image to export"
+                    );
                     return;
                 }
 

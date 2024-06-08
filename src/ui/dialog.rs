@@ -82,7 +82,7 @@ pub fn new_image_dialog<P: Fn(NewImageProps) + 'static>(
         CloseDialog::Yes
     };
 
-    let on_cancel = || ();
+    let on_cancel = || CloseDialog::Yes;
 
     ok_cancel_dialog(parent, "New Image", form.widget(), on_ok, on_cancel)
 }
@@ -113,7 +113,7 @@ pub fn scale_dialog<P: Fn(Scale) + 'static>(
         CloseDialog::Yes
     };
 
-    let on_cancel = || ();
+    let on_cancel = || CloseDialog::Yes;
 
     ok_cancel_dialog(parent, "Scale", form.widget(), on_ok, on_cancel);
 }
