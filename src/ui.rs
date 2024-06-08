@@ -255,7 +255,7 @@ impl UiState {
                 Key::i => Self::import(ui_p.clone()),
                 Key::e => Self::export(ui_p.clone()),
                 Key::q => Self::quit(ui_p.clone()),
-                // Remember to add any new shortcuts to `dialog::keyboard_shortcuts_dialog`
+                // Remember to add any new shortcuts to `dialog::info::keyboard_shortcuts_dialog`
                 _ => (),
             }
         }
