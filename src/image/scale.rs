@@ -14,6 +14,16 @@ pub struct Scale {
     h: usize,
 }
 
+impl Scale {
+    pub fn new(w: usize, h: usize, method: ScaleMethod) -> Self {
+        Scale {
+            w,
+            h,
+            method
+        }
+    }
+}
+
 impl StaticDoableAction for Scale {
     fn dyn_clone(&self) -> Box<dyn DoableAction> {
         Box::new(self.clone())

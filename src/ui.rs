@@ -394,10 +394,14 @@ impl UiState {
     }
 
     fn scale(ui_p: Rc<RefCell<Self>>) {
-        scale_dialog(&ui_p.borrow().window, clone!(@strong ui_p => move |action| {
-            if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-                canvas_p.borrow_mut().exec_doable_action(&action);
-            }
-        }));
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            let w = canvas_p.borrow().image_width() as usize;
+            let h = canvas_p.borrow().image_height() as usize;
+            scale_dialog(&ui_p.borrow().window, w, h, clone!(@strong ui_p => move |action| {
+                if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+                    canvas_p.borrow_mut().exec_doable_action(&action);
+                }
+            }));
+        }
     }
 }

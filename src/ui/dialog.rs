@@ -1,7 +1,8 @@
 use crate::image::generate::NewImageProps;
 use crate::ui::form::ColorField;
+use super::form::{DropdownField, RadioField};
 use super::form::{Form, NaturalField, CheckboxField, gadget::AspectRatioGadget};
-use crate::image::scale::Scale;
+use crate::image::scale::{Scale, ScaleMethod};
 
 use gtk::{prelude::*, Align, Box as GBox, Button, FileDialog, Label, Orientation, ShortcutsGroup, ShortcutsShortcut, TextBuffer, Widget, Window};
 use gtk::ColorDialog;
@@ -322,15 +323,27 @@ pub fn new_image_dialog<P: Fn(NewImageProps) + 'static>(
 
 pub fn scale_dialog<P: Fn(Scale) + 'static>(
     parent: &impl IsA<Window>,
+    default_w: usize,
+    default_h: usize,
     callback: P
 ) {
+    let height_width_gadget = AspectRatioGadget::new_p(default_w, default_h);
+    let methods = vec![
+        ("Nearest Neighbor", ScaleMethod::NearestNeighbor),
+        ("Bilinear", ScaleMethod::Bilinear),
+    ];
+    let method_field = DropdownField::new(Some("Scaling Algorithm"), methods, 0);
+
     let form = Form::builder()
         .title("Scale Image")
+        .with_gadget(&*height_width_gadget.borrow())
+        .with_field(&method_field)
         .build();
 
     let on_ok = move || {
-        let props = todo!();
-        callback(props);
+        let hw = height_width_gadget.borrow();
+        let action = Scale::new(hw.width(), hw.height(), method_field.value().clone());
+        callback(action);
         CloseDialog::Yes
     };
 
