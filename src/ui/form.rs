@@ -3,6 +3,7 @@ pub mod gadget;
 use gtk::{prelude::*, Box as GBox, CheckButton, ColorDialog, ColorDialogButton, Entry, Label, Orientation, SpinButton, Widget};
 use gtk::gdk::RGBA;
 use gtk::glib::object::IsA;
+use gtk::{glib, gio};
 
 fn new_label(text: &str) -> Label {
     Label::new(Some(text))
@@ -228,6 +229,56 @@ impl<T> FormField for RadioField<T> {
         &self.wrapper
     }
 }
+
+pub struct DropdownField<T> {
+    dropdown: gtk::DropDown,
+    wrapper: GBox,
+    variants: Vec<T>,
+}
+
+impl<T> DropdownField<T> {
+    pub fn new(label: Option<&str>, variants: Vec<(&str, T)>, default: usize) -> Self {
+        let variant_str_list = gio::ListStore::new::<gtk::StringObject>();
+
+        for (name, _val) in variants.iter() {
+            variant_str_list.append(&gtk::StringObject::new(name))
+        }
+
+        let dropdown = gtk::DropDown::builder()
+            .model(&variant_str_list)
+            .build();
+
+        let variants = variants.into_iter()
+            .map(|(_, x)| x)
+            .collect::<Vec<_>>();
+
+        let wrapper = GBox::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(4)
+            .build();
+
+        wrapper.append(&dropdown);
+
+        label.map(|label_text| wrapper.prepend(&new_label(label_text)));
+
+        DropdownField {
+            dropdown,
+            wrapper,
+            variants,
+        }
+    }
+
+    pub fn value(&self) -> &T {
+        &self.variants[self.dropdown.selected() as usize]
+    }
+}
+
+impl<T> FormField for DropdownField<T> {
+    fn outer_widget(&self) -> &impl IsA<Widget> {
+        &self.wrapper
+    }
+}
+
 
 pub struct Form {
     widget: GBox,
