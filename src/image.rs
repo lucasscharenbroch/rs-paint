@@ -135,7 +135,11 @@ impl ImageLike for Image {
 
     #[inline]
     fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel> {
-        Some(&self.pixels[r * self.width + c])
+        if r as usize >= self.height || c as usize >= self.width {
+            None
+        } else {
+            Some(self.pix_at(r, c))
+        }
     }
 }
 
