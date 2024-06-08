@@ -9,7 +9,7 @@ mod form;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use dialog::{about_dialog, ok_dialog_, ok_dialog_str_, scale_dialog, yes_no_dialog_str, discard_cancel_dialog_str};
+use dialog::{about_dialog, ok_dialog_, ok_dialog_str_, scale_dialog, yes_no_dialog_str, cancel_discard_dialog_str};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
 use toolbar::mode::{MouseMode, rectangle_select::RectangleSelectState};
@@ -97,15 +97,15 @@ impl UiState {
 
         if let Some(target_tab) = ui_p.borrow().tabbar.tabs.get(target_idx) {
             if target_tab.modified_since_export() {
-                discard_cancel_dialog_str(
+                cancel_discard_dialog_str(
                     ui_p.borrow().window(),
                     "Close tab",
                     format!("`{}` has been modified since last exporting. Discard unsaved changes?", target_tab.name()).as_str(),
-                    close_it,
                     move || {
                         f(Err(()));
                         dialog::CloseDialog::Yes
                     },
+                    close_it,
                 );
                 return;
              }

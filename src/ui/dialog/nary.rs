@@ -6,6 +6,11 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
+macro_rules! first_ident {
+    ($x:ident) => ($x);
+    ($head:ident, $($tail:ident),*) => ($head);
+}
+
 // e.g. nary_dialog!(yes_no, yes, no)
 macro_rules! nary_dialog {
     ( $name:ident, $( $variant:ident ),+ ) => { paste::item! {
@@ -23,8 +28,19 @@ macro_rules! nary_dialog {
             ),*
         {
             $(
+                let [< $variant _str >] = {
+                    let lower_string = stringify!($variant).to_string();
+                    let mut chars = lower_string.chars();
+
+                    // capitalize the first letter
+                    match chars.next() {
+                        None => String::new(),
+                        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
+                    }
+                };
+
                 let [< $variant _button >] = Button::builder()
-                .label(stringify!($variant))
+                .label([< $variant _str >])
                 .margin_end(2)
                 .build();
             )*
@@ -34,11 +50,10 @@ macro_rules! nary_dialog {
                 .halign(Align::Center)
                 .build();
 
-
             $(
-            button_wrapper.append(&[< $variant _button >]);
+            button_wrapper.prepend(&[< $variant _button >]);
             )*
-            // TODO set focus
+            button_wrapper.set_focus_child(Some(&first_ident!($([< $variant _button >]),*)));
 
             let content = GBox::builder()
                 .orientation(Orientation::Vertical)
@@ -107,7 +122,7 @@ macro_rules! nary_dialog {
 nary_dialog!(yes_no, yes, no);
 nary_dialog!(ok, ok);
 nary_dialog!(ok_cancel, ok, cancel);
-nary_dialog!(discard_cancel, discard, cancel);
+nary_dialog!(cancel_discard, cancel, discard);
 
 pub fn ok_dialog_(
     parent: &impl IsA<Window>,
