@@ -329,8 +329,8 @@ pub fn scale_dialog<P: Fn(Scale) + 'static>(
 ) {
     let height_width_gadget = AspectRatioGadget::new_p(default_w, default_h);
     let methods = vec![
-        ("Nearest Neighbor", ScaleMethod::NearestNeighbor),
         ("Bilinear", ScaleMethod::Bilinear),
+        ("Nearest Neighbor", ScaleMethod::NearestNeighbor),
     ];
     let method_field = DropdownField::new(Some("Scaling Algorithm"), methods, 0);
 
