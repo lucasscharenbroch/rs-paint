@@ -2,8 +2,7 @@ use super::{Image, ImageLike, Pixel};
 use super::blend::BlendingMode;
 
 use gtk::gdk::RGBA;
-use gtk::gio::ListStore;
-use gtk::{prelude::*, Box as GBox, DropDown, Orientation, StringObject, SpinButton};
+use gtk::prelude::*;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum BrushType {
@@ -142,97 +141,5 @@ impl Brush {
 
     pub fn radius(&self) -> usize {
         self.props.radius as usize
-    }
-}
-
-pub struct BrushToolbar {
-    brush: Brush,
-    brush_type: BrushType,
-    type_dropdown: DropDown,
-    blending_mode_dropdown: DropDown,
-    radius_selector: SpinButton,
-    widget: GBox,
-}
-
-const BRUSH_TYPES_AND_IDS: [(BrushType, &str); 5] = [
-    (BrushType::Round, "Round"),
-    (BrushType::Square, "Square"),
-    (BrushType::Dither, "Dither"),
-    (BrushType::Pen, "Pen"),
-    (BrushType::Crayon, "Crayon"),
-];
-
-const BLENDING_MODES_AND_IDS: [(BlendingMode, &str); 3] = [
-    (BlendingMode::Overwrite, "Overwrite"),
-    (BlendingMode::Paint, "Paint"),
-    (BlendingMode::Average, "Average"),
-];
-
-impl BrushToolbar {
-    pub fn new(color: RGBA, brush_type: BrushType, radius: u8) -> Self {
-        let props = BrushProperties {
-            color,
-            brush_type,
-            radius,
-        };
-
-        let type_list = ListStore::new::<StringObject>();
-
-        for (_, id) in BRUSH_TYPES_AND_IDS.iter() {
-            type_list.append(&StringObject::new(id))
-        }
-
-        let type_dropdown = DropDown::builder()
-            .model(&type_list)
-            .build();
-
-        let blending_mode_list = ListStore::new::<StringObject>();
-
-        for (_, id) in BLENDING_MODES_AND_IDS.iter() {
-            blending_mode_list.append(&StringObject::new(id))
-        }
-
-        let blending_mode_dropdown = DropDown::builder()
-            .model(&blending_mode_list)
-            .build();
-
-        let radius_selector = SpinButton::with_range(1.0, 255.0, 1.0);
-        radius_selector.set_value(5.0);
-
-        let widget = GBox::new(Orientation::Horizontal, 5);
-
-        widget.append(&type_dropdown);
-        widget.append(&blending_mode_dropdown);
-        widget.append(&radius_selector);
-
-        BrushToolbar {
-            brush: Brush::from_props(props),
-            brush_type,
-            type_dropdown,
-            blending_mode_dropdown,
-            radius_selector,
-            widget
-        }
-    }
-
-    pub fn brush_type(&self) -> BrushType {
-        BRUSH_TYPES_AND_IDS[self.type_dropdown.selected() as usize].0
-    }
-
-    pub fn radius(&self) -> u8 {
-        self.radius_selector.value() as u8
-    }
-
-    pub fn get_brush(&mut self, color: RGBA) -> &Brush {
-        self.brush.modify(color, self.brush_type(), self.radius());
-        &self.brush
-    }
-
-    pub fn widget(&self) -> &GBox {
-        &self.widget
-    }
-
-    pub fn get_blending_mode(&self) -> BlendingMode {
-        BLENDING_MODES_AND_IDS[self.blending_mode_dropdown.selected() as usize].0
     }
 }

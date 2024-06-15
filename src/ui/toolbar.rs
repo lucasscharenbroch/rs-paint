@@ -6,7 +6,7 @@ use mode::MouseMode;
 use super::canvas::Canvas;
 use super::UiState;
 use palette::Palette;
-use crate::image::brush::{Brush, BrushType, BrushToolbar};
+use crate::image::brush::{Brush, BrushType};
 use crate::image::blend::BlendingMode;
 use super::toolbar::mode::ModeToolbar;
 
@@ -23,8 +23,8 @@ pub struct Toolbar {
     mouse_mode: MouseMode,
     mouse_mode_buttons: Vec<MouseModeButton>,
     mode_change_hook: Option<Box<dyn Fn(&Toolbar)>>,
-    brush_toolbar: BrushToolbar,
     mode_toolbar: ModeToolbar,
+    brush: Brush,
 }
 
 struct MouseModeButton {
@@ -48,13 +48,12 @@ impl Toolbar {
         let widget =  GBox::new(Orientation::Horizontal, 10);
         let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
         let palette_p = Palette::new_p(default_palette_colors);
-        let brush_toolbar = BrushToolbar::new(default_color, BrushType::Pen, 5);
         let mode_toolbar_wrapper = GBox::builder().build();
         let mode_toolbar = ModeToolbar::new(&mode_toolbar_wrapper, Some(INITIAL_MODE.variant()));
+        let brush = Brush::new(default_color, BrushType::Round, 5);
 
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
-        widget.append(brush_toolbar.widget());
         widget.append(&mode_toolbar_wrapper);
 
         let toolbar_p = Rc::new(RefCell::new(Toolbar {
@@ -64,8 +63,8 @@ impl Toolbar {
             mouse_mode: INITIAL_MODE,
             mouse_mode_buttons: vec![],
             mode_change_hook: None,
-            brush_toolbar,
             mode_toolbar,
+            brush,
         }));
 
         toolbar_p
@@ -156,10 +155,14 @@ impl Toolbar {
     }
 
     fn get_brush(&mut self) -> &Brush {
-        self.brush_toolbar.get_brush(self.primary_color())
+        let color = self.primary_color();
+        let (brush_type, _blending_mode, radius) = self.mode_toolbar.get_pencil_settings();
+        self.brush.modify(color, brush_type, radius);
+        &self.brush
     }
 
     fn get_blending_mode(&self) -> BlendingMode {
-        self.brush_toolbar.get_blending_mode()
+        let (_brush_type, blending_mode, _radius) = self.mode_toolbar.get_pencil_settings();
+        blending_mode
     }
 }

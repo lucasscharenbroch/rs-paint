@@ -1,20 +1,48 @@
-use gtk::glib::object::IsA;
-use gtk::prelude::*;
-
 use super::MouseModeVariant;
 use super::{CursorState, MagicWandState, PencilState, EyedropperState, RectangleSelectState};
-use crate::ui::form::{Form, TextField};
+use crate::image::blend::BlendingMode;
+use crate::image::brush::{Brush, BrushType};
+use crate::ui::form::{DropdownField, Form, NaturalField, TextField};
 
-type PencilSettings = ();
+use gtk::prelude::*;
+
+type PencilSettings = (BrushType, BlendingMode, u8);
 fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
-    let x = TextField::new(Some("pencil"), "", "");
+    let brush_types = vec![
+        ("Round", BrushType::Round),
+        ("Square", BrushType::Square),
+        ("Dither", BrushType::Dither),
+        ("Pen", BrushType::Pen),
+        ("Crayon", BrushType::Crayon),
+    ];
+
+    let blending_modes = vec![
+        ("Overwrite", BlendingMode::Overwrite),
+        ("Paint", BlendingMode::Paint),
+        ("Average", BlendingMode::Average),
+    ];
+
+    let type_dropdown = DropdownField::new(None, brush_types, 0);
+    let blending_mode_dropdown = DropdownField::new(None, blending_modes, 0);
+    let radius_selector = NaturalField::new(Some("Brush Radius"), 1, 255, 1, 5);
+
     let form = Form::builder()
-        .with_field(&x)
+        .with_field(&type_dropdown)
+        .with_field(&blending_mode_dropdown)
+        .with_field(&radius_selector)
         .build();
+
+    let get = move || {
+        (
+            type_dropdown.value().clone(),
+            blending_mode_dropdown.value().clone(),
+            radius_selector.value() as u8,
+        )
+    };
 
     (
         form,
-        Box::new(|| ())
+        Box::new(get),
     )
 }
 
@@ -36,24 +64,24 @@ pub struct ModeToolbar {
     widget_wrapper: gtk::Box,
     empty_form: Form,
     pencil_form: Form,
-    get_pencil_settings: Box<dyn Fn() -> PencilSettings>,
+    get_pencil_settings_p: Box<dyn Fn() -> PencilSettings>,
     magic_wand_form: Form,
-    get_magic_wand_settings: Box<dyn Fn() -> MagicWandSettings>,
+    get_magic_wand_settings_p: Box<dyn Fn() -> MagicWandSettings>,
 }
 
 impl ModeToolbar {
     pub fn new(widget_wrapper: &gtk::Box, active_variant: Option<MouseModeVariant>) -> Self {
-        let (pencil_form, get_pencil_settings) = mk_pencil_toolbar();
-        let (magic_wand_form, get_magic_wand_settings) = mk_magic_wand_toolbar();
+        let (pencil_form, get_pencil_settings_p) = mk_pencil_toolbar();
+        let (magic_wand_form, get_magic_wand_settings_p) = mk_magic_wand_toolbar();
 
         ModeToolbar {
             active_variant,
             widget_wrapper: widget_wrapper.clone(),
             empty_form: Form::builder().build(),
             pencil_form,
-            get_pencil_settings,
+            get_pencil_settings_p,
             magic_wand_form,
-            get_magic_wand_settings,
+            get_magic_wand_settings_p,
         }
     }
 
@@ -83,10 +111,10 @@ impl ModeToolbar {
     }
 
     pub fn get_pencil_settings(&self) -> PencilSettings {
-        self.get_pencil_settings()
+        (self.get_pencil_settings_p)()
     }
 
-    pub fn get_magic_wand_settings(&self) -> PencilSettings {
-        self.get_magic_wand_settings()
+    pub fn get_magic_wand_settings(&self) -> MagicWandSettings {
+        (self.get_magic_wand_settings_p)()
     }
 }
