@@ -12,7 +12,7 @@ use toolbar::Toolbar;
 use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, close_dialog, ok_dialog_str_, scale_dialog, CloseDialog};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use tab::{Tab, Tabbar};
-use toolbar::mode::{MouseMode, rectangle_select::RectangleSelectState};
+use toolbar::mode::{MouseMode, RectangleSelectState};
 
 use gtk::{gdk::RGBA, prelude::*};
 use gtk::gdk::{Key, ModifierType};

@@ -8,6 +8,7 @@ use super::UiState;
 use palette::Palette;
 use crate::image::brush::{Brush, BrushType, BrushToolbar};
 use crate::image::blend::BlendingMode;
+use super::toolbar::mode::ModeToolbar;
 
 use gtk::prelude::*;
 use gtk::{Box as GBox, Orientation, ToggleButton};
@@ -23,6 +24,7 @@ pub struct Toolbar {
     mouse_mode_buttons: Vec<MouseModeButton>,
     mode_change_hook: Option<Box<dyn Fn(&Toolbar)>>,
     brush_toolbar: BrushToolbar,
+    mode_toolbar: ModeToolbar,
 }
 
 struct MouseModeButton {
@@ -47,10 +49,13 @@ impl Toolbar {
         let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
         let palette_p = Palette::new_p(default_palette_colors);
         let brush_toolbar = BrushToolbar::new(default_color, BrushType::Pen, 5);
+        let mode_toolbar_wrapper = GBox::builder().build();
+        let mode_toolbar = ModeToolbar::new(&mode_toolbar_wrapper);
 
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
         widget.append(brush_toolbar.widget());
+        widget.append(&mode_toolbar_wrapper);
 
         let toolbar_p = Rc::new(RefCell::new(Toolbar {
             widget,
@@ -60,6 +65,7 @@ impl Toolbar {
             mouse_mode_buttons: vec![],
             mode_change_hook: None,
             brush_toolbar,
+            mode_toolbar,
         }));
 
         toolbar_p
@@ -154,5 +160,9 @@ impl Toolbar {
 
     fn get_blending_mode(&self) -> BlendingMode {
         self.brush_toolbar.get_blending_mode()
+    }
+
+    pub fn mode_toolbar(&self) -> &ModeToolbar {
+        &self.mode_toolbar
     }
 }

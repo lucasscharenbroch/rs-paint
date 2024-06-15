@@ -1,6 +1,7 @@
-use super::{Canvas, Toolbar};
+use super::{Canvas, Toolbar, MouseModeVariant};
 use crate::image::ImageLike;
 use crate::image::undo::action::ActionName;
+use crate::ui::form::Form;
 
 use std::collections::HashSet;
 use gtk::gdk::ModifierType;

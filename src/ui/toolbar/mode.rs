@@ -1,16 +1,20 @@
-pub mod rectangle_select;
+mod mode_toolbar;
+mod rectangle_select;
 mod cursor;
 mod pencil;
 mod eyedropper;
 mod magic_wand;
 
+use crate::ui::form::Form;
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};
+pub use mode_toolbar::ModeToolbar;
 
 use cursor::CursorState;
 use magic_wand::MagicWandState;
 use pencil::PencilState;
 use self::eyedropper::EyedropperState;
-use self::rectangle_select::RectangleSelectState;
+pub use self::rectangle_select::RectangleSelectState;
+
 use gtk::cairo::Context;
 use gtk::gdk::ModifierType;
 
