@@ -50,7 +50,7 @@ impl Toolbar {
         let palette_p = Palette::new_p(default_palette_colors);
         let brush_toolbar = BrushToolbar::new(default_color, BrushType::Pen, 5);
         let mode_toolbar_wrapper = GBox::builder().build();
-        let mode_toolbar = ModeToolbar::new(&mode_toolbar_wrapper);
+        let mode_toolbar = ModeToolbar::new(&mode_toolbar_wrapper, Some(INITIAL_MODE.variant()));
 
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
@@ -97,7 +97,7 @@ impl Toolbar {
                                 mode_constructor_default()
                             };
 
-                        toolbar_p.borrow_mut().mouse_mode = mode.clone();
+                        toolbar_p.borrow_mut().set_mouse_mode(mode.clone());
                         for other_button in toolbar_p.borrow().mouse_mode_buttons.iter() {
                             if other_button.mode.variant() != mode.variant() {
                                 other_button.widget.set_active(false);
@@ -136,6 +136,7 @@ impl Toolbar {
 
     pub fn set_mouse_mode(&mut self, new_mouse_mode: MouseMode) {
         self.mouse_mode = new_mouse_mode;
+        self.mode_toolbar.set_to_variant(new_mouse_mode.variant());
     }
 
     pub fn primary_color(&self) -> RGBA {
@@ -160,9 +161,5 @@ impl Toolbar {
 
     fn get_blending_mode(&self) -> BlendingMode {
         self.brush_toolbar.get_blending_mode()
-    }
-
-    pub fn mode_toolbar(&self) -> &ModeToolbar {
-        &self.mode_toolbar
     }
 }
