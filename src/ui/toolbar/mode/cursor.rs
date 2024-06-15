@@ -1,7 +1,6 @@
 use super::{Canvas, Toolbar};
 
 use gtk::gdk::ModifierType;
-use gtk::cairo::Context;
 
 // Cursor Mode: drag => pan
 

@@ -2,10 +2,12 @@ pub mod rectangle_select;
 mod cursor;
 mod pencil;
 mod eyedropper;
+mod magic_wand;
 
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};
 
 use cursor::CursorState;
+use magic_wand::MagicWandState;
 use pencil::PencilState;
 use self::eyedropper::EyedropperState;
 use self::rectangle_select::RectangleSelectState;
@@ -18,6 +20,7 @@ pub enum MouseMode {
     Pencil(pencil::PencilState),
     RectangleSelect(rectangle_select::RectangleSelectState),
     Eyedropper(eyedropper::EyedropperState),
+    MagicWand(magic_wand::MagicWandState),
 }
 
 #[derive(PartialEq)]
@@ -26,6 +29,7 @@ pub enum MouseModeVariant {
     Pencil,
     RectangleSelect,
     Eyedropper,
+    MagicWand,
 }
 
 trait MouseModeState {
@@ -70,12 +74,21 @@ impl MouseMode {
         MouseMode::Eyedropper(EyedropperState::default_no_canvas())
     }
 
+    pub fn magic_wand(canvas: &Canvas) -> MouseMode {
+        MouseMode::MagicWand(MagicWandState::default(canvas))
+    }
+
+    pub fn magic_wand_default() -> MouseMode {
+        MouseMode::MagicWand(MagicWandState::default_no_canvas())
+    }
+
     fn get_state(&mut self) -> &mut dyn MouseModeState {
         match self {
             MouseMode::Cursor(ref mut s) => s,
             MouseMode::Pencil(ref mut s) => s,
             MouseMode::RectangleSelect(ref mut s) => s,
             MouseMode::Eyedropper(ref mut s) => s,
+            MouseMode::MagicWand(ref mut s) => s,
         }
     }
 
@@ -85,6 +98,7 @@ impl MouseMode {
             MouseMode::Pencil(ref s) => s,
             MouseMode::RectangleSelect(ref s) => s,
             MouseMode::Eyedropper(ref s) => s,
+            MouseMode::MagicWand(ref s) => s,
         }
     }
 
@@ -118,6 +132,7 @@ impl MouseMode {
             MouseMode::Pencil(_) => MouseModeVariant::Pencil,
             MouseMode::RectangleSelect(_) => MouseModeVariant::RectangleSelect,
             MouseMode::Eyedropper(_) => MouseModeVariant::Eyedropper,
+            MouseMode::MagicWand(_) => MouseModeVariant::MagicWand,
         }
     }
 }

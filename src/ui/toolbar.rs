@@ -73,6 +73,7 @@ impl Toolbar {
             ("Pencil", MouseMode::pencil, MouseMode::pencil_default),
             ("Eyedropper", MouseMode::eyedropper, MouseMode::eyedropper_default),
             ("Rectangle Select", MouseMode::rectangle_select, MouseMode::rectangle_select_default),
+            ("Magic Wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
         ];
 
         toolbar_p.borrow_mut().mouse_mode_buttons = button_info.into_iter()
