@@ -424,4 +424,9 @@ impl FormBuilder {
         self.widget.append(new_field.outer_widget());
         self
     }
+
+    pub fn orientation(self, orientation: gtk::Orientation) -> Self {
+        self.widget.set_orientation(orientation);
+        self
+    }
 }

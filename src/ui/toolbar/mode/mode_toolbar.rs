@@ -27,6 +27,7 @@ fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
     let radius_selector = NaturalField::new(Some("Brush Radius"), 1, 255, 1, 5);
 
     let form = Form::builder()
+        .orientation(gtk::Orientation::Horizontal)
         .with_field(&type_dropdown)
         .with_field(&blending_mode_dropdown)
         .with_field(&radius_selector)
@@ -50,6 +51,7 @@ type MagicWandSettings = ();
 fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
     let x = TextField::new(Some("magic wand"), "", "");
     let form = Form::builder()
+        .orientation(gtk::Orientation::Horizontal)
         .with_field(&x)
         .build();
 
