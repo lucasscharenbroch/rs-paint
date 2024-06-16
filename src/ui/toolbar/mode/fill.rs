@@ -1,5 +1,6 @@
 use crate::{image::{selection::ImageBitmask, Pixel}, ui::selection::Selection};
 use super::{Canvas, MouseModeVariant, Toolbar};
+use crate::image::undo::action::ActionName;
 
 use gtk::gdk::ModifierType;
 
@@ -30,6 +31,7 @@ impl super::MouseModeState for FillState {
             *image.pix_at_mut(*r as i32, *c as i32) = p.clone();
         }
 
+        canvas.save_state_for_undo(ActionName::Fill);
         canvas.update()
     }
 }
