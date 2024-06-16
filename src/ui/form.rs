@@ -284,6 +284,60 @@ impl<T> FormField for DropdownField<T> {
     }
 }
 
+pub struct SliderField {
+    scale: gtk::Scale,
+    wrapper: GBox,
+}
+
+impl SliderField {
+    pub fn new(
+        label: Option<&str>,
+        orientation: Orientation,
+        min: usize,
+        max: usize,
+        step: usize,
+        default_value: usize
+    ) -> Self {
+        let scale = gtk::Scale::with_range(orientation, min as f64, max as f64, step as f64);
+        scale.set_value(default_value as f64);
+        scale.set_width_request(100);
+
+        let wrapper = GBox::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(4)
+            .build();
+
+        wrapper.append(&scale);
+        label.map(|label_text| wrapper.prepend(&new_label(label_text)));
+
+        SliderField {
+            scale,
+            wrapper,
+        }
+    }
+
+    pub fn value(&self) -> usize {
+        self.scale.value() as usize
+    }
+
+    pub fn set_value(&self, new_value: usize) {
+        self.scale.set_value(new_value as f64);
+    }
+
+    pub fn set_changed_hook<F: Fn(usize) + 'static>(&self, f: F)
+    {
+        self.scale.connect_value_changed(move |b| {
+            f(b.value() as usize)
+        });
+    }
+}
+
+impl FormField for SliderField {
+    fn outer_widget(&self) -> &impl IsA<Widget> {
+        &self.wrapper
+    }
+}
+
 pub struct ExpandJustificationField {
     buttons: Rc<RefCell<Vec<gtk::ToggleButton>>>,
     wrapper: GBox,

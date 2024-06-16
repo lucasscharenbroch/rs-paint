@@ -2,7 +2,7 @@ use super::MouseModeVariant;
 use super::{CursorState, MagicWandState, PencilState, EyedropperState, RectangleSelectState};
 use crate::image::blend::BlendingMode;
 use crate::image::brush::{Brush, BrushType};
-use crate::ui::form::{DropdownField, Form, NaturalField, TextField};
+use crate::ui::form::{DropdownField, Form, NaturalField, SliderField};
 
 use gtk::prelude::*;
 
@@ -49,10 +49,18 @@ fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
 
 type MagicWandSettings = ();
 fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
-    let x = TextField::new(Some("magic wand"), "", "");
+    let threshold_slider = SliderField::new(
+        Some("Threshold"),
+        gtk::Orientation::Horizontal,
+        0,
+        100,
+        1,
+        50,
+    );
+
     let form = Form::builder()
         .orientation(gtk::Orientation::Horizontal)
-        .with_field(&x)
+        .with_field(&threshold_slider)
         .build();
 
     (
