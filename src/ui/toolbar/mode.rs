@@ -4,6 +4,7 @@ mod cursor;
 mod pencil;
 mod eyedropper;
 mod magic_wand;
+mod fill;
 
 use crate::ui::form::Form;
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};
@@ -12,6 +13,7 @@ pub use mode_toolbar::ModeToolbar;
 use cursor::CursorState;
 use magic_wand::MagicWandState;
 use pencil::PencilState;
+use fill::FillState;
 use self::eyedropper::EyedropperState;
 pub use self::rectangle_select::RectangleSelectState;
 
@@ -20,11 +22,12 @@ use gtk::gdk::ModifierType;
 
 #[derive(Clone, Copy)]
 pub enum MouseMode {
-    Cursor(cursor::CursorState),
-    Pencil(pencil::PencilState),
-    RectangleSelect(rectangle_select::RectangleSelectState),
-    Eyedropper(eyedropper::EyedropperState),
-    MagicWand(magic_wand::MagicWandState),
+    Cursor(CursorState),
+    Pencil(PencilState),
+    RectangleSelect(RectangleSelectState),
+    Eyedropper(EyedropperState),
+    MagicWand(MagicWandState),
+    Fill(FillState),
 }
 
 #[derive(PartialEq)]
@@ -34,6 +37,7 @@ pub enum MouseModeVariant {
     RectangleSelect,
     Eyedropper,
     MagicWand,
+    Fill,
 }
 
 trait MouseModeState {
@@ -86,6 +90,14 @@ impl MouseMode {
         MouseMode::MagicWand(MagicWandState::default_no_canvas())
     }
 
+    pub fn fill(canvas: &Canvas) -> MouseMode {
+        MouseMode::Fill(FillState::default(canvas))
+    }
+
+    pub fn fill_default() -> MouseMode {
+        MouseMode::Fill(FillState::default_no_canvas())
+    }
+
     fn get_state(&mut self) -> &mut dyn MouseModeState {
         match self {
             MouseMode::Cursor(ref mut s) => s,
@@ -93,6 +105,7 @@ impl MouseMode {
             MouseMode::RectangleSelect(ref mut s) => s,
             MouseMode::Eyedropper(ref mut s) => s,
             MouseMode::MagicWand(ref mut s) => s,
+            MouseMode::Fill(ref mut s) => s,
         }
     }
 
@@ -103,6 +116,7 @@ impl MouseMode {
             MouseMode::RectangleSelect(ref s) => s,
             MouseMode::Eyedropper(ref s) => s,
             MouseMode::MagicWand(ref s) => s,
+            MouseMode::Fill(ref s) => s,
         }
     }
 
@@ -137,6 +151,7 @@ impl MouseMode {
             MouseMode::RectangleSelect(_) => MouseModeVariant::RectangleSelect,
             MouseMode::Eyedropper(_) => MouseModeVariant::Eyedropper,
             MouseMode::MagicWand(_) => MouseModeVariant::MagicWand,
+            MouseMode::Fill(_) => MouseModeVariant::Fill,
         }
     }
 }

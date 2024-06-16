@@ -105,6 +105,7 @@ impl ModeToolbar {
             MouseModeVariant::MagicWand => &self.magic_wand_form,
             MouseModeVariant::Pencil => &self.pencil_form,
             MouseModeVariant::RectangleSelect => &self.empty_form,
+            MouseModeVariant::Fill => &self.empty_form,
         }
     }
 
