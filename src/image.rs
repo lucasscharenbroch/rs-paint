@@ -4,6 +4,7 @@ pub mod generate;
 pub mod blend;
 pub mod transform;
 pub mod resize;
+pub mod selection;
 
 use blend::BlendingMode;
 
@@ -114,12 +115,11 @@ impl Image {
     }
 }
 
-// used to allow usage of both `BrushImage` and `Image` in `sample`
-// also probably more uses later to mix and match image types
+/// A read-only interface for mixing-and-matching image types
 pub trait ImageLike {
     fn width(&self) -> usize;
     fn height(&self) -> usize;
-    fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel>; // no bounds check!
+    fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel>;
 }
 
 impl ImageLike for Image {

@@ -165,4 +165,8 @@ impl Toolbar {
         let (_brush_type, blending_mode, _radius) = self.mode_toolbar.get_pencil_settings();
         blending_mode
     }
+
+    fn get_magic_wand_tolerance(&self) -> f64 {
+        self.mode_toolbar.get_magic_wand_settings()
+    }
 }

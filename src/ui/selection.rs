@@ -4,6 +4,7 @@ use gtk::cairo::Context;
 
 pub enum Selection {
     Rectangle(usize, usize, usize, usize), // x, y, w, h
+    Bitmask(Vec<bool>),
     NoSelection
 }
 
@@ -27,10 +28,16 @@ fn draw_rect_sel(canvas: &Canvas, &x: &usize, &y: &usize, &w: &usize, &h: &usize
     cr.set_dash(&[], 0.0);
 }
 
+fn draw_sel_mask(canvas: &Canvas, selection_mask: &Vec<bool>) {
+    assert!(canvas.image_width() as usize * canvas.image_height() as usize == selection_mask.len());
+    todo!()
+}
+
 impl Selection {
     pub fn draw_outline(&self, canvas: &Canvas, cr: &Context) {
         match self {
             Self::Rectangle(x, y, w, h) => draw_rect_sel(canvas, x, y, w, h, cr),
+            Self::Bitmask(selection_mask) => draw_sel_mask(canvas, selection_mask),
             Self::NoSelection => (),
         }
     }

@@ -133,6 +133,10 @@ impl NumberedSliderGadget {
 
         state_p
     }
+
+    pub fn value(&self) -> usize {
+        self.slider_field.value()
+    }
 }
 
 impl FormGadget for NumberedSliderGadget {

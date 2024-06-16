@@ -42,16 +42,13 @@ fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
         )
     };
 
-    (
-        form,
-        Box::new(get),
-    )
+    (form, Box::new(get))
 }
 
-type MagicWandSettings = ();
+type MagicWandSettings = f64;
 fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
     let threshold_slider_gadget_p = NumberedSliderGadget::new_p(
-        Some("Threshold"),
+        Some("Tolerance"),
         gtk::Orientation::Horizontal,
         0,
         100,
@@ -65,10 +62,11 @@ fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
         .with_gadget(&*threshold_slider_gadget_p.borrow())
         .build();
 
-    (
-        form,
-        Box::new(|| ())
-    )
+    let get = move || {
+        threshold_slider_gadget_p.borrow().value() as f64 / 100.0
+    };
+
+    (form, Box::new(get))
 }
 
 pub struct ModeToolbar {
