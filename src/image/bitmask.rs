@@ -75,14 +75,14 @@ impl ImageBitmask {
 #[inline]
 fn fulfills_tolerance(a: &Pixel, b: &Pixel, tolerance: f64) -> bool {
     // TODO tweak this formula? It's highly unscientific, and probably inefficient.
-    let alpha_diff = (a.a as f64 - b.a as f64) / 255.0;
+    let alpha_diff = ((a.a as f64 - b.a as f64) / 255.0).abs();
     (
-        ((a.r as f64 - b.r as f64) / 255.0).powi(2) +
-        ((a.g as f64 - b.g as f64) / 255.0).powi(2) +
-        ((a.b as f64 - b.b as f64) / 255.0).powi(2)
+        ((a.r as f64 - b.r as f64) / 255.0).abs() +
+        ((a.g as f64 - b.g as f64) / 255.0).abs() +
+        ((a.b as f64 - b.b as f64) / 255.0).abs()
     ) / 3.0 * (1.0 - alpha_diff)
     + alpha_diff
-    <= tolerance
+    <= tolerance.powi(2)
 }
 
 /// Looks in 4 directions from (r, c), returning the coordinates
