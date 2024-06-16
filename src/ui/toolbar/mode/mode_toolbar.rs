@@ -76,15 +76,18 @@ impl ModeToolbar {
         let (pencil_form, get_pencil_settings_p) = mk_pencil_toolbar();
         let (magic_wand_form, get_magic_wand_settings_p) = mk_magic_wand_toolbar();
 
-        ModeToolbar {
-            active_variant,
+        let mut res = ModeToolbar {
+            active_variant: None,
             widget_wrapper: widget_wrapper.clone(),
             empty_form: Form::builder().build(),
             pencil_form,
             get_pencil_settings_p,
             magic_wand_form,
             get_magic_wand_settings_p,
-        }
+        };
+
+        active_variant.map(|v| res.set_to_variant(v));
+        res
     }
 
     fn variant_to_form(&self, variant: &MouseModeVariant) -> &Form {
