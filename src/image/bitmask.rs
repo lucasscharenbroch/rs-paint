@@ -31,6 +31,7 @@ impl ImageBitmask {
         let mut res = ImageBitmask::new(h, w);
 
         let mut q = VecDeque::new();
+        *res.flat_index(or, oc) = true;
         q.push_back((or, oc));
 
         while let Some((r, c)) = q.pop_front() {
