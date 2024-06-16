@@ -424,6 +424,7 @@ impl Canvas {
 
     pub fn update(&mut self) {
         self.update_scrollbars();
+        self.validate_selection();
         self.drawing_area.queue_draw();
         if let Ok(ui) = self.ui_p.try_borrow() {
             if let Some(tab) = ui.active_tab() {
@@ -509,5 +510,24 @@ impl Canvas {
 
         let crop = Crop::new(x, y, w, h);
         self.exec_undoable_action(Box::new(crop));
+    }
+
+    /// If `self.selection` is out of bounds/invalid, unselect it
+    fn validate_selection(&mut self) {
+        let is_valid = match self.selection {
+            Selection::NoSelection => true,
+            Selection::Rectangle(x, y, w, h) => {
+                x + w < self.image_width() as usize &&
+                y + h < self.image_height() as usize
+            },
+            Selection::Bitmask(ref bitmask) => {
+                bitmask.width() == self.image_width() as usize &&
+                bitmask.height() == self.image_height() as usize
+            },
+        };
+
+        if !is_valid {
+            self.selection = Selection::NoSelection;
+        }
     }
 }
