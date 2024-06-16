@@ -5,12 +5,15 @@ use super::{ImageLike, Pixel};
 /// Returns `true` iff `a` "tolerates" (is close to) `b`
 #[inline]
 fn fulfills_tolerance(a: &Pixel, b: &Pixel, tolerance: f64) -> bool {
-    // TODO tweak this algorithm? It's highly unscientific, and probably inefficient.
-    ((a.r as f64 - b.r as f64) / 255.0).powi(2) +
-    ((a.g as f64 - b.g as f64) / 255.0).powi(2) +
-    ((a.b as f64 - b.b as f64) / 255.0).powi(2) +
-    ((a.a as f64 - b.a as f64) / 255.0).powi(2)
-    <= tolerance * 4.0
+    // TODO tweak this formula? It's highly unscientific, and probably inefficient.
+    let alpha_diff = (a.a as f64 - b.a as f64) / 255.0;
+    (
+        ((a.r as f64 - b.r as f64) / 255.0).powi(2) +
+        ((a.g as f64 - b.g as f64) / 255.0).powi(2) +
+        ((a.b as f64 - b.b as f64) / 255.0).powi(2)
+    ) / 3.0 * (1.0 - alpha_diff)
+    + alpha_diff
+    <= tolerance
 }
 
 #[inline]
@@ -22,6 +25,8 @@ fn flat_index<T>(vec: &mut Vec<T>, r: usize, c: usize, w: usize) -> &mut T {
 /// of any in-bounds cells
 #[inline]
 fn in_bounds_4d_neighbors(r: usize, c: usize, w: usize, h: usize) -> Vec<(usize, usize)> {
+    let r = r as i32;
+    let c = c as i32;
     vec![
         (r + 1, c),
         (r, c + 1),
@@ -29,8 +34,11 @@ fn in_bounds_4d_neighbors(r: usize, c: usize, w: usize, h: usize) -> Vec<(usize,
         (r, c - 1),
     ]
     .into_iter()
-    .filter(|(rp, cp)| *rp < h && *rp != usize::MAX &&
-                                       *cp < w && *cp != usize::MAX)
+    .map(|(rp, cp)| (rp as usize, cp as usize))
+    .filter(|(rp, cp)| {
+        *rp < h && *rp != usize::MAX &&
+        *cp < w && *cp != usize::MAX
+    })
     .collect::<Vec<_>>()
 }
 
