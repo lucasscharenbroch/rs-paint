@@ -1,12 +1,16 @@
 use std::collections::VecDeque;
+use gtk::cairo;
 
 use super::{Image, ImageLike, Pixel};
 
-/// Wrapper for flattened Vec<bool>
+/// Wrapper for flattened Vec<bool>; instances should
+/// be viewed as immutable, else the cached `outline_path`
+/// will be inaccurate
 pub struct ImageBitmask {
     height: usize,
     width: usize,
     bits: Vec<bool>,
+    outline_path: Option<cairo::Path>,
 }
 
 impl ImageBitmask {
@@ -15,6 +19,7 @@ impl ImageBitmask {
             height,
             width,
             bits: vec![false; height * width],
+            outline_path: None,
         }
     }
 
@@ -69,6 +74,71 @@ impl ImageBitmask {
             .filter(|(_idx, is_active)| **is_active)
             .map(|(idx, _is_active)| (idx / self.width, idx % self.width))
             .collect::<Vec<_>>()
+    }
+
+    /// Creates a `cairo::Path` of the outline of the top-leftmost
+    /// connected group of bits in the mask (and thus serves as a
+    /// total outline iff the bitmask has only one connected group)
+    fn gen_outline_path(&self, cr: &cairo::Context) -> cairo::Path {
+        // find the top-left-most set bit
+        let top_leftmost_coords = (0..(self.height * self.width))
+            .filter(|i| self.bits[*i])
+            .map(|i| (i % self.width, i / self.width)) // (x, y)
+            .next();
+
+        cr.new_path();
+
+        if let None = top_leftmost_coords {
+            return cr.copy_path().unwrap();
+        }
+
+        // trace clockwise
+
+        // `curr` is the coordinates of the cell whose top-right
+        // corner is the current point on the path
+        let top_leftmost_coords = top_leftmost_coords.unwrap();
+        let mut curr = top_leftmost_coords.clone();
+        cr.move_to(top_leftmost_coords.0 as f64, top_leftmost_coords.1 as f64);
+
+        /// Given the current point, compute the next one,
+        /// moving clockwise along the outline
+        #[inline]
+        fn next_point(bitmask: &ImageBitmask, curr: (usize, usize)) -> (usize, usize) {
+            #[inline]
+            fn is_active(bitmask: &ImageBitmask, (x, y): (i32, i32)) -> bool {
+                x >= 0 && y >= 0 &&
+                (x as usize) < bitmask.width && (y as usize) < bitmask.height &&
+                bitmask.bits[y as usize * bitmask.width + x as usize]
+            }
+
+            todo!()
+        }
+
+        // We wishfully assume that cairo optimizes adjacent homo-linear
+        // strokes, solely drawing unit segments (edges of pixels)
+
+        loop { // do...
+            let prev = curr;
+            curr = next_point(self, curr);
+            cr.line_to(curr.0 as f64, curr.1 as f64);
+
+            // ...while (!)
+            if curr == top_leftmost_coords {
+                break;
+            }
+        }
+
+        return cr.copy_path().unwrap();
+    }
+
+    pub fn outline_path(&mut self, cr: &cairo::Context)-> &cairo::Path {
+        if let Some(ref path) = self.outline_path {
+            path
+        } else {
+            let path = self.gen_outline_path(cr);
+            self.outline_path = Some(path);
+            self.outline_path.as_ref().unwrap()
+        }
     }
 }
 
