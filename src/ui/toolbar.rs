@@ -170,4 +170,8 @@ impl Toolbar {
     fn get_magic_wand_tolerance(&self) -> f64 {
         self.mode_toolbar.get_magic_wand_settings()
     }
+
+    fn get_fill_tolerance(&self) -> f64 {
+        self.mode_toolbar.get_fill_settings()
+    }
 }

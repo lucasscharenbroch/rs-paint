@@ -69,6 +69,30 @@ fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
     (form, Box::new(get))
 }
 
+type FillSettings = f64;
+fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
+    let threshold_slider_gadget_p = NumberedSliderGadget::new_p(
+        Some("Tolerance"),
+        gtk::Orientation::Horizontal,
+        0,
+        100,
+        1,
+        50,
+        String::from("%"),
+    );
+
+    let form = Form::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .with_gadget(&*threshold_slider_gadget_p.borrow())
+        .build();
+
+    let get = move || {
+        threshold_slider_gadget_p.borrow().value() as f64 / 100.0
+    };
+
+    (form, Box::new(get))
+}
+
 pub struct ModeToolbar {
     active_variant: Option<MouseModeVariant>,
     widget_wrapper: gtk::Box,
@@ -77,12 +101,15 @@ pub struct ModeToolbar {
     get_pencil_settings_p: Box<dyn Fn() -> PencilSettings>,
     magic_wand_form: Form,
     get_magic_wand_settings_p: Box<dyn Fn() -> MagicWandSettings>,
+    fill_form: Form,
+    get_fill_settings_p: Box<dyn Fn() -> FillSettings>,
 }
 
 impl ModeToolbar {
     pub fn new(widget_wrapper: &gtk::Box, active_variant: Option<MouseModeVariant>) -> Self {
         let (pencil_form, get_pencil_settings_p) = mk_pencil_toolbar();
         let (magic_wand_form, get_magic_wand_settings_p) = mk_magic_wand_toolbar();
+        let (fill_form, get_fill_settings_p) = mk_fill_toolbar();
 
         let mut res = ModeToolbar {
             active_variant: None,
@@ -92,6 +119,8 @@ impl ModeToolbar {
             get_pencil_settings_p,
             magic_wand_form,
             get_magic_wand_settings_p,
+            fill_form,
+            get_fill_settings_p,
         };
 
         active_variant.map(|v| res.set_to_variant(v));
@@ -105,7 +134,7 @@ impl ModeToolbar {
             MouseModeVariant::MagicWand => &self.magic_wand_form,
             MouseModeVariant::Pencil => &self.pencil_form,
             MouseModeVariant::RectangleSelect => &self.empty_form,
-            MouseModeVariant::Fill => &self.empty_form,
+            MouseModeVariant::Fill => &self.fill_form,
         }
     }
 
@@ -130,5 +159,9 @@ impl ModeToolbar {
 
     pub fn get_magic_wand_settings(&self) -> MagicWandSettings {
         (self.get_magic_wand_settings_p)()
+    }
+
+    pub fn get_fill_settings(&self) -> MagicWandSettings {
+        (self.get_fill_settings_p)()
     }
 }
