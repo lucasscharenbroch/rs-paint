@@ -1,10 +1,11 @@
+use crate::image::selection::ImageBitmask;
 use super::canvas::Canvas;
 
 use gtk::cairo::Context;
 
 pub enum Selection {
     Rectangle(usize, usize, usize, usize), // x, y, w, h
-    Bitmask(Vec<bool>),
+    Bitmask(ImageBitmask),
     NoSelection
 }
 
@@ -28,23 +29,20 @@ fn draw_rect_sel(canvas: &Canvas, &x: &usize, &y: &usize, &w: &usize, &h: &usize
     cr.set_dash(&[], 0.0);
 }
 
-fn draw_sel_mask(canvas: &Canvas, selection_mask: &Vec<bool>, cr: &Context) {
+fn draw_sel_mask(canvas: &Canvas, selection_mask: &ImageBitmask, cr: &Context) {
     let w = canvas.image_width() as usize;
     let h = canvas.image_height() as usize;
-    assert!(w * h == selection_mask.len());
+    assert!(w == selection_mask.width());
+    assert!(h == selection_mask.height());
 
     // TODO change this
-    for r in 0..(canvas.image_height() as usize) {
-        for c in 0..(canvas.image_width() as usize) {
-            if r % 25 != 0 || c % 25 != 0 {
-                continue;
-            }
-            if selection_mask[r * w + c] {
-                cr.set_source_rgb(0.0, 0.0, 1.0);
-                cr.rectangle(c as f64, r as f64, 1.0, 1.0);
-                let _ = cr.fill();
-            }
+    for (r, c) in selection_mask.coords_of_active_bits().iter() {
+        if r % 5 != 0 || c % 5 != 0 {
+            continue;
         }
+        cr.set_source_rgb(0.0, 0.0, 1.0);
+        cr.rectangle(*c as f64, *r as f64, 1.0, 1.0);
+        let _ = cr.fill();
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::{image::selection::bfs_for_bitmask, ui::selection::Selection};
+use crate::{image::selection::ImageBitmask, ui::selection::Selection};
 use super::{Canvas, MouseModeVariant, Toolbar};
 
 use gtk::gdk::ModifierType;
@@ -25,7 +25,7 @@ impl super::MouseModeState for MagicWandState {
         let (oc, or) = (ox.floor() as usize, oy.floor() as usize);
         let tolerance = toolbar.get_magic_wand_tolerance();
 
-        let bitmask = bfs_for_bitmask(canvas.image().image(), tolerance, or, oc);
+        let bitmask = ImageBitmask::from_flood_fill(canvas.image().image(), tolerance, or, oc);
         canvas.set_selection(Selection::Bitmask(bitmask));
         canvas.update()
     }

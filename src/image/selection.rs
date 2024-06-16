@@ -1,6 +1,75 @@
 use std::collections::VecDeque;
 
-use super::{ImageLike, Pixel};
+use super::{Image, ImageLike, Pixel};
+
+/// Wrapper for flattened Vec<bool>
+pub struct ImageBitmask {
+    height: usize,
+    width: usize,
+    bits: Vec<bool>,
+}
+
+impl ImageBitmask {
+    fn new(height: usize, width: usize) -> Self {
+        ImageBitmask {
+            height,
+            width,
+            bits: vec![false; height * width],
+        }
+    }
+
+    #[inline]
+    fn flat_index(&mut self, r: usize, c: usize) -> &mut bool {
+        &mut self.bits[r * self.width + c]
+    }
+
+    /// Generic function to flood-fill a `Canvas`'s `Image` to obtain
+    /// a bitmask; used for both magic wand and fill
+    pub fn from_flood_fill(image: &impl ImageLike, tolerance: f64, or: usize, oc: usize) -> Self {
+        let w = image.width();
+        let h = image.height();
+        let mut res = ImageBitmask::new(h, w);
+
+        let mut q = VecDeque::new();
+        q.push_back((or, oc));
+
+        while let Some((r, c)) = q.pop_front() {
+            for (nr, nc) in in_bounds_4d_neighbors(r, c, w, h).into_iter() {
+                if *res.flat_index(nr, nc) {
+                    continue; // already visited, continue
+                }
+
+                if fulfills_tolerance(
+                    image.try_pix_at(r, c).unwrap(),
+                    image.try_pix_at(nr, nc).unwrap(),
+                    tolerance,
+                ) {
+                    *res.flat_index(nr, nc) = true;
+                    q.push_back((nr, nc));
+                }
+            }
+        }
+
+        res
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    /// Returns (row, col) of active bits
+    pub fn coords_of_active_bits(&self) -> Vec<(usize, usize)> {
+        self.bits.iter()
+            .enumerate()
+            .filter(|(_idx, is_active)| **is_active)
+            .map(|(idx, _is_active)| (idx / self.width, idx % self.width))
+            .collect::<Vec<_>>()
+    }
+}
 
 /// Returns `true` iff `a` "tolerates" (is close to) `b`
 #[inline]
@@ -14,11 +83,6 @@ fn fulfills_tolerance(a: &Pixel, b: &Pixel, tolerance: f64) -> bool {
     ) / 3.0 * (1.0 - alpha_diff)
     + alpha_diff
     <= tolerance
-}
-
-#[inline]
-fn flat_index<T>(vec: &mut Vec<T>, r: usize, c: usize, w: usize) -> &mut T {
-    &mut vec[r * w + c]
 }
 
 /// Looks in 4 directions from (r, c), returning the coordinates
@@ -40,34 +104,4 @@ fn in_bounds_4d_neighbors(r: usize, c: usize, w: usize, h: usize) -> Vec<(usize,
         *cp < w && *cp != usize::MAX
     })
     .collect::<Vec<_>>()
-}
-
-/// Generic function to flood-fill a `Canvas`'s `Image` to obtain
-/// a bitmask; used for both magic wand and fill
-pub fn bfs_for_bitmask(image: &impl ImageLike, tolerance: f64, or: usize, oc: usize) -> Vec<bool> {
-    let w = image.width();
-    let h = image.height();
-    let mut res = vec![false; w * h];
-
-    let mut q = VecDeque::new();
-    q.push_back((or, oc));
-
-    while let Some((r, c)) = q.pop_front() {
-        for (nr, nc) in in_bounds_4d_neighbors(r, c, w, h).into_iter() {
-            if *flat_index(&mut res, nr, nc, w) {
-                continue; // already visited, continue
-            }
-
-            if fulfills_tolerance(
-                image.try_pix_at(r, c).unwrap(),
-                image.try_pix_at(nr, nc).unwrap(),
-                tolerance,
-            ) {
-                *flat_index(&mut res, nr, nc, w) = true;
-                q.push_back((nr, nc));
-            }
-        }
-    }
-
-    res
 }
