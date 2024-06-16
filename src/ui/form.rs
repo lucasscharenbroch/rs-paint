@@ -338,6 +338,29 @@ impl FormField for SliderField {
     }
 }
 
+/// Wrapper for `gtk::Label` that implements `FormField`
+pub struct LabelField {
+    label: gtk::Label,
+}
+
+impl LabelField {
+    fn new(initial_text: &str) -> Self {
+        LabelField {
+            label: gtk::Label::new(Some(initial_text)),
+        }
+    }
+
+    fn set_text(&self, new_text: &str) {
+        self.label.set_label(new_text);
+    }
+}
+
+impl FormField for LabelField {
+    fn outer_widget(&self) -> &impl IsA<Widget> {
+        &self.label
+    }
+}
+
 pub struct ExpandJustificationField {
     buttons: Rc<RefCell<Vec<gtk::ToggleButton>>>,
     wrapper: GBox,

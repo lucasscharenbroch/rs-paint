@@ -99,3 +99,46 @@ impl AspectRatioGadget {
         self.height_field.value()
     }
 }
+
+pub struct NumberedSliderGadget {
+    slider_field: SliderField,
+    label_field: LabelField,
+}
+
+impl NumberedSliderGadget {
+    pub fn new_p(
+        label: Option<&str>,
+        orientation: Orientation,
+        min: usize,
+        max: usize,
+        step: usize,
+        default_value: usize,
+        suffix: String,
+    ) -> Rc<RefCell<Self>> {
+        let gen_label = move |new_val: usize| {
+            format!("{new_val}{suffix}")
+        };
+
+        let slider_field = SliderField::new(label, orientation, min, max, step, default_value);
+        let label_field = LabelField::new(&gen_label(default_value));
+
+        let state_p = Rc::new(RefCell::new(NumberedSliderGadget {
+            slider_field,
+            label_field,
+        }));
+
+        state_p.borrow().slider_field.set_changed_hook(clone!(@strong state_p => move |new_val| {
+            state_p.borrow().label_field.set_text(&gen_label(new_val))
+        }));
+
+        state_p
+    }
+}
+
+impl FormGadget for NumberedSliderGadget {
+     fn add_to_builder(&self, builder: FormBuilder) -> FormBuilder {
+        builder
+            .with_field(&self.slider_field)
+            .with_field(&self.label_field)
+     }
+}
