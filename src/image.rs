@@ -4,7 +4,7 @@ pub mod generate;
 pub mod blend;
 pub mod transform;
 pub mod resize;
-pub mod selection;
+pub mod bitmask;
 
 use blend::BlendingMode;
 

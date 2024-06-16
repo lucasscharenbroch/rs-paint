@@ -1,4 +1,4 @@
-use crate::image::selection::ImageBitmask;
+use crate::image::bitmask::ImageBitmask;
 use super::canvas::Canvas;
 
 use gtk::cairo::Context;

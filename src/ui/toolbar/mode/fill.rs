@@ -1,4 +1,4 @@
-use crate::{image::{selection::ImageBitmask, Pixel}, ui::selection::Selection};
+use crate::{image::{bitmask::ImageBitmask, Pixel}, ui::selection::Selection};
 use super::{Canvas, MouseModeVariant, Toolbar};
 use crate::image::undo::action::ActionName;
 
