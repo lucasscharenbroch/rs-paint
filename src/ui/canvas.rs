@@ -26,7 +26,7 @@ pub struct Canvas {
     cursor_pos: (f64, f64),
     drawing_area: DrawingArea,
     grid: Grid,
-    selection: Selection,
+    pub selection: Selection,
     v_scrollbar: Scrollbar,
     h_scrollbar: Scrollbar,
     scrollbar_update_handlers: Option<(SignalHandlerId, SignalHandlerId)>,
@@ -93,7 +93,7 @@ impl Canvas {
             canvas_p.borrow_mut().draw(area, cr, width, height);
 
             // draw selection
-            canvas_p.borrow().selection.draw_outline(&canvas_p.borrow(), cr);
+            canvas_p.borrow_mut().draw_selection_outline(cr);
 
             // run hooks
             canvas_p.borrow().draw_hook.iter().for_each(|f| f(cr));

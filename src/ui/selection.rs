@@ -9,10 +9,9 @@ pub enum Selection {
     NoSelection
 }
 
-fn draw_rect_sel(canvas: &Canvas, &x: &usize, &y: &usize, &w: &usize, &h: &usize, cr: &Context) {
+fn draw_rect_sel(zoom: f64, x: usize, y: usize, w: usize, h: usize, cr: &Context) {
     const DASH_LENGTH: f64 = 10.0;
     const BORDER_WIDTH: f64 = 3.0;
-    let zoom = canvas.zoom();
 
     cr.set_line_width(BORDER_WIDTH / zoom);
 
@@ -29,29 +28,30 @@ fn draw_rect_sel(canvas: &Canvas, &x: &usize, &y: &usize, &w: &usize, &h: &usize
     cr.set_dash(&[], 0.0);
 }
 
-fn draw_sel_mask(canvas: &Canvas, selection_mask: &ImageBitmask, cr: &Context) {
-    let w = canvas.image_width() as usize;
-    let h = canvas.image_height() as usize;
-    assert!(w == selection_mask.width());
-    assert!(h == selection_mask.height());
+fn draw_sel_mask(image_height: usize, image_width: usize, selection_mask: &mut ImageBitmask, cr: &Context) {
+    assert!(image_width == selection_mask.width());
+    assert!(image_height == selection_mask.height());
 
-    // TODO change this
-    for (r, c) in selection_mask.coords_of_active_bits().iter() {
-        if r % 5 != 0 || c % 5 != 0 {
-            continue;
-        }
-        cr.set_source_rgb(0.0, 0.0, 1.0);
-        cr.rectangle(*c as f64, *r as f64, 1.0, 1.0);
-        let _ = cr.fill();
-    }
+    let path = selection_mask.outline_path(cr);
+    cr.append_path(path);
+    cr.set_source_rgb(0.0, 0.0, 1.0);
+    let _ = cr.fill();
 }
 
-impl Selection {
-    pub fn draw_outline(&self, canvas: &Canvas, cr: &Context) {
-        match self {
-            Self::Rectangle(x, y, w, h) => draw_rect_sel(canvas, x, y, w, h, cr),
-            Self::Bitmask(selection_mask) => draw_sel_mask(canvas, selection_mask, cr),
-            Self::NoSelection => (),
+impl Canvas {
+    pub fn draw_selection_outline(&mut self, cr: &Context) {
+        let image_height = self.image_height() as usize;
+        let image_width = self.image_width() as usize;
+
+        match self.selection {
+            Selection::Rectangle(x, y, w, h) => draw_rect_sel(*self.zoom(), x, y, w, h, cr),
+            Selection::Bitmask(ref mut selection_mask) => draw_sel_mask(
+                image_height,
+                image_width,
+                selection_mask,
+                cr
+            ),
+            Selection::NoSelection => (),
         }
     }
 }

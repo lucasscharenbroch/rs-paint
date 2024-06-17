@@ -111,15 +111,34 @@ impl ImageBitmask {
                 bitmask.bits[y as usize * bitmask.width + x as usize]
             }
 
-            todo!()
+            let this = (curr.0 as i32, curr.1 as i32);
+            let above = (curr.0 as i32, curr.1 as i32 - 1);
+            let left = (curr.0 as i32 - 1, curr.1 as i32);
+            let above_left = (curr.0 as i32 - 1, curr.1 as i32 - 1);
+
+            // The following is basically just matching on the invariants
+            // of "clockwise motion" (what direction should we move, given
+            // which cells are active?)
+            // I don't have proof that it works, and it blows up in some cases.
+            match (
+                is_active(&bitmask, this),
+                is_active(&bitmask, above),
+                is_active(&bitmask, left),
+                is_active(&bitmask, above_left),
+            ) {
+                (true, false, _, _) => (curr.0 + 1, curr.1), // right
+                (false, _, true, _) => (curr.0, curr.1 + 1), // down
+                (_, _, false, true) => (curr.0 - 1, curr.1), // left
+                (_, true, _, false) => (curr.0, curr.1 - 1), // up
+                x => panic!("{x:?}"),
+            }
         }
 
         // We wishfully assume that cairo optimizes adjacent homo-linear
         // strokes, solely drawing unit segments (edges of pixels)
 
         loop { // do...
-            let prev = curr;
-            curr = next_point(self, curr);
+            curr = next_point(&self, curr);
             cr.line_to(curr.0 as f64, curr.1 as f64);
 
             // ...while (!)
