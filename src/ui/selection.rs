@@ -34,8 +34,13 @@ fn draw_sel_mask(image_height: usize, image_width: usize, selection_mask: &mut I
 
     let path = selection_mask.outline_path(cr);
     cr.append_path(path);
+
+    cr.set_fill_rule(gtk::cairo::FillRule::EvenOdd);
     cr.set_source_rgb(0.0, 0.0, 1.0);
-    let _ = cr.fill();
+    let _ = cr.fill_preserve();
+
+    cr.set_source_rgb(1.0, 0.0, 0.0);
+    let _ = cr.stroke();
 }
 
 impl Canvas {

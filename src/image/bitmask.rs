@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashMap};
 use gtk::cairo;
 
 use super::{Image, ImageLike, Pixel};
@@ -76,10 +76,114 @@ impl ImageBitmask {
             .collect::<Vec<_>>()
     }
 
+    /// Creates a `cairo::Path` from all of the set-pixel-to-unset-pixel
+    /// boundaries
+    fn gen_edges_path(&self, cr: &cairo::Context) -> cairo::Path {
+        #[inline]
+        fn is_active(bitmask: &ImageBitmask, x: i32, y: i32) -> bool {
+            x >= 0 && y >= 0 &&
+            (x as usize) < bitmask.width && (y as usize) < bitmask.height &&
+            bitmask.bits[y as usize * bitmask.width + x as usize]
+        }
+
+        // gather segments by scanning each row and column
+        let mut segments = vec![];
+        let mut curr = None;
+
+        // horizontal segments
+        for i in 0..(self.height + 1) {
+            for j in 0..(self.width + 1) {
+                if is_active(&self, j as i32, i as i32 - 1) !=
+                   is_active(&self, j as i32, i as i32) {
+                    if let None = curr {
+                        curr = Some(j);
+                    }
+                } else if let Some(oj) = curr {
+                    segments.push(((oj, i), (j, i)));
+                    curr = None;
+                }
+            }
+            if let Some(oj) = curr {
+                segments.push(((oj, i), (self.width, i)));
+                curr = None;
+            }
+        }
+
+        // vertical segments
+        for j in 0..(self.width + 1) {
+            for i in 0..(self.height + 1) {
+                if is_active(&self, j as i32 - 1, i as i32) !=
+                   is_active(&self, j as i32, i as i32) {
+                    if let None = curr {
+                        curr = Some(i);
+                    }
+                } else if let Some(oi) = curr {
+                    segments.push(((j, oi), (j, i)));
+                    curr = None;
+                }
+            }
+            if let Some(oi) = curr {
+                segments.push(((j, oi), (j, self.height)));
+                curr = None;
+            }
+        }
+
+        // map each endpoint to the segments that end on it
+
+        let mut endpoints_to_seg_idxs = HashMap::new();
+
+        for (i, (p0, p1)) in segments.iter().enumerate() {
+            endpoints_to_seg_idxs.entry(p0).or_insert(vec![]).push(i);
+            endpoints_to_seg_idxs.entry(p1).or_insert(vec![]).push(i);
+        }
+
+        // trace each "strongly-connected-component"
+
+        cr.new_path();
+
+        let mut vis = vec![false; segments.len()];
+
+        for i in 0..vis.len() {
+            if vis[i] {
+                continue;
+            }
+
+            let (p0, p1) = segments[i];
+            cr.move_to(p0.0 as f64, p0.1 as f64);
+
+            let mut curr = i;
+            let mut end_point = p1;
+
+            loop {
+                vis[curr] = true;
+                cr.line_to(end_point.0 as f64, end_point.1 as f64);
+
+                let neigh_idxs = &endpoints_to_seg_idxs[&end_point];
+                if let Some(other_idx) = neigh_idxs.iter()
+                    // filter out curr and other visited
+                    .filter(|idx| !vis[**idx])
+                    .next() {
+                    curr = *other_idx;
+                    let (p0, p1) = segments[*other_idx];
+                    end_point = if p0 == end_point {
+                        p1
+                    } else {
+                        p0
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+
+        cr.copy_path().unwrap()
+    }
+
     /// Creates a `cairo::Path` of the outline of the top-leftmost
     /// connected group of bits in the mask (and thus serves as a
-    /// total outline iff the bitmask has only one connected group)
-    fn gen_outline_path(&self, cr: &cairo::Context) -> cairo::Path {
+    /// total outline iff the bitmask has only one connected group
+    /// with no holes)
+    fn gen_outer_outline_path(&self, cr: &cairo::Context) -> cairo::Path {
         // find the top-left-most set bit
         let top_leftmost_coords = (0..(self.height * self.width))
             .filter(|i| self.bits[*i])
@@ -119,7 +223,8 @@ impl ImageBitmask {
             // The following is basically just matching on the invariants
             // of "clockwise motion" (what direction should we move, given
             // which cells are active?)
-            // I don't have proof that it works, and it blows up in some cases.
+            // I don't have proof that it works, and it blows up if
+            // the bits aren't four-directionally connected.
             match (
                 is_active(&bitmask, this),
                 is_active(&bitmask, above),
@@ -147,14 +252,14 @@ impl ImageBitmask {
             }
         }
 
-        return cr.copy_path().unwrap();
+        cr.copy_path().unwrap()
     }
 
     pub fn outline_path(&mut self, cr: &cairo::Context)-> &cairo::Path {
         if let Some(ref path) = self.outline_path {
             path
         } else {
-            let path = self.gen_outline_path(cr);
+            let path = self.gen_edges_path(cr);
             self.outline_path = Some(path);
             self.outline_path.as_ref().unwrap()
         }
