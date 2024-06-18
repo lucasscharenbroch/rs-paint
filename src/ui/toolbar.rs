@@ -74,18 +74,24 @@ impl Toolbar {
         let toolbar_p = ui_p.borrow().toolbar_p.clone();
 
         let button_info: Vec<(&str, fn(&Canvas) -> MouseMode, fn() -> MouseMode)> = vec![
-            ("Cursor", MouseMode::cursor, MouseMode::cursor_default),
-            ("Pencil", MouseMode::pencil, MouseMode::pencil_default),
-            ("Eyedropper", MouseMode::eyedropper, MouseMode::eyedropper_default),
-            ("Rectangle Select", MouseMode::rectangle_select, MouseMode::rectangle_select_default),
-            ("Magic Wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
-            ("Fill", MouseMode::fill, MouseMode::fill_default),
+            ("cursor", MouseMode::cursor, MouseMode::cursor_default),
+            ("pencil", MouseMode::pencil, MouseMode::pencil_default),
+            ("eyedropper", MouseMode::eyedropper, MouseMode::eyedropper_default),
+            ("rectangle-select", MouseMode::rectangle_select, MouseMode::rectangle_select_default),
+            ("magic-wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
+            ("fill", MouseMode::fill, MouseMode::fill_default),
         ];
 
         toolbar_p.borrow_mut().mouse_mode_buttons = button_info.into_iter()
-            .map(|(text, mode_constructor, mode_constructor_default)| {
+            .map(|(name, mode_constructor, mode_constructor_default)| {
+                let icon_widget = gtk::Image::builder()
+                    .file(format!("./icons/{name}.png"))
+                    .build();
+
                 let button = ToggleButton::builder()
-                    .label(text)
+                    .child(&icon_widget)
+                    .width_request(75)
+                    .height_request(75)
                     .build();
 
                 button.connect_clicked(clone!(@strong toolbar_p, @strong ui_p => move |b| {
