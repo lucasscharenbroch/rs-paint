@@ -168,19 +168,19 @@ impl super::MouseModeState for PencilState {
     }
 
     fn draw(&self, canvas: &Canvas, cr: &Context, toolbar: &mut Toolbar) {
-        if let PencilMode::TraceCursor = self.mode {
-            let cursor_pos = canvas.cursor_pos_pix();
-            let cursor_pos = (cursor_pos.0.floor(), cursor_pos.1.floor());
+        let cursor_pos = canvas.cursor_pos_pix();
+        let cursor_pos = (cursor_pos.0.floor(), cursor_pos.1.floor());
 
-            let brush = toolbar.get_brush_mut();
-            let x_offset = (brush.image.width() as i32 - 1) / 2;
-            let y_offset = (brush.image.height() as i32 - 1) / 2;
-            let path = brush.outline_path(cr);
-            cr.translate(cursor_pos.0 - x_offset as f64, cursor_pos.1 - y_offset as f64);
-            cr.new_path();
-            cr.append_path(path);
-            cr.set_source_rgb(0.0, 1.0, 0.0);
-            let _ = cr.stroke();
-        }
+        let brush = toolbar.get_brush_mut();
+        let x_offset = (brush.image.width() as i32 - 1) / 2;
+        let y_offset = (brush.image.height() as i32 - 1) / 2;
+        let path = brush.outline_path(cr);
+        let _ = cr.save();
+        cr.translate(cursor_pos.0 - x_offset as f64, cursor_pos.1 - y_offset as f64);
+        cr.new_path();
+        cr.append_path(path);
+        cr.set_source_rgb(0.0, 1.0, 0.0);
+        let _ = cr.stroke();
+        let _ = cr.restore();
     }
 }
