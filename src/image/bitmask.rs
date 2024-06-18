@@ -11,6 +11,7 @@ pub struct ImageBitmask {
     width: usize,
     bits: Vec<bool>,
     outline_path: Option<cairo::Path>,
+    edge_path: Option<cairo::Path>,
 }
 
 impl ImageBitmask {
@@ -20,6 +21,19 @@ impl ImageBitmask {
             width,
             bits: vec![false; height * width],
             outline_path: None,
+            edge_path: None,
+        }
+    }
+
+    pub fn from_flat_bits(height: usize, width: usize, bits: Vec<bool>) -> Self {
+        assert!(bits.len() == height * width);
+
+        ImageBitmask {
+            height,
+            width,
+            bits,
+            outline_path: None,
+            edge_path: None,
         }
     }
 
@@ -78,7 +92,7 @@ impl ImageBitmask {
 
     /// Creates a `cairo::Path` from all of the set-pixel-to-unset-pixel
     /// boundaries
-    fn gen_edges_path(&self, cr: &cairo::Context) -> cairo::Path {
+    fn gen_edge_path(&self, cr: &cairo::Context) -> cairo::Path {
         #[inline]
         fn is_active(bitmask: &ImageBitmask, x: i32, y: i32) -> bool {
             x >= 0 && y >= 0 &&
@@ -183,7 +197,7 @@ impl ImageBitmask {
     /// connected group of bits in the mask (and thus serves as a
     /// total outline iff the bitmask has only one connected group
     /// with no holes)
-    fn gen_outer_outline_path(&self, cr: &cairo::Context) -> cairo::Path {
+    fn gen_outline_path(&self, cr: &cairo::Context) -> cairo::Path {
         // find the top-left-most set bit
         let top_leftmost_coords = (0..(self.height * self.width))
             .filter(|i| self.bits[*i])
@@ -259,9 +273,19 @@ impl ImageBitmask {
         if let Some(ref path) = self.outline_path {
             path
         } else {
-            let path = self.gen_edges_path(cr);
+            let path = self.gen_outline_path(cr);
             self.outline_path = Some(path);
             self.outline_path.as_ref().unwrap()
+        }
+    }
+
+    pub fn edge_path(&mut self, cr: &cairo::Context)-> &cairo::Path {
+        if let Some(ref path) = self.edge_path {
+            path
+        } else {
+            let path = self.gen_edge_path(cr);
+            self.edge_path = Some(path);
+            self.edge_path.as_ref().unwrap()
         }
     }
 }

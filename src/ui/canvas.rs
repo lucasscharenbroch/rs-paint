@@ -177,7 +177,10 @@ impl Canvas {
         // drawing
 
         canvas_p.borrow_mut().set_draw_hook(Box::new(clone!(@strong ui_p, @strong canvas_p => move |cr| {
-            ui_p.borrow().toolbar_p.borrow_mut().mouse_mode().draw(&canvas_p.borrow(), cr);
+            let ui = ui_p.borrow();
+            let mut toolbar = ui.toolbar_p.borrow_mut();
+            let mouse_mode = toolbar.mouse_mode().clone();
+            mouse_mode.draw(&canvas_p.borrow(), cr, &mut toolbar);
         })));
 
         // mouse-mode-change

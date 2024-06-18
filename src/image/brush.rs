@@ -1,3 +1,4 @@
+use super::bitmask::ImageBitmask;
 use super::{Image, ImageLike, Pixel};
 use super::blend::BlendingMode;
 
@@ -60,6 +61,7 @@ impl ImageLike for BrushImage {
 pub struct Brush {
     props: BrushProperties,
     pub image: BrushImage,
+    bitmask: ImageBitmask,
 }
 
 fn mk_square_brush_image(n: u8, color: RGBA) -> BrushImage {
@@ -132,14 +134,26 @@ impl Brush {
 
     fn from_props(props: BrushProperties) -> Self {
         let image = Self::image_from_props(&props);
+        let bitmask = ImageBitmask::from_flat_bits(
+            props.radius as usize,
+            props.radius as usize,
+            image.pixel_options.iter()
+                .map(|opt| opt.is_some())
+                .collect::<Vec<_>>()
+        );
 
         Brush {
             props,
             image,
+            bitmask,
         }
     }
 
     pub fn radius(&self) -> usize {
         self.props.radius as usize
+    }
+
+    pub fn outline_path(&mut self, cr: &gtk::cairo::Context) -> &gtk::cairo::Path {
+        self.bitmask.outline_path(cr)
     }
 }

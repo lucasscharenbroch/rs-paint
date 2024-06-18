@@ -162,6 +162,11 @@ impl Toolbar {
         &self.brush
     }
 
+    fn get_brush_mut(&mut self) -> &mut Brush {
+        self.get_brush();
+        &mut self.brush
+    }
+
     fn get_blending_mode(&self) -> BlendingMode {
         let (_brush_type, blending_mode, _radius) = self.mode_toolbar.get_pencil_settings();
         blending_mode

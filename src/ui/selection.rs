@@ -32,7 +32,7 @@ fn draw_sel_mask(image_height: usize, image_width: usize, selection_mask: &mut I
     assert!(image_width == selection_mask.width());
     assert!(image_height == selection_mask.height());
 
-    let path = selection_mask.outline_path(cr);
+    let path = selection_mask.edge_path(cr);
     cr.new_path();
     cr.append_path(path);
 

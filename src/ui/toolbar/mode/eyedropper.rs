@@ -27,7 +27,7 @@ impl super::MouseModeState for EyedropperState {
         }
     }
 
-    fn draw(&self, _canvas: &Canvas, _cr: &Context) {
+    fn draw(&self, _canvas: &Canvas, _cr: &Context, _toolbar: &mut Toolbar) {
         // TODO?
     }
 }

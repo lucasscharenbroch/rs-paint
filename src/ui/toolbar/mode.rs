@@ -46,7 +46,7 @@ trait MouseModeState {
     fn handle_drag_end(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
     fn handle_motion(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
     fn handle_mod_key_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
-    fn draw(&self, _canvas: &Canvas, _cr: &Context) {}
+    fn draw(&self, _canvas: &Canvas, _cr: &Context, _toolbar: &mut Toolbar) {}
 }
 
 impl MouseMode {
@@ -140,8 +140,8 @@ impl MouseMode {
         self.get_state().handle_mod_key_update(mod_keys, canvas, toolbar);
     }
 
-    pub fn draw(&self, canvas: &Canvas, context: &Context) {
-        self.get_state_immutable().draw(canvas, context);
+    pub fn draw(&self, canvas: &Canvas, context: &Context, toolbar: &mut Toolbar) {
+        self.get_state_immutable().draw(canvas, context, toolbar);
     }
 
     pub fn variant(&self) -> MouseModeVariant {

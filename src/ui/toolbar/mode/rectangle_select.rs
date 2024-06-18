@@ -116,7 +116,7 @@ impl super::MouseModeState for RectangleSelectState {
         canvas.update();
     }
 
-    fn draw(&self, canvas: &Canvas, cr: &Context) {
+    fn draw(&self, canvas: &Canvas, cr: &Context, _toolbar: &mut Toolbar) {
         if let Self::Selected(x, y, w, h) = self {
             Self::visual_box_around(*x, *y, *w, *h, *canvas.zoom())(cr);
         }
