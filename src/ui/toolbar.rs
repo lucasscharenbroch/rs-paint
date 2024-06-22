@@ -26,6 +26,9 @@ pub struct Toolbar {
     mode_change_hook: Option<Box<dyn Fn(&Toolbar)>>,
     mode_toolbar: ModeToolbar,
     brush: Brush,
+    /// One-pixel brush to use for the eyedropper,
+    /// solely for the visual of highlighting one pixel
+    eyedropper_brush: Brush,
 }
 
 struct MouseModeButton {
@@ -52,6 +55,7 @@ impl Toolbar {
         let mode_toolbar_wrapper = GBox::builder().build();
         let mode_toolbar = ModeToolbar::new(&mode_toolbar_wrapper, Some(INITIAL_MODE.variant()));
         let brush = Brush::new(default_color, BrushType::Round, 5);
+        let eyedropper_brush = Brush::new(default_color, BrushType::Square, 1);
 
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
@@ -66,6 +70,7 @@ impl Toolbar {
             mode_change_hook: None,
             mode_toolbar,
             brush,
+            eyedropper_brush,
         }));
 
         toolbar_p
@@ -176,6 +181,10 @@ impl Toolbar {
     fn get_brush_mut(&mut self) -> &mut Brush {
         self.get_brush();
         &mut self.brush
+    }
+
+    fn get_eyedropper_brush_mut(&mut self) -> &mut Brush {
+        &mut self.eyedropper_brush
     }
 
     fn get_blending_mode(&self) -> BlendingMode {

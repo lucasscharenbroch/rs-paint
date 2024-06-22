@@ -37,7 +37,7 @@ pub struct Canvas {
     scrollbar_update_handlers: Option<(SignalHandlerId, SignalHandlerId)>,
     single_shot_draw_hooks: Vec<Box<dyn Fn(&Context)>>,
     draw_hook: Option<Box<dyn Fn(&Context)>>,
-    transparent_checkerboard: DrawableImage,
+    transparent_checkerboard: Rc<RefCell<DrawableImage>>,
     ui_p: Rc<RefCell<UiState>>,
     /// Mapping from state ids to the cursor positions
     /// *at time of the respective commit's completion*
@@ -75,7 +75,7 @@ impl Canvas {
             scrollbar_update_handlers: None,
             single_shot_draw_hooks: vec![],
             draw_hook: None,
-            transparent_checkerboard: mk_transparent_checkerboard(),
+            transparent_checkerboard: Rc::new(RefCell::new(mk_transparent_checkerboard())),
             ui_p: ui_p.clone(),
             history_id_to_cursor_pos_pix: HashMap::new(),
         }));
@@ -333,6 +333,9 @@ impl Canvas {
         (x_slack.max(0.0) / 2.0 / self.zoom, y_slack.max(0.0) / 2.0 / self.zoom)
     }
 
+    pub fn transparent_checkerboard_pattern(&self) -> gtk::cairo::SurfacePattern {
+        self.transparent_checkerboard.borrow_mut().to_repeated_surface_pattern()
+    }
 
     fn draw(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
         let img_width = self.image_width() as f64;
@@ -341,7 +344,7 @@ impl Canvas {
         let y_offset = (area_height as f64 - img_height * self.zoom) / 2.0;
 
         let image_surface_pattern = self.image_hist.now_mut().drawable().to_surface_pattern();
-        let transparent_pattern = self.transparent_checkerboard.to_repeated_surface_pattern();
+        let transparent_pattern = self.transparent_checkerboard.borrow_mut().to_repeated_surface_pattern();
 
         cr.translate(x_offset as f64, y_offset as f64);
         cr.scale(self.zoom, self.zoom);
@@ -382,7 +385,7 @@ impl Canvas {
         let scale = area_width as f64 / img_width as f64;
 
         let image_surface_pattern = self.image_hist.now_mut().drawable().to_surface_pattern();
-        let transparent_pattern = self.transparent_checkerboard.to_repeated_surface_pattern();
+        let transparent_pattern = self.transparent_checkerboard.borrow_mut().to_repeated_surface_pattern();
 
         cr.scale(scale, scale);
 
@@ -494,6 +497,10 @@ impl Canvas {
 
     pub fn image_ref(&self) -> &UnifiedImage {
         self.image_hist.now()
+    }
+
+    pub fn image_image_ref(&self) -> &Image {
+        self.image_hist.now().image()
     }
 
     pub fn image_height(&self) -> i32 {

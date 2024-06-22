@@ -187,11 +187,13 @@ impl super::MouseModeState for PencilState {
         let y_offset = (brush.image.height() as i32 - 1) / 2;
         let path = brush.outline_path(cr);
         let _ = cr.save();
-        cr.translate(cursor_pos.0 - x_offset as f64, cursor_pos.1 - y_offset as f64);
-        cr.new_path();
-        cr.append_path(path);
-        cr.set_source_rgb(0.0, 1.0, 0.0);
-        let _ = cr.stroke();
+        {
+            cr.translate(cursor_pos.0 - x_offset as f64, cursor_pos.1 - y_offset as f64);
+            cr.new_path();
+            cr.append_path(path);
+            cr.set_source_rgb(0.0, 1.0, 0.0);
+            let _ = cr.stroke();
+        }
         let _ = cr.restore();
     }
 }
