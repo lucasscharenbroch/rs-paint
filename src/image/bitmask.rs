@@ -83,12 +83,13 @@ impl ImageBitmask {
     }
 
     /// Returns (row, col) of active bits
-    pub fn coords_of_active_bits(&self) -> Vec<(usize, usize)> {
-        self.bits.iter()
-            .enumerate()
-            .filter(|(_idx, is_active)| **is_active)
-            .map(|(idx, _is_active)| (idx / self.width, idx % self.width))
-            .collect::<Vec<_>>()
+    pub fn coords_of_active_bits(&self) -> Box<dyn Iterator<Item = (usize, usize)> + '_> {
+        Box::new(
+            self.bits.iter()
+                .enumerate()
+                .filter(|(_idx, is_active)| **is_active)
+                .map(|(idx, _is_active)| (idx / self.width, idx % self.width))
+        )
     }
 
     /// Creates a `cairo::Path` from all of the set-pixel-to-unset-pixel

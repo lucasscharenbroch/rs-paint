@@ -64,7 +64,7 @@ impl Canvas {
 }
 
 impl Selection {
-    pub fn iter(&self) -> Box<dyn Iterator<Item = (usize, usize)>> {
+    pub fn iter(&self) -> Box<dyn Iterator<Item = (usize, usize)> + '_> {
         match self {
             Self::Rectangle(x, y, w, h) => {
                 let xs = *x..(x + w);
@@ -72,7 +72,7 @@ impl Selection {
                 return Box::new(ys.cartesian_product(xs));
             },
             Self::Bitmask(selection_mask) => {
-                return Box::new(selection_mask.coords_of_active_bits().into_iter());
+                return selection_mask.coords_of_active_bits();
             },
             Self::NoSelection => {
                 return Box::new(std::iter::empty());

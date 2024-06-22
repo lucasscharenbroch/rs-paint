@@ -27,8 +27,8 @@ impl super::MouseModeState for FillState {
         let image = canvas.image();
         let p = Pixel::from_rgba_struct(toolbar.primary_color());
 
-        for (r, c) in bitmask.coords_of_active_bits().iter() {
-            *image.pix_at_mut(*r as i32, *c as i32) = p.clone();
+        for (r, c) in bitmask.coords_of_active_bits() {
+            *image.pix_at_mut(r as i32, c as i32) = p.clone();
         }
 
         canvas.save_state_for_undo(ActionName::Fill);
