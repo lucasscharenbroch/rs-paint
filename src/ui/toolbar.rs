@@ -141,6 +141,10 @@ impl Toolbar {
         &self.mouse_mode
     }
 
+    pub fn mouse_mode_mut(&mut self) -> &mut MouseMode {
+        &mut self.mouse_mode
+    }
+
     pub fn set_mouse_mode(&mut self, new_mouse_mode: MouseMode) {
         self.mouse_mode = new_mouse_mode;
         self.mode_toolbar.set_to_variant(new_mouse_mode.variant());

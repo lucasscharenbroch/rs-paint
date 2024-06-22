@@ -373,17 +373,27 @@ impl UiState {
     }
 
     pub fn undo(ui_p: Rc<RefCell<Self>>) {
-        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-            canvas_p.borrow_mut().undo();
-            canvas_p.borrow_mut().update();
-        }
+        // do some gymnastics to avoid holding onto ui_p
+        // when we call `Canvas::undo`
+        let canvas_p = if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.clone()
+        } else {
+            return;
+        };
+
+        canvas_p.borrow_mut().undo();
     }
 
     pub fn redo(ui_p: Rc<RefCell<Self>>) {
-        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-            canvas_p.borrow_mut().redo();
-            canvas_p.borrow_mut().update();
-        }
+        // do some gymnastics to avoid holding onto ui_p
+        // when we call `Canvas::undo`
+        let canvas_p = if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.clone()
+        } else {
+            return;
+        };
+
+        canvas_p.borrow_mut().redo();
     }
 
     pub fn undo_history(ui_p: Rc<RefCell<Self>>) {

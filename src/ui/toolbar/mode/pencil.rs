@@ -1,4 +1,4 @@
-use super::{Canvas, Toolbar, MouseModeVariant};
+use super::{cursor, Canvas, MouseModeVariant, Toolbar};
 use crate::image::ImageLike;
 use crate::image::undo::action::ActionName;
 use crate::ui::form::Form;
@@ -15,6 +15,8 @@ enum PencilMode {
 
 #[derive(Clone, Copy)]
 pub struct PencilState {
+    /// The (real-number) pixel coordinates of the
+    /// last-drawn-to position
     last_cursor_pos_pix: (f64, f64),
     mode: PencilMode,
     // Pencil strokes are formed by drawing `BrushImage`s
@@ -26,8 +28,13 @@ pub struct PencilState {
 }
 
 impl PencilState {
-    pub fn default(_canvas: &Canvas) -> PencilState {
-        Self::default_no_canvas()
+    pub fn default(canvas: &Canvas) -> PencilState {
+        let last_cursor_pos_pix = canvas.last_cursor_pos_pix();
+        PencilState {
+            last_cursor_pos_pix,
+            mode: PencilMode::TraceCursor,
+            dist_till_resample: 0.0,
+        }
     }
 
     pub fn default_no_canvas() -> PencilState {
@@ -102,6 +109,10 @@ impl PencilState {
             let _ = cr.stroke();
         })
     }
+
+    pub fn set_last_cursor_pos_pix(&mut self, value: (f64, f64)) {
+        self.last_cursor_pos_pix = value;
+    }
 }
 
 // given a continuous line segment, return the given number
@@ -169,6 +180,7 @@ impl super::MouseModeState for PencilState {
 
     fn draw(&self, canvas: &Canvas, cr: &Context, toolbar: &mut Toolbar) {
         let cursor_pos = canvas.cursor_pos_pix_f();
+        let cursor_pos = (cursor_pos.0.floor(), cursor_pos.1.floor());
 
         let brush = toolbar.get_brush_mut();
         let x_offset = (brush.image.width() as i32 - 1) / 2;

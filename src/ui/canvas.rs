@@ -7,6 +7,7 @@ use super::super::image::resize::Crop;
 use super::selection::Selection;
 use super::UiState;
 use super::toolbar::Toolbar;
+use super::toolbar::mode::MouseMode;
 
 use gtk::{prelude::*, Widget};
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
@@ -19,11 +20,14 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use gtk::glib::SignalHandlerId;
 use glib_macros::clone;
+use std::collections::HashMap;
 
 pub struct Canvas {
     image_hist: ImageHistory,
     zoom: f64,
     pan: (f64, f64),
+    /// The cursor's position, in terms of the ui,
+    /// NOT THE IMAGE (use `*_pos_pix` for pixel-relative coords)
     cursor_pos: (f64, f64),
     drawing_area: DrawingArea,
     grid: Grid,
@@ -35,6 +39,10 @@ pub struct Canvas {
     draw_hook: Option<Box<dyn Fn(&Context)>>,
     transparent_checkerboard: DrawableImage,
     ui_p: Rc<RefCell<UiState>>,
+    /// Mapping from state ids to the cursor positions
+    /// *at time of the respective commit's completion*
+    /// (position is relative to the image's pixel coords)
+    history_id_to_cursor_pos_pix: HashMap<usize, (f64, f64)>,
 }
 
 impl Canvas {
@@ -69,6 +77,7 @@ impl Canvas {
             draw_hook: None,
             transparent_checkerboard: mk_transparent_checkerboard(),
             ui_p: ui_p.clone(),
+            history_id_to_cursor_pos_pix: HashMap::new(),
         }));
 
         let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
@@ -76,7 +85,7 @@ impl Canvas {
         }));
 
         let update_canvas = Rc::new(clone!(@strong canvas_p => move || {
-            canvas_p.borrow_mut().update();
+            canvas_p.borrow_mut().update_after_undo_or_redo();
         }));
 
         canvas_p.borrow_mut().image_hist.set_hooks(mod_hist, update_canvas);
@@ -199,6 +208,8 @@ impl Canvas {
         &self.drawing_area
     }
 
+    /// Get the cursor's position, in terms of the ui,
+    /// NOT THE IMAGE (use `*_pos_pix` for pixel-relative coords)
     pub fn cursor_pos(&self) -> &(f64, f64) {
         &self.cursor_pos
     }
@@ -431,6 +442,16 @@ impl Canvas {
         }
     }
 
+    pub fn update_after_undo_or_redo(&mut self) {
+        let last_cursor_pos_pix = self.last_cursor_pos_pix();
+        if let MouseMode::Pencil(ref mut pencil_state) = self.ui_p.borrow_mut()
+                .toolbar_p.borrow_mut().mouse_mode_mut() {
+            pencil_state.set_last_cursor_pos_pix(last_cursor_pos_pix)
+        }
+
+        self.update();
+    }
+
     pub fn update(&mut self) {
         self.update_scrollbars();
         self.validate_selection();
@@ -485,14 +506,25 @@ impl Canvas {
 
     pub fn undo(&mut self) {
         self.image_hist.undo();
+        self.update_after_undo_or_redo();
     }
 
     pub fn redo(&mut self) {
         self.image_hist.redo();
+        self.update_after_undo_or_redo();
+    }
+
+    fn save_cursor_pos_after_history_commit(&mut self) {
+        let history_id = self.image_hist.now_id();
+        self.history_id_to_cursor_pos_pix.insert(
+            history_id,
+            self.cursor_pos_pix_f(),
+        );
     }
 
     pub fn save_state_for_undo(&mut self, culprit: ActionName) {
         self.image_hist.push_current_state(culprit);
+        self.save_cursor_pos_after_history_commit();
     }
 
     pub fn exec_doable_action<A>(&mut self, action: A)
@@ -500,11 +532,13 @@ impl Canvas {
         A: DoableAction,
     {
         self.image_hist.exec_doable_action(action);
+        self.save_cursor_pos_after_history_commit();
         self.update();
     }
 
     pub fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction>) {
         self.image_hist.exec_undoable_action(action);
+        self.save_cursor_pos_after_history_commit();
         self.update();
     }
 
@@ -528,6 +562,7 @@ impl Canvas {
         let action = DeletePix::new(self.selection.iter());
         self.image_hist.exec_doable_action(action);
         self.selection = Selection::NoSelection;
+        self.save_cursor_pos_after_history_commit();
         self.update();
     }
 
@@ -548,5 +583,11 @@ impl Canvas {
         if !is_valid {
             self.selection = Selection::NoSelection;
         }
+    }
+
+    pub fn last_cursor_pos_pix(&self) -> (f64, f64) {
+        let hist_id = self.image_hist.now_id();
+        *self.history_id_to_cursor_pos_pix.get(&hist_id)
+            .unwrap_or(&(0.0, 0.0))
     }
 }
