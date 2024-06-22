@@ -1,8 +1,10 @@
+use super::super::super::icon_file;
+
 use gtk::{prelude::*, ShortcutsGroup, Window};
 use gtk::glib::object::IsA;
 
 pub fn about_dialog(parent: &impl IsA<Window>) {
-    let icon_texture = gtk::gdk::Texture::from_filename(&format!("./icons/{}.png", "logo"));
+    let icon_texture = gtk::gdk::Texture::from_filename(&icon_file!("logo"));
 
     let dialog = gtk::AboutDialog::builder()
         .program_name("RS-Paint")

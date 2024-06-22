@@ -22,6 +22,13 @@ use std::cell::RefCell;
 use glib_macros::clone;
 use gtk::glib::signal::Propagation;
 
+#[macro_export]
+macro_rules! icon_file {
+    ($name:expr) => {
+        format!("./icons/{}.png", $name)
+    };
+}
+
 fn get_parent_window(widget: &impl IsA<Widget>) -> Option<Window> {
     let parent = widget.parent()?;
 

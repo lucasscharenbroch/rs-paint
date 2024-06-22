@@ -9,6 +9,7 @@ use palette::Palette;
 use crate::image::brush::{Brush, BrushType};
 use crate::image::blend::BlendingMode;
 use super::toolbar::mode::ModeToolbar;
+use super::super::icon_file;
 
 use gtk::prelude::*;
 use gtk::{Box as GBox, Orientation, ToggleButton};
@@ -85,7 +86,7 @@ impl Toolbar {
         toolbar_p.borrow_mut().mouse_mode_buttons = button_info.into_iter()
             .map(|(name, mode_constructor, mode_constructor_default)| {
                 let icon_widget = gtk::Image::builder()
-                    .file(format!("./icons/{name}.png"))
+                    .file(icon_file!(name))
                     .build();
 
                 let button = ToggleButton::builder()
