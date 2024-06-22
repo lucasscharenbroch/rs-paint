@@ -1,5 +1,6 @@
 use crate::image::bitmask::ImageBitmask;
 use super::canvas::Canvas;
+use crate::util::Iterable;
 
 use gtk::cairo::{Context, Rectangle};
 use itertools::Itertools;
@@ -63,8 +64,10 @@ impl Canvas {
     }
 }
 
-impl Selection {
-    pub fn iter(&self) -> Box<dyn Iterator<Item = (usize, usize)>> {
+impl Iterable for Selection {
+    type Item = (usize, usize);
+
+    fn iter(&self) -> Box<dyn Iterator<Item = (usize, usize)>> {
         match self {
             Self::Rectangle(x, y, w, h) => {
                 let xs = *x..(x + w);

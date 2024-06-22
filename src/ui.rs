@@ -1,4 +1,4 @@
-pub mod selection;
+mod selection;
 mod canvas;
 mod toolbar;
 mod dialog;
