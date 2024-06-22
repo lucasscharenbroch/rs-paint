@@ -3,7 +3,6 @@ use gtk::cairo;
 
 use super::{Image, ImageLike, Pixel};
 use super::undo::action::{DoableAction, ActionName};
-use crate::util::Iterable;
 
 /// Wrapper for flattened Vec<bool>; instances should
 /// be viewed as immutable, else the cached `outline_path`
@@ -327,30 +326,30 @@ fn in_bounds_4d_neighbors(r: usize, c: usize, w: usize, h: usize) -> Vec<(usize,
     .collect::<Vec<_>>()
 }
 
-pub struct DeletePix<'i, I>
+pub struct DeletePix<I>
 where
-    I: Iterable<Item = (usize, usize)>
+    I: Iterator<Item = (usize, usize)>
 {
-    iter_pix: &'i I,
+    pix_iter: I,
 }
 
-impl<'i, I> DeletePix<'i, I>
+impl<I> DeletePix<I>
 where
-    I: Iterable<Item = (usize, usize)>
+    I: Iterator<Item = (usize, usize)>
 {
-    pub fn new(iter_pix: &'i I) -> Self {
+    pub fn new(pix_iter: I) -> Self {
         Self {
-            iter_pix,
+            pix_iter,
         }
     }
 }
 
-impl<'i, I> DoableAction for DeletePix<'i, I>
+impl<I> DoableAction for DeletePix<I>
 where
-    I: Iterable<Item = (usize, usize)>
+    I: Iterator<Item = (usize, usize)>
 {
-    fn exec(&self, image: &mut crate::image::UnifiedImage) {
-        for (r, c) in self.iter_pix.iter() {
+    fn exec(self, image: &mut crate::image::UnifiedImage) {
+        for (r, c) in self.pix_iter {
             *image.pix_at_mut(r as i32, c as i32) = Pixel::from_rgba(0, 0, 0, 0);
         }
     }

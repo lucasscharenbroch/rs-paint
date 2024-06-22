@@ -20,7 +20,7 @@ pub enum ActionName {
 
 pub trait DoableAction {
     fn name(&self) -> ActionName;
-    fn exec(&self, image: &mut UnifiedImage);
+    fn exec(self, image: &mut UnifiedImage);
     // undo is imlpicit: it will be done by diffing the image
 }
 
@@ -39,9 +39,13 @@ pub trait StaticUndoableAction: UndoableAction {
 }
 
 impl ImageHistory {
-    pub fn exec_doable_action(&mut self, action: &impl DoableAction) {
+    pub fn exec_doable_action<A>(&mut self, action: A)
+    where
+        A: DoableAction,
+    {
+        let name = action.name();
         action.exec(self.now_mut());
-        self.push_current_state(action.name());
+        self.push_current_state(name);
     }
 
     pub fn exec_undoable_action(&mut self, mut action: Box<dyn UndoableAction>) {

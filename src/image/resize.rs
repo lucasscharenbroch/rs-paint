@@ -58,7 +58,7 @@ impl DoableAction for Scale {
         ActionName::Scale
     }
 
-    fn exec(&self, image: &mut UnifiedImage) {
+    fn exec(self, image: &mut UnifiedImage) {
         match self.method {
             ScaleMethod::NearestNeighbor => self.exec_scale_with_fn(image, nearest_neighbor),
             ScaleMethod::Bilinear => self.exec_scale_with_fn(image, bilinear),

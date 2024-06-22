@@ -490,7 +490,10 @@ impl Canvas {
         self.image_hist.push_current_state(culprit);
     }
 
-    pub fn exec_doable_action(&mut self, action: &impl DoableAction) {
+    pub fn exec_doable_action<A>(&mut self, action: A)
+    where
+        A: DoableAction,
+    {
         self.image_hist.exec_doable_action(action);
         self.update();
     }
@@ -517,8 +520,8 @@ impl Canvas {
     }
 
     pub fn delete_selection(&mut self) {
-        let action = DeletePix::new(&self.selection);
-        self.image_hist.exec_doable_action(&action);
+        let action = DeletePix::new(self.selection.iter());
+        self.image_hist.exec_doable_action(action);
         self.selection = Selection::NoSelection;
         self.update();
     }
