@@ -69,7 +69,7 @@ impl PencilState {
 
     fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let line_pt0 = self.last_cursor_pos_pix;
-        let line_pt1 = canvas.cursor_pos_pix();
+        let line_pt1 = canvas.cursor_pos_pix_f();
         self.last_cursor_pos_pix = line_pt1;
 
         self.draw_line_between(line_pt0, line_pt1, canvas, toolbar);
@@ -81,7 +81,7 @@ impl PencilState {
         let zoom = *canvas.zoom();
 
         let (x0, y0) = self.last_cursor_pos_pix;
-        let (x1, y1) = canvas.cursor_pos_pix();
+        let (x1, y1) = canvas.cursor_pos_pix_f();
 
         Box::new(move |cr| {
             const LINE_WIDTH: f64 = 3.0;
@@ -140,7 +140,7 @@ impl super::MouseModeState for PencilState {
             self.mode = PencilMode::TraceCursor;
         }
 
-        self.last_cursor_pos_pix = canvas.cursor_pos_pix();
+        self.last_cursor_pos_pix = canvas.cursor_pos_pix_f();
     }
 
     fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
@@ -168,8 +168,7 @@ impl super::MouseModeState for PencilState {
     }
 
     fn draw(&self, canvas: &Canvas, cr: &Context, toolbar: &mut Toolbar) {
-        let cursor_pos = canvas.cursor_pos_pix();
-        let cursor_pos = (cursor_pos.0.floor(), cursor_pos.1.floor());
+        let cursor_pos = canvas.cursor_pos_pix_f();
 
         let brush = toolbar.get_brush_mut();
         let x_offset = (brush.image.width() as i32 - 1) / 2;

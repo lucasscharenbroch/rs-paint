@@ -21,8 +21,7 @@ impl MagicWandState {
 
 impl super::MouseModeState for MagicWandState {
     fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
-        let (ox, oy) = canvas.cursor_pos_pix();
-        let (oc, or) = (ox.floor() as usize, oy.floor() as usize);
+        let (oc, or) = canvas.cursor_pos_pix_u();
         let tolerance = toolbar.get_magic_wand_tolerance();
 
         let bitmask = ImageBitmask::from_flood_fill(canvas.image().image(), tolerance, or, oc);

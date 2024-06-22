@@ -215,8 +215,8 @@ impl Canvas {
         &self.zoom
     }
 
-    // give the cursor_pos in terms of pixels in the image
-    pub fn cursor_pos_pix(&self) -> (f64, f64) {
+    /// Get the cursor_pos in terms of pixels in the image
+    pub fn cursor_pos_pix_f(&self) -> (f64, f64) {
         let area_width = self.drawing_area.width();
         let area_height = self.drawing_area.height();
         let img_width = self.image_width() as f64;
@@ -231,6 +231,11 @@ impl Canvas {
 
         ((x - top_left_x) / self.zoom,
          (y - top_left_y) / self.zoom)
+    }
+
+    pub fn cursor_pos_pix_u(&self) -> (usize, usize) {
+        let (x, y) = self.cursor_pos_pix_f();
+        (x.floor() as usize, y as usize)
     }
 
     pub fn inc_zoom(&mut self, inc: f64) {

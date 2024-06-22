@@ -26,7 +26,7 @@ impl RectangleSelectState {
     }
 
     fn calc_xywh(ax: f64, ay: f64, canvas: &Canvas) -> (f64, f64, f64, f64) {
-        let (cx, cy) = canvas.cursor_pos_pix();
+        let (cx, cy) = canvas.cursor_pos_pix_f();
 
         // round boundaries to nearest pixel
         let x = if cx > ax { ax.floor() } else { ax.ceil() };
@@ -98,7 +98,7 @@ impl super::MouseModeState for RectangleSelectState {
             }
         }
 
-        let (ax, ay) = canvas.cursor_pos_pix();
+        let (ax, ay) = canvas.cursor_pos_pix_f();
         *self = Self::Selecting(ax, ay);
         canvas.set_selection(Selection::NoSelection);
     }
