@@ -2,6 +2,8 @@ use gtk::{prelude::*, ShortcutsGroup, Window};
 use gtk::glib::object::IsA;
 
 pub fn about_dialog(parent: &impl IsA<Window>) {
+    let icon_texture = gtk::gdk::Texture::from_filename(&format!("./icons/{}.png", "logo"));
+
     let dialog = gtk::AboutDialog::builder()
         .program_name("RS-Paint")
         .comments("A lightweight image editor, written in Rust using GTK4.")
@@ -12,6 +14,10 @@ pub fn about_dialog(parent: &impl IsA<Window>) {
         .deletable(true)
         .transient_for(parent)
         .build();
+
+    if let Ok(texture) = icon_texture {
+        dialog.set_logo(Some(&texture));
+    }
 
     dialog.present();
 }
