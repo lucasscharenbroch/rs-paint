@@ -206,6 +206,52 @@ impl ExpandJustification {
 
         r_in_window && c_in_window
     }
+
+    /// Given a height/width, plus amounts to truncate,
+    /// determine the rectangle of the justified region
+    pub fn bounding_box_in(
+        &self,
+        height: usize,
+        width: usize,
+        height_margin: usize,
+        width_margin: usize,
+    ) -> (i32, i32, i32, i32) { // (x, y, w, h)
+        let width = width as i32;
+        let height = height as i32;
+        let width_margin = width_margin as i32;
+        let height_margin = height_margin as i32;
+
+        let (w, h) = (
+            width - width_margin,
+            height - height_margin,
+        );
+
+        let x = match self {
+            ExpandJustification::TopLeft |
+            ExpandJustification::MiddleLeft |
+            ExpandJustification::BottomLeft => 0,
+            ExpandJustification::TopCenter |
+            ExpandJustification::MiddleCenter |
+            ExpandJustification::BottomCenter => width_margin / 2,
+            ExpandJustification::TopRight |
+            ExpandJustification::MiddleRight |
+            ExpandJustification::BottomRight => width_margin,
+        };
+
+        let y = match self {
+            ExpandJustification::TopLeft |
+            ExpandJustification::TopCenter |
+            ExpandJustification::TopRight => 0,
+            ExpandJustification::MiddleLeft |
+            ExpandJustification::MiddleCenter |
+            ExpandJustification::MiddleRight => height_margin / 2,
+            ExpandJustification::BottomLeft |
+            ExpandJustification::BottomCenter |
+            ExpandJustification::BottomRight => height_margin,
+        };
+
+        (x, y, w, h)
+    }
 }
 
 #[derive(Clone)]

@@ -9,8 +9,9 @@ mod form;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, close_dialog, ok_dialog_str_, scale_dialog, CloseDialog};
+use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, truncate_dialog, close_dialog, ok_dialog_str_, scale_dialog, CloseDialog};
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
+use crate::image::resize::Crop;
 use tab::{Tab, Tabbar};
 use toolbar::mode::{MouseMode, RectangleSelectState};
 
@@ -446,6 +447,44 @@ impl UiState {
                     canvas_p.borrow_mut().exec_undoable_action(Box::new(action));
                 }
             }));
+        }
+    }
+
+    fn truncate(ui_p: Rc<RefCell<Self>>) {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            let (width, height) = (
+                canvas_p.borrow().image_width() as usize,
+                canvas_p.borrow().image_height() as usize,
+            );
+            truncate_dialog(
+                &ui_p.borrow().window,
+                width,
+                height,
+                clone!(@strong ui_p => move |(x, y, w, h)| {
+                    if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+                        if width != canvas_p.borrow().image_width() as usize ||
+                           height != canvas_p.borrow().image_height() as usize {
+                            ok_dialog_str_(
+                                &ui_p.borrow().window,
+                                "Truncation failed",
+                                "The image size has changed since the truncation dialog was opened.",
+                            )
+                        } else {
+                            if x < 0 || x > width as i32 || x + w <= 0 || x + w > width as i32 || w < 1 ||
+                               y < 0 || y > height as i32 || y + h <= 0 || y + h > height as i32 || h < 1 {
+                                ok_dialog_str_(
+                                    &ui_p.borrow().window,
+                                    "Truncation failed",
+                                    "Invalid truncation size",
+                                )
+                            } else {
+                                let (x, y, w, h) = (x as usize, y as usize, w as usize, h as usize);
+                                canvas_p.borrow_mut().exec_undoable_action(Box::new(Crop::new(x, y, w, h)));
+                            }
+                        }
+                    }
+                }),
+            );
         }
     }
 }

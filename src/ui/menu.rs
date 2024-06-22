@@ -78,6 +78,7 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
     let scale_fn = Box::new(clone!(@strong ui_state => move || UiState::scale(ui_state.clone())));
     let expand_fn = Box::new(clone!(@strong ui_state => move || UiState::expand(ui_state.clone())));
     let crop_fn = Box::new(clone!(@strong ui_state => move || UiState::crop_to_selection(ui_state.clone())));
+    let truncate_fn = Box::new(clone!(@strong ui_state => move || UiState::truncate(ui_state.clone())));
     let flip_horiz_fn = Box::new(mk_do_uaction(Box::new(Flip::Horizontal)));
     let flip_vert_fn = Box::new(mk_do_uaction(Box::new(Flip::Vertical)));
     let flip_transpose_fn = Box::new(mk_do_uaction(Box::new(Flip::Transpose)));
@@ -89,6 +90,7 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
         .item("Scale", "scale", scale_fn)
         .item("Expand", "expand", expand_fn)
         .item("Crop To Selection", "crop-to-selection", crop_fn)
+        .item("Truncate", "truncate", truncate_fn)
         .submenu("Flip",
             MenuBuilder::new()
             .item("Horizontally", "flip-horiz", flip_horiz_fn)

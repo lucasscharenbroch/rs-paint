@@ -8,7 +8,7 @@ use crate::image::generate::NewImageProps;
 use crate::ui::form::{ColorField, ExpandJustificationField};
 use super::form::DropdownField;
 use super::form::{Form, gadget::AspectRatioGadget};
-use crate::image::resize::{Scale, ScaleMethod, Expand, ExpandJustification};
+use crate::image::resize::{Scale, ScaleMethod, Expand, ExpandJustification, Crop};
 
 use gtk::{prelude::*, FileDialog, Window};
 use gtk::ColorDialog;
@@ -162,6 +162,46 @@ pub fn expand_dialog<P: Fn(Expand) + 'static>(
             color_button.value(),
         );
         callback(action);
+        CloseDialog::Yes
+    };
+
+    let on_cancel = || CloseDialog::Yes;
+
+    ok_cancel_dialog(parent, "Expand", form.widget(), on_ok, on_cancel);
+}
+
+pub fn truncate_dialog<P: Fn((i32, i32, i32, i32)) + 'static>(
+    parent: &impl IsA<Window>,
+    width: usize,
+    height: usize,
+    callback: P
+) {
+    const DEFAULT_TRUNCATION_WIDTH: usize = 10;
+    const DEFAULT_TRUNCATION_HEIGHT: usize = 10;
+
+    let height_width_gadget = AspectRatioGadget::new_p(
+        "Width Truncation",
+        "Height Truncation",
+        DEFAULT_TRUNCATION_WIDTH,
+        DEFAULT_TRUNCATION_HEIGHT,
+    );
+
+    let justification_field = ExpandJustificationField::new(ExpandJustification::MiddleCenter);
+
+    let form = Form::builder()
+        .title("Truncate Image")
+        .with_field(&justification_field)
+        .with_gadget(&*height_width_gadget.borrow())
+        .build();
+
+    let on_ok = move || {
+
+        let hw = height_width_gadget.borrow();
+        let res = justification_field.value().bounding_box_in(
+            height, width, hw.height(), hw.width(),
+        );
+
+        callback(res);
         CloseDialog::Yes
     };
 

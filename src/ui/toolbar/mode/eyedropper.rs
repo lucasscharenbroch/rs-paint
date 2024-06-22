@@ -70,7 +70,6 @@ impl super::MouseModeState for EyedropperState {
                 let _ = cr.fill_preserve();
                 cr.scale(1.0 / trans_scale, 1.0 / trans_scale);
 
-
                 cr.set_source_rgba(
                     rgba.red().into(),
                     rgba.green().into(),
