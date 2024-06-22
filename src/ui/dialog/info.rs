@@ -48,6 +48,10 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
         ("Zoom Out", "<Ctrl>minus"),
     ]);
 
+    let editing = group_from_specs("Editing", &[
+        ("Delete Selection", "Delete")
+    ]);
+
     let undo = group_from_specs("Undo", &[
         ("Undo", "<Ctrl>z"),
         ("Redo", "<Ctrl>y"),
@@ -71,6 +75,7 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
 
     main_section.add_group(&zoom);
     main_section.add_group(&undo);
+    main_section.add_group(&editing);
     main_section.add_group(&misc);
     main_section.add_group(&io);
 
