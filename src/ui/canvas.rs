@@ -1,6 +1,7 @@
 use crate::image::undo::action::{DoableAction, UndoableAction};
 
 use super::super::image::{Image, UnifiedImage, DrawableImage, mk_transparent_checkerboard};
+use super::super::image::bitmask::DeletePix;
 use super::super::image::undo::{ImageHistory, action::ActionName};
 use super::super::image::resize::Crop;
 use super::selection::Selection;
@@ -513,6 +514,13 @@ impl Canvas {
 
         let crop = Crop::new(x, y, w, h);
         self.exec_undoable_action(Box::new(crop));
+    }
+
+    pub fn delete_selection(&mut self) {
+        let action = DeletePix::new(&self.selection);
+        self.image_hist.exec_doable_action(&action);
+        self.selection = Selection::NoSelection;
+        self.update();
     }
 
     /// If `self.selection` is out of bounds/invalid, unselect it

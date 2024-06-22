@@ -2,6 +2,8 @@ use std::collections::{VecDeque, HashMap};
 use gtk::cairo;
 
 use super::{Image, ImageLike, Pixel};
+use super::undo::action::{DoableAction, ActionName};
+use crate::ui::selection::Selection;
 
 /// Wrapper for flattened Vec<bool>; instances should
 /// be viewed as immutable, else the cached `outline_path`
@@ -323,4 +325,28 @@ fn in_bounds_4d_neighbors(r: usize, c: usize, w: usize, h: usize) -> Vec<(usize,
         *cp < w && *cp != usize::MAX
     })
     .collect::<Vec<_>>()
+}
+
+pub struct DeletePix<'s> {
+    selection: &'s Selection,
+}
+
+impl<'s> DeletePix<'s> {
+    pub fn new(selection: &'s Selection) -> Self {
+        Self {
+            selection,
+        }
+    }
+}
+
+impl<'s> DoableAction for DeletePix<'s> {
+    fn exec(&self, image: &mut crate::image::UnifiedImage) {
+        for (r, c) in self.selection.iter() {
+            *image.pix_at_mut(r as i32, c as i32) = Pixel::from_rgba(0, 0, 0, 0);
+        }
+    }
+
+    fn name(&self) -> ActionName {
+        ActionName::Delete
+    }
 }

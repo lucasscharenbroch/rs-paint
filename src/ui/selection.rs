@@ -1,7 +1,8 @@
 use crate::image::bitmask::ImageBitmask;
 use super::canvas::Canvas;
 
-use gtk::cairo::Context;
+use gtk::cairo::{Context, Rectangle};
+use itertools::Itertools;
 
 pub enum Selection {
     Rectangle(usize, usize, usize, usize), // x, y, w, h
@@ -58,6 +59,24 @@ impl Canvas {
                 cr
             ),
             Selection::NoSelection => (),
+        }
+    }
+}
+
+impl Selection {
+    pub fn iter(&self) -> Box<dyn Iterator<Item = (usize, usize)>> {
+        match self {
+            Self::Rectangle(x, y, w, h) => {
+                let xs = *x..(x + w);
+                let ys = *y..(y + h);
+                return Box::new(ys.cartesian_product(xs));
+            },
+            Self::Bitmask(selection_mask) => {
+                return Box::new(selection_mask.coords_of_active_bits().into_iter());
+            },
+            Self::NoSelection => {
+                return Box::new(std::iter::empty());
+            },
         }
     }
 }

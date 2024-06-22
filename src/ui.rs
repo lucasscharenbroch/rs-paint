@@ -1,6 +1,6 @@
+pub mod selection;
 mod canvas;
 mod toolbar;
-mod selection;
 mod dialog;
 mod menu;
 mod io;
@@ -274,6 +274,10 @@ impl UiState {
             }
         }
 
+        if let Key::Delete = key {
+            Self::delete_selection(ui_p.clone());
+        }
+
         if let Some(mod_keys) = Self::try_update_mod_keys(key, mod_keys, true) {
             ui_p.borrow_mut().handle_mod_keys_update(mod_keys);
         }
@@ -405,6 +409,12 @@ impl UiState {
             "Make a Selection First",
             "Use the rectangle select tool to select a region to crop."
         );
+    }
+
+    pub fn delete_selection(ui_p: Rc<RefCell<Self>>) {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().delete_selection();
+        }
     }
 
     fn scale(ui_p: Rc<RefCell<Self>>) {
