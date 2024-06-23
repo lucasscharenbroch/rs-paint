@@ -13,7 +13,7 @@ use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, truncate_di
 use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
 use crate::image::resize::Crop;
 use tab::{Tab, Tabbar};
-use toolbar::mode::{MouseMode, RectangleSelectState};
+use toolbar::mode::{MouseMode, RectangleSelectState, RectangleSelectMode};
 
 use gtk::{gdk::RGBA, prelude::*};
 use gtk::gdk::{Key, ModifierType};
@@ -405,11 +405,11 @@ impl UiState {
         let ui = ui_p.borrow();
         let mut toolbar = ui.toolbar_p.borrow_mut();
 
-        if let MouseMode::RectangleSelect(state) = toolbar.mouse_mode() {
-            if let RectangleSelectState::Selected(x, y, w, h) = state {
+        if let MouseMode::RectangleSelect(ref mut state) = toolbar.mouse_mode_mut() {
+            if let RectangleSelectMode::Selected(x, y, w, h) = state.mode {
                 let canvas_p = ui.active_canvas_p().unwrap();
-                canvas_p.borrow_mut().crop_to(*x as usize, *y as usize, *w as usize, *h as usize);
-                toolbar.set_mouse_mode(MouseMode::RectangleSelect(RectangleSelectState::Unselected));
+                canvas_p.borrow_mut().crop_to(x as usize, y as usize, w as usize, h as usize);
+                state.mode = RectangleSelectMode::Unselected;
                 canvas_p.borrow_mut().set_selection(selection::Selection::NoSelection);
                 return;
             }

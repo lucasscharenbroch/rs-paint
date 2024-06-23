@@ -15,7 +15,7 @@ use magic_wand::MagicWandState;
 use pencil::PencilState;
 use fill::FillState;
 use self::eyedropper::EyedropperState;
-pub use self::rectangle_select::RectangleSelectState;
+pub use self::rectangle_select::{RectangleSelectState, RectangleSelectMode};
 
 use gtk::cairo::Context;
 use gtk::gdk::ModifierType;

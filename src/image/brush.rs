@@ -154,6 +154,6 @@ impl Brush {
     }
 
     pub fn outline_path(&mut self, cr: &gtk::cairo::Context) -> &gtk::cairo::Path {
-        self.bitmask.outline_path(cr)
+        self.bitmask.edge_path(cr)
     }
 }
