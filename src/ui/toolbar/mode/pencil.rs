@@ -1,10 +1,10 @@
-mod bezier;
+mod spline;
 
 use super::{cursor, Canvas, MouseModeVariant, Toolbar};
 use crate::image::{brush::Brush, ImageLike};
 use crate::image::undo::action::ActionName;
 use crate::ui::form::Form;
-use bezier::{IncrementalBezierSnapshot, BezierSegment3, BezierSegment4, BezierSegment};
+use spline::{IncrementalSplineSnapshot, SplineSegment3, SplineSegment4, SplineSegment};
 
 use std::collections::HashMap;
 use gtk::gdk::{ModifierType, RGBA};
@@ -28,9 +28,9 @@ pub struct PencilState {
     // (else the line gets too dark), so `dist_till_resample` is used to maintain
     // a uniform sampling-to-distance, independent of the number of segments.
     dist_till_resample: f64,
-    /// Serves as a queue of control points before the bezier
+    /// Serves as a queue of control points before the spline
     /// segment can be eagerly drawn
-    bezier_snapshot: IncrementalBezierSnapshot,
+    spline_snapshot: IncrementalSplineSnapshot,
 }
 
 impl PencilState {
@@ -40,7 +40,7 @@ impl PencilState {
             last_cursor_pos_pix,
             mode: PencilMode::PencilUp,
             dist_till_resample: 0.0,
-            bezier_snapshot: IncrementalBezierSnapshot::NoPoints,
+            spline_snapshot: IncrementalSplineSnapshot::NoPoints,
         }
     }
 
@@ -49,7 +49,7 @@ impl PencilState {
             last_cursor_pos_pix: (0.0, 0.0),
             mode: PencilMode::PencilUp,
             dist_till_resample: 0.0,
-            bezier_snapshot: IncrementalBezierSnapshot::NoPoints,
+            spline_snapshot: IncrementalSplineSnapshot::NoPoints,
         }
     }
 
@@ -117,9 +117,9 @@ impl PencilState {
         canvas.update();
     }
 
-    fn draw_bezier_segment(
+    fn draw_spline_segment(
         &mut self,
-        segment: &impl BezierSegment,
+        segment: &impl SplineSegment,
         canvas: &mut Canvas,
         toolbar: &mut Toolbar,
     ) {
@@ -154,7 +154,7 @@ impl PencilState {
     fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         // We're starting a new stroke: draw a single brush sample
         // at the cursor to not leave the user hanging
-        if let IncrementalBezierSnapshot::NoPoints = self.bezier_snapshot {
+        if let IncrementalSplineSnapshot::NoPoints = self.spline_snapshot {
             let target_pixels = vec![
                 canvas.cursor_pos_pix_f()
                 ].into_iter()
@@ -176,26 +176,26 @@ impl PencilState {
 
         let new_point = canvas.cursor_pos_pix_u();
 
-        if let Some(segment) = self.bezier_snapshot.append_point(new_point) {
-            self.draw_bezier_segment(&segment, canvas, toolbar);
+        if let Some(segment) = self.spline_snapshot.append_point(new_point) {
+            self.draw_spline_segment(&segment, canvas, toolbar);
         }
     }
 
     fn complete_curve(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
-        match self.bezier_snapshot {
-            IncrementalBezierSnapshot::NoPoints => (),
-            IncrementalBezierSnapshot::One(pt) => {
+        match self.spline_snapshot {
+            IncrementalSplineSnapshot::NoPoints => (),
+            IncrementalSplineSnapshot::One(pt) => {
                 self.last_cursor_pos_pix = (pt.0 as f64, pt.1 as f64);
                 self.draw_straight_line_to_cursor(canvas, toolbar)
             },
-            IncrementalBezierSnapshot::Two(last_last, last) => {
+            IncrementalSplineSnapshot::Two(last_last, last) => {
                 let cursor_pos = canvas.cursor_pos_pix_u();
-                let segment = BezierSegment3::from_grouped(last_last, last, cursor_pos);
-                self.draw_bezier_segment(&segment, canvas, toolbar);
+                let segment = SplineSegment3::from_grouped(last_last, last, cursor_pos);
+                self.draw_spline_segment(&segment, canvas, toolbar);
             },
-            IncrementalBezierSnapshot::Three(_, _, _) => self.draw_to_cursor(canvas, toolbar),
+            IncrementalSplineSnapshot::Three(_, _, _) => self.draw_to_cursor(canvas, toolbar),
         }
-        self.bezier_snapshot = IncrementalBezierSnapshot::NoPoints;
+        self.spline_snapshot = IncrementalSplineSnapshot::NoPoints;
     }
 
     fn straight_line_visual_cue_fn(&mut self, canvas: &Canvas) -> Box<dyn Fn(&Context)> {
@@ -287,7 +287,7 @@ impl super::MouseModeState for PencilState {
         canvas.save_state_for_undo(ActionName::Pencil);
     }
 
-    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+    fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
         if mod_keys.intersects(ModifierType::SHIFT_MASK) {
             canvas.update_with(self.straight_line_visual_cue_fn(canvas));
         } else {
