@@ -3,14 +3,14 @@ use crate::image::ImageLike;
 use crate::image::undo::action::ActionName;
 use crate::ui::form::Form;
 
-use std::collections::HashSet;
-use gtk::gdk::ModifierType;
+use std::collections::HashMap;
+use gtk::gdk::{ModifierType, RGBA};
 use gtk::cairo::{Context, LineCap};
 
 #[derive(Clone, Copy)]
 enum PencilMode {
-    TraceCursor,
-    DrawLineCooldown,
+    PencilUp,
+    PencilDown,
 }
 
 #[derive(Clone, Copy)]
@@ -32,7 +32,7 @@ impl PencilState {
         let last_cursor_pos_pix = canvas.last_cursor_pos_pix();
         PencilState {
             last_cursor_pos_pix,
-            mode: PencilMode::TraceCursor,
+            mode: PencilMode::PencilUp,
             dist_till_resample: 0.0,
         }
     }
@@ -40,7 +40,7 @@ impl PencilState {
     pub fn default_no_canvas() -> PencilState {
         PencilState {
             last_cursor_pos_pix: (0.0, 0.0),
-            mode: PencilMode::TraceCursor,
+            mode: PencilMode::PencilUp,
             dist_till_resample: 0.0,
         }
     }
@@ -71,6 +71,18 @@ impl PencilState {
             let x_offset = (brush.image.width() as i32 - 1) / 2;
             let y_offset = (brush.image.height() as i32 - 1) / 2;
             canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
+        });
+
+        // TODO remove
+        let brush = crate::image::brush::Brush::new(
+            RGBA::new(1.0, 0.0, 0.0, 1.0),
+            crate::image::brush::BrushType::Round,
+            5,
+        );
+        target_pixels.get(0).map(|(x, y)| {
+            let x_offset = (brush.image.width() as i32 - 1) / 2;
+            let y_offset = (brush.image.height() as i32 - 1) / 2;
+            canvas.image().sample(&brush.image, &blending_mode, *x as i32 - x_offset, *y as i32 - y_offset);
         });
     }
 
@@ -146,9 +158,9 @@ impl super::MouseModeState for PencilState {
         self.dist_till_resample = 0.0;
         if mod_keys.intersects(ModifierType::SHIFT_MASK) {
             self.draw_to_cursor(canvas, toolbar);
-            self.mode = PencilMode::DrawLineCooldown;
+            self.mode = PencilMode::PencilUp;
         } else {
-            self.mode = PencilMode::TraceCursor;
+            self.mode = PencilMode::PencilDown;
         }
 
         self.last_cursor_pos_pix = canvas.cursor_pos_pix_f();
@@ -156,14 +168,15 @@ impl super::MouseModeState for PencilState {
 
     fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         match self.mode {
-            PencilMode::DrawLineCooldown => (), // line already drawn
-            PencilMode::TraceCursor => self.draw_to_cursor(canvas, toolbar),
+            PencilMode::PencilDown => self.draw_to_cursor(canvas, toolbar),
+            PencilMode::PencilUp => (), // line already drawn
         }
     }
 
     fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         self.handle_drag_update(mod_keys, canvas, toolbar);
         canvas.save_state_for_undo(ActionName::Pencil);
+        self.mode = PencilMode::PencilUp;
     }
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
