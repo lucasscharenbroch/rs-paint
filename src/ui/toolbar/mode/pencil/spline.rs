@@ -118,9 +118,6 @@ impl SplineSegment for SplineSegment4 {
             let t = (i as f64 + 0.5) / num_pix as f64;
             let t2 = t.powi(2);
             let t3 = t.powi(3);
-            let tn = 1.0 - t;
-            let tn2 = tn.powi(2);
-            let tn3 = tn.powi(3);
             let x0 = self.x0 as f64;
             let x1 = self.x1 as f64;
             let x2 = self.x2 as f64;
@@ -130,9 +127,15 @@ impl SplineSegment for SplineSegment4 {
             let y2 = self.y2 as f64;
             let y3 = self.y3 as f64;
 
-            // cubic bezier
-            let x = tn3 * x0 + 3.0 * tn2 * t * x1 + 3.0 * tn * t2 * x2 + t3 * x3;
-            let y = tn3 * y0 + 3.0 * tn2 * t * y1 + 3.0 * tn * t2 * y2 + t3 * y3;
+            // cubic b-spline
+            let x = 1.0/6.0 * ((-x0 + 3.0 * x1 - 3.0 * x2 + x3) * t3 +
+                                    (3.0 * x0 - 6.0 * x1 + 3.0 * x2) * t2 +
+                                    (-3.0 * x0 + 3.0 * x2) * t +
+                                    (x0 + 4.0 * x1 + x2));
+            let y = 1.0/6.0 * ((-y0 + 3.0 * y1 - 3.0 * y2 + y3) * t3 +
+                                    (3.0 * y0 - 6.0 * y1 + 3.0 * y2) * t2 +
+                                    (-3.0 * y0 + 3.0 * y2) * t +
+                                    (y0 + 4.0 * y1 + y2));
             (x, y)
         })
             // filter out the negatives, else they'll be converted to 0
@@ -161,7 +164,8 @@ impl IncrementalSplineSnapshot {
     ) -> Option<SplineSegment4> {
         match self {
             Self::NoPoints => {
-                *self = Self::One(pt);
+                // B-Spline: replicate the first point
+                *self = Self::Three(pt, pt, pt);
                 None
             },
             Self::One(last) => {
@@ -176,7 +180,7 @@ impl IncrementalSplineSnapshot {
                 let res = Some(SplineSegment4::from_grouped(
                     *last_last_last, *last_last, *last, pt
                 ));
-                *self = Self::One(pt);
+                *self = Self::Three(*last_last, *last, pt);
                 res
             }
         }
