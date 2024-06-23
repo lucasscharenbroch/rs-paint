@@ -120,6 +120,28 @@ impl PencilState {
     fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let new_point = canvas.cursor_pos_pix_u();
 
+        // We're starting a new stroke: draw a single brush sample
+        // at the cursor to not leave the user hanging
+        if let IncrementalBezierSnapshot::NoPoints = self.bezier_snapshot {
+            let target_pixels = vec![
+                canvas.cursor_pos_pix_f()
+                ].into_iter()
+                // filter out the negatives, else they'll be converted to 0
+                // (and stick to the side of the image)
+                .filter(|(x, y)| *x > 0.0 && *y > 0.0)
+                .map(|(x, y)| (x as usize, y as usize))
+                .collect::<Vec<_>>();
+
+            let blending_mode = toolbar.get_blending_mode();
+            let brush = toolbar.get_brush();
+
+            target_pixels.iter().for_each(|&(x, y)| {
+                let x_offset = (brush.image.width() as i32 - 1) / 2;
+                let y_offset = (brush.image.height() as i32 - 1) / 2;
+                canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
+            });
+        }
+
         if let Some(segment) = self.bezier_snapshot.append_point(new_point) {
             self.last_cursor_pos_pix = (segment.x2 as f64, segment.y2 as f64);
             let d = segment.rough_length();
