@@ -307,7 +307,7 @@ impl UnifiedImage {
         }
     }
 
-    // draw `other` at (x, y)
+    /// Draws `other` onto self at (x, y)
     pub fn sample(&mut self, other: &impl ImageLike, blending_mode: &BlendingMode, x: i32, y: i32) {
         for i in 0..other.height() {
             for j in 0..other.width() {

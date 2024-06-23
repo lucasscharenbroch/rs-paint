@@ -8,6 +8,7 @@ use super::selection::Selection;
 use super::UiState;
 use super::toolbar::Toolbar;
 use super::toolbar::mode::MouseMode;
+use crate::image::{ImageLike, blend::BlendingMode};
 
 use gtk::{prelude::*, Widget};
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
@@ -43,6 +44,12 @@ pub struct Canvas {
     /// *at time of the respective commit's completion*
     /// (position is relative to the image's pixel coords)
     history_id_to_cursor_pos_pix: HashMap<usize, (f64, f64)>,
+    /// A mask corresponding to the flattened image pixel
+    /// vector: `pencil_mask[i]` == `pencil_mask_counter`
+    /// iff the pixel at index `i` has been drawn on
+    /// during the current pencil stroke
+    pencil_mask: Vec<usize>,
+    pencil_mask_counter: usize,
 }
 
 impl Canvas {
@@ -62,6 +69,8 @@ impl Canvas {
         grid.attach(&v_scrollbar, 1, 0, 1, 1);
         grid.attach(&h_scrollbar, 0, 1, 1, 1);
 
+        let image_net_size = image.height() as usize * image.width() as usize;
+
         let canvas_p = Rc::new(RefCell::new(Canvas {
             image_hist: ImageHistory::new(image),
             zoom: 1.0,
@@ -78,6 +87,8 @@ impl Canvas {
             transparent_checkerboard: Rc::new(RefCell::new(mk_transparent_checkerboard())),
             ui_p: ui_p.clone(),
             history_id_to_cursor_pos_pix: HashMap::new(),
+            pencil_mask: vec![0; image_net_size],
+            pencil_mask_counter: 1,
         }));
 
         let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
@@ -592,9 +603,71 @@ impl Canvas {
         }
     }
 
+    /// Resize `self.pencil_mask` if it's become too small
+    fn validate_pencil_mask(&mut self) {
+        let image_net_size = self.image().width() * self.image().height();
+        let deficit = image_net_size - self.pencil_mask.len() as i32;
+        if deficit > 0 {
+            self.pencil_mask.append(&mut vec![0; deficit as usize]);
+        }
+    }
+
     pub fn last_cursor_pos_pix(&self) -> (f64, f64) {
         let hist_id = self.image_hist.now_id();
         *self.history_id_to_cursor_pos_pix.get(&hist_id)
             .unwrap_or(&(0.0, 0.0))
+    }
+
+    fn test_pencil_mask_at(&mut self, r: usize, c: usize) -> bool {
+        self.validate_pencil_mask();
+        let w = self.image().width() as usize;
+
+        self.pencil_mask[r * w + c] == self.pencil_mask_counter
+    }
+
+    fn set_pencil_mask_at(&mut self, r: usize, c: usize) {
+        self.validate_pencil_mask();
+        let w = self.image().width() as usize;
+        self.pencil_mask[r * w + c] = self.pencil_mask_counter;
+    }
+
+    pub fn clear_pencil_mask(&mut self) {
+        self.pencil_mask_counter += 1
+    }
+
+    /// Draws `other` onto self.image() at (x, y),
+    /// setting the pencil mask at the drawn pixels,
+    /// and not drawing any pixels that are aready
+    /// set in the mask
+    pub fn sample_image_respecting_pencil_mask(
+        &mut self,
+        other: &impl ImageLike,
+        blending_mode: &BlendingMode,
+        x: i32,
+        y: i32
+    ) {
+        for i in 0..other.height() {
+            for j in 0..other.width() {
+                let ip = i as i32 + y;
+                let jp = j as i32 + x;
+
+                if ip < 0 || jp < 0 || ip > self.image().height() || jp > self.image().width() ||
+                   self.test_pencil_mask_at(ip as usize, jp as usize) {
+                    continue;
+                }
+
+                let p = self.image().pix_at_mut(ip, jp);
+                let mut success = false;
+
+                if let Some(op) = other.try_pix_at(i as usize, j as usize) {
+                    *p = blending_mode.blend(op, &p);
+                    success = true;
+                }
+
+                if success {
+                    self.set_pencil_mask_at(ip as usize, jp as usize);
+                }
+            }
+        }
     }
 }

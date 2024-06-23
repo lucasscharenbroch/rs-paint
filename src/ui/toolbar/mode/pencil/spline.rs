@@ -1,6 +1,3 @@
-use super::PencilState;
-use super::super::{Canvas, Toolbar};
-
 pub trait SplineSegment {
     /// Approximate of the curve's length
     fn rough_length(&self) -> f64;

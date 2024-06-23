@@ -91,7 +91,12 @@ impl PencilState {
         target_pixels.iter().for_each(|&(x, y)| {
             let x_offset = (brush.image.width() as i32 - 1) / 2;
             let y_offset = (brush.image.height() as i32 - 1) / 2;
-            canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
+            canvas.sample_image_respecting_pencil_mask(
+                &brush.image,
+                &blending_mode,
+                x as i32 - x_offset,
+                y as i32 - y_offset
+            );
         });
     }
 
@@ -123,7 +128,12 @@ impl PencilState {
         target_pixels.iter().for_each(|&(x, y)| {
             let x_offset = (brush.image.width() as i32 - 1) / 2;
             let y_offset = (brush.image.height() as i32 - 1) / 2;
-            canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
+            canvas.sample_image_respecting_pencil_mask(
+                &brush.image,
+                &blending_mode,
+                x as i32 - x_offset,
+                y as i32 - y_offset
+            );
         });
     }
 
@@ -146,7 +156,12 @@ impl PencilState {
             target_pixels.iter().for_each(|&(x, y)| {
                 let x_offset = (brush.image.width() as i32 - 1) / 2;
                 let y_offset = (brush.image.height() as i32 - 1) / 2;
-                canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
+                canvas.sample_image_respecting_pencil_mask(
+                    &brush.image,
+                    &blending_mode,
+                    x as i32 - x_offset,
+                    y as i32 - y_offset
+                );
             });
         }
 
@@ -261,6 +276,7 @@ impl super::MouseModeState for PencilState {
         }
 
         canvas.save_state_for_undo(ActionName::Pencil);
+        canvas.clear_pencil_mask();
     }
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
