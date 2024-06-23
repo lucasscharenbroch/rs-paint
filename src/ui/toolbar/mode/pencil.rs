@@ -4,7 +4,7 @@ use super::{cursor, Canvas, MouseModeVariant, Toolbar};
 use crate::image::{brush::Brush, ImageLike};
 use crate::image::undo::action::ActionName;
 use crate::ui::form::Form;
-use bezier::{IncrementalBezierSnapshot, BezierSegment};
+use bezier::{IncrementalBezierSnapshot, BezierSegment3, BezierSegment4, BezierSegment};
 
 use std::collections::HashMap;
 use gtk::gdk::{ModifierType, RGBA};
@@ -117,9 +117,41 @@ impl PencilState {
         canvas.update();
     }
 
-    fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
-        let new_point = canvas.cursor_pos_pix_u();
+    fn draw_bezier_segment(
+        &mut self,
+        segment: &impl BezierSegment,
+        canvas: &mut Canvas,
+        toolbar: &mut Toolbar,
+    ) {
+        self.last_cursor_pos_pix = segment.endpoint();
+        let d = segment.rough_length();
 
+        let blending_mode = toolbar.get_blending_mode();
+        let brush = toolbar.get_brush();
+
+        let num_points = self.get_and_claim_num_points_to_sample(d, brush);
+        let target_pixels = segment.sample_n_pixels(num_points);
+
+        target_pixels.iter().for_each(|&(x, y)| {
+            let x_offset = (brush.image.width() as i32 - 1) / 2;
+            let y_offset = (brush.image.height() as i32 - 1) / 2;
+            canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
+        });
+
+        // TODO remove
+        let brush = crate::image::brush::Brush::new(
+            RGBA::new(0.0, 0.0, 1.0, 1.0),
+            crate::image::brush::BrushType::Round,
+            5,
+        );
+        target_pixels.get(0).map(|(x, y)| {
+            let x_offset = (brush.image.width() as i32 - 1) / 2;
+            let y_offset = (brush.image.height() as i32 - 1) / 2;
+            canvas.image().sample(&brush.image, &blending_mode, *x as i32 - x_offset, *y as i32 - y_offset);
+        });
+    }
+
+    fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         // We're starting a new stroke: draw a single brush sample
         // at the cursor to not leave the user hanging
         if let IncrementalBezierSnapshot::NoPoints = self.bezier_snapshot {
@@ -142,33 +174,10 @@ impl PencilState {
             });
         }
 
+        let new_point = canvas.cursor_pos_pix_u();
+
         if let Some(segment) = self.bezier_snapshot.append_point(new_point) {
-            self.last_cursor_pos_pix = (segment.x2 as f64, segment.y2 as f64);
-            let d = segment.rough_length();
-
-            let blending_mode = toolbar.get_blending_mode();
-            let brush = toolbar.get_brush();
-
-            let num_points = self.get_and_claim_num_points_to_sample(d, brush);
-            let target_pixels = segment.sample_n_pixels(num_points);
-
-            target_pixels.iter().for_each(|&(x, y)| {
-                let x_offset = (brush.image.width() as i32 - 1) / 2;
-                let y_offset = (brush.image.height() as i32 - 1) / 2;
-                canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
-            });
-
-            // TODO remove
-            let brush = crate::image::brush::Brush::new(
-                RGBA::new(0.0, 0.0, 1.0, 1.0),
-                crate::image::brush::BrushType::Round,
-                5,
-            );
-            target_pixels.get(0).map(|(x, y)| {
-                let x_offset = (brush.image.width() as i32 - 1) / 2;
-                let y_offset = (brush.image.height() as i32 - 1) / 2;
-                canvas.image().sample(&brush.image, &blending_mode, *x as i32 - x_offset, *y as i32 - y_offset);
-            });
+            self.draw_bezier_segment(&segment, canvas, toolbar);
         }
     }
 
@@ -179,7 +188,12 @@ impl PencilState {
                 self.last_cursor_pos_pix = (pt.0 as f64, pt.1 as f64);
                 self.draw_straight_line_to_cursor(canvas, toolbar)
             },
-            IncrementalBezierSnapshot::Two(_, _) => self.draw_to_cursor(canvas, toolbar),
+            IncrementalBezierSnapshot::Two(last_last, last) => {
+                let cursor_pos = canvas.cursor_pos_pix_u();
+                let segment = BezierSegment3::from_grouped(last_last, last, cursor_pos);
+                self.draw_bezier_segment(&segment, canvas, toolbar);
+            },
+            IncrementalBezierSnapshot::Three(_, _, _) => self.draw_to_cursor(canvas, toolbar),
         }
         self.bezier_snapshot = IncrementalBezierSnapshot::NoPoints;
     }
