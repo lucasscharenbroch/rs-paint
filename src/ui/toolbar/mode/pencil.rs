@@ -265,11 +265,12 @@ impl super::MouseModeState for PencilState {
         match self.mode {
             PencilMode::PencilDown => {
                 self.complete_curve(canvas, toolbar);
-                canvas.save_state_for_undo(ActionName::Pencil);
                 self.mode = PencilMode::PencilUp;
             },
             PencilMode::PencilUp => (),
         }
+
+        canvas.save_state_for_undo(ActionName::Pencil);
     }
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {

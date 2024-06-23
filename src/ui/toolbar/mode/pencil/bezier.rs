@@ -54,7 +54,7 @@ impl BezierSegment {
             // filter out the negatives, else they'll be converted to 0
             // (and stick to the side of the image)
             .filter(|(x, y)| *x > 0.0 && *y > 0.0)
-            .map(|(x, y)| (x as usize, y as usize))
+            .map(|(x, y)| (x.round() as usize, y.round() as usize))
             .collect::<Vec<_>>()
     }
 }
