@@ -52,6 +52,14 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
         ("Delete Selection", "Delete")
     ]);
 
+    let draw_mode = group_from_specs("Draw Mode", &[
+        ("Draw Straight Line", "<Shift>Pointer_Left")
+    ]);
+
+    let rectangle_select_mode = group_from_specs("Rectangle Select Mode", &[
+        ("Crop to Selection", "<Ctrl>Pointer_Left")
+    ]);
+
     let undo = group_from_specs("Undo", &[
         ("Undo", "<Ctrl>z"),
         ("Redo", "<Ctrl>y"),
@@ -69,13 +77,14 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
         ("Export Image", "<Ctrl>e"),
     ]);
 
-
     let main_section = gtk::ShortcutsSection::builder()
         .build();
 
     main_section.add_group(&zoom);
     main_section.add_group(&undo);
     main_section.add_group(&editing);
+    main_section.add_group(&draw_mode);
+    main_section.add_group(&rectangle_select_mode);
     main_section.add_group(&misc);
     main_section.add_group(&io);
 
