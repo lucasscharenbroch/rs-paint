@@ -93,18 +93,6 @@ impl PencilState {
             let y_offset = (brush.image.height() as i32 - 1) / 2;
             canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
         });
-
-        // TODO remove
-        let brush = crate::image::brush::Brush::new(
-            RGBA::new(1.0, 0.0, 0.0, 1.0),
-            crate::image::brush::BrushType::Round,
-            5,
-        );
-        target_pixels.get(0).map(|(x, y)| {
-            let x_offset = (brush.image.width() as i32 - 1) / 2;
-            let y_offset = (brush.image.height() as i32 - 1) / 2;
-            canvas.image().sample(&brush.image, &blending_mode, *x as i32 - x_offset, *y as i32 - y_offset);
-        });
     }
 
     fn draw_straight_line_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
@@ -136,18 +124,6 @@ impl PencilState {
             let x_offset = (brush.image.width() as i32 - 1) / 2;
             let y_offset = (brush.image.height() as i32 - 1) / 2;
             canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
-        });
-
-        // TODO remove
-        let brush = crate::image::brush::Brush::new(
-            RGBA::new(0.0, 0.0, 1.0, 1.0),
-            crate::image::brush::BrushType::Round,
-            5,
-        );
-        target_pixels.get(0).map(|(x, y)| {
-            let x_offset = (brush.image.width() as i32 - 1) / 2;
-            let y_offset = (brush.image.height() as i32 - 1) / 2;
-            canvas.image().sample(&brush.image, &blending_mode, *x as i32 - x_offset, *y as i32 - y_offset);
         });
     }
 
