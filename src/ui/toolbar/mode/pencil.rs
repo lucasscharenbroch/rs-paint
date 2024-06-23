@@ -1,7 +1,10 @@
+mod bezier;
+
 use super::{cursor, Canvas, MouseModeVariant, Toolbar};
-use crate::image::ImageLike;
+use crate::image::{brush::Brush, ImageLike};
 use crate::image::undo::action::ActionName;
 use crate::ui::form::Form;
+use bezier::{IncrementalBezierSnapshot, BezierSegment};
 
 use std::collections::HashMap;
 use gtk::gdk::{ModifierType, RGBA};
@@ -25,6 +28,9 @@ pub struct PencilState {
     // (else the line gets too dark), so `dist_till_resample` is used to maintain
     // a uniform sampling-to-distance, independent of the number of segments.
     dist_till_resample: f64,
+    /// Serves as a queue of control points before the bezier
+    /// segment can be eagerly drawn
+    bezier_snapshot: IncrementalBezierSnapshot,
 }
 
 impl PencilState {
@@ -34,6 +40,7 @@ impl PencilState {
             last_cursor_pos_pix,
             mode: PencilMode::PencilUp,
             dist_till_resample: 0.0,
+            bezier_snapshot: IncrementalBezierSnapshot::NoPoints,
         }
     }
 
@@ -42,29 +49,43 @@ impl PencilState {
             last_cursor_pos_pix: (0.0, 0.0),
             mode: PencilMode::PencilUp,
             dist_till_resample: 0.0,
+            bezier_snapshot: IncrementalBezierSnapshot::NoPoints,
         }
     }
 
-    fn draw_line_between(&mut self, line_pt0: (f64, f64), line_pt1: (f64, f64), canvas: &mut Canvas, toolbar: &mut Toolbar) {
-        // half the distance, for now
-        let dx = line_pt0.0 - line_pt1.0;
-        let dy = line_pt0.1 - line_pt1.1;
-        let d = (dx.powi(2) + dy.powi(2)).sqrt();
-
-        self.dist_till_resample -= d;
+    /// Claims `distance` of the draw-length
+    /// (adjusts `self.dist_till_resample`), returning
+    /// the number of sample points that lie along that distance
+    fn get_and_claim_num_points_to_sample(&mut self, distance: f64, brush: &Brush) -> usize {
+        self.dist_till_resample -= distance;
         if self.dist_till_resample > 0.0 {
-            return; // no points to draw
+            return 0; // no points to draw
         }
-
-        let blending_mode = toolbar.get_blending_mode();
-        let brush = toolbar.get_brush();
 
         const SAMPLE_DIST_FACTOR: f64 = 0.1;
         // distance (in pixels) between two samples
         let sample_distance = (brush.radius() as f64).powf(1.05) * SAMPLE_DIST_FACTOR;
-        let num_points = (-self.dist_till_resample / sample_distance).floor() as usize + 1;
+        let res = (-self.dist_till_resample / sample_distance).floor() as usize + 1;
         self.dist_till_resample = self.dist_till_resample % sample_distance + sample_distance;
 
+        return res;
+    }
+
+    fn draw_line_between(
+        &mut self,
+        line_pt0: (f64, f64),
+        line_pt1: (f64, f64),
+        canvas: &mut Canvas,
+        toolbar: &mut Toolbar
+    ) {
+        let dx = line_pt0.0 - line_pt1.0;
+        let dy = line_pt0.1 - line_pt1.1;
+        let d = (dx.powi(2) + dy.powi(2)).sqrt();
+
+        let blending_mode = toolbar.get_blending_mode();
+        let brush = toolbar.get_brush();
+
+        let num_points = self.get_and_claim_num_points_to_sample(d, brush);
         let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points);
 
         target_pixels.iter().for_each(|&(x, y)| {
@@ -86,7 +107,7 @@ impl PencilState {
         });
     }
 
-    fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+    fn draw_straight_line_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let line_pt0 = self.last_cursor_pos_pix;
         let line_pt1 = canvas.cursor_pos_pix_f();
         self.last_cursor_pos_pix = line_pt1;
@@ -94,6 +115,51 @@ impl PencilState {
         self.draw_line_between(line_pt0, line_pt1, canvas, toolbar);
 
         canvas.update();
+    }
+
+    fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        let new_point = canvas.cursor_pos_pix_u();
+
+        if let Some(segment) = self.bezier_snapshot.append_point(new_point) {
+            self.last_cursor_pos_pix = (segment.x2 as f64, segment.y2 as f64);
+            let d = segment.rough_length();
+
+            let blending_mode = toolbar.get_blending_mode();
+            let brush = toolbar.get_brush();
+
+            let num_points = self.get_and_claim_num_points_to_sample(d, brush);
+            let target_pixels = segment.sample_n_pixels(num_points);
+
+            target_pixels.iter().for_each(|&(x, y)| {
+                let x_offset = (brush.image.width() as i32 - 1) / 2;
+                let y_offset = (brush.image.height() as i32 - 1) / 2;
+                canvas.image().sample(&brush.image, &blending_mode, x as i32 - x_offset, y as i32 - y_offset);
+            });
+
+            // TODO remove
+            let brush = crate::image::brush::Brush::new(
+                RGBA::new(0.0, 0.0, 1.0, 1.0),
+                crate::image::brush::BrushType::Round,
+                5,
+            );
+            target_pixels.get(0).map(|(x, y)| {
+                let x_offset = (brush.image.width() as i32 - 1) / 2;
+                let y_offset = (brush.image.height() as i32 - 1) / 2;
+                canvas.image().sample(&brush.image, &blending_mode, *x as i32 - x_offset, *y as i32 - y_offset);
+            });
+        }
+    }
+
+    fn complete_curve(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        match self.bezier_snapshot {
+            IncrementalBezierSnapshot::NoPoints => (),
+            IncrementalBezierSnapshot::One(pt) => {
+                self.last_cursor_pos_pix = (pt.0 as f64, pt.1 as f64);
+                self.draw_straight_line_to_cursor(canvas, toolbar)
+            },
+            IncrementalBezierSnapshot::Two(_, _) => self.draw_to_cursor(canvas, toolbar),
+        }
+        self.bezier_snapshot = IncrementalBezierSnapshot::NoPoints;
     }
 
     fn straight_line_visual_cue_fn(&mut self, canvas: &Canvas) -> Box<dyn Fn(&Context)> {
@@ -146,18 +212,18 @@ fn pixels_along_segment(
         let y = y0 + dy * i;
         (x, y)
     })
-    // filter out the negatives, else they'll be converted to 0
-    // (and stick to the side of the image)
-    .filter(|(x, y)| *x > 0.0 && *y > 0.0)
-    .map(|(x, y)| (x as usize, y as usize))
-    .collect::<Vec<_>>()
+        // filter out the negatives, else they'll be converted to 0
+        // (and stick to the side of the image)
+        .filter(|(x, y)| *x > 0.0 && *y > 0.0)
+        .map(|(x, y)| (x as usize, y as usize))
+        .collect::<Vec<_>>()
 }
 
 impl super::MouseModeState for PencilState {
     fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         self.dist_till_resample = 0.0;
         if mod_keys.intersects(ModifierType::SHIFT_MASK) {
-            self.draw_to_cursor(canvas, toolbar);
+            self.draw_straight_line_to_cursor(canvas, toolbar);
             self.mode = PencilMode::PencilUp;
         } else {
             self.mode = PencilMode::PencilDown;
@@ -174,9 +240,14 @@ impl super::MouseModeState for PencilState {
     }
 
     fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
-        self.handle_drag_update(mod_keys, canvas, toolbar);
-        canvas.save_state_for_undo(ActionName::Pencil);
-        self.mode = PencilMode::PencilUp;
+        match self.mode {
+            PencilMode::PencilDown => {
+                self.complete_curve(canvas, toolbar);
+                canvas.save_state_for_undo(ActionName::Pencil);
+                self.mode = PencilMode::PencilUp;
+            },
+            PencilMode::PencilUp => (),
+        }
     }
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
