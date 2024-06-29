@@ -651,7 +651,7 @@ impl Canvas {
                 let ip = i as i32 + y;
                 let jp = j as i32 + x;
 
-                if ip < 0 || jp < 0 || ip > self.image().height() || jp > self.image().width() ||
+                if ip < 0 || jp < 0 || ip >= self.image().height() || jp >= self.image().width() ||
                    self.test_pencil_mask_at(ip as usize, jp as usize) {
                     continue;
                 }
