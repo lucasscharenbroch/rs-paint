@@ -3,7 +3,7 @@ mod tree;
 
 use crate::{image::DrawableImage, ui::UiState};
 use self::action::UndoableAction;
-use super::{Image, UnifiedImage, Pixel};
+use super::{Image, FusedImage, Pixel};
 use action::{ActionName};
 use gtk::{prelude::*, Widget};
 use tree::UndoTree;
@@ -20,7 +20,7 @@ enum ImageDiff {
 
 impl ImageDiff {
     pub fn new(
-        to: &UnifiedImage,
+        to: &FusedImage,
         (mod_pix, save_image): (HashMap<usize, (Pixel, Pixel)>, Option<Image>)
     ) -> ImageDiff {
         if let Some(save_image) = save_image {
@@ -34,7 +34,7 @@ impl ImageDiff {
         }
     }
 
-    pub fn apply_to(&mut self, image: &mut UnifiedImage) {
+    pub fn apply_to(&mut self, image: &mut FusedImage) {
         match self {
             ImageDiff::Diff(ref pixs) => {
                 for (i, _before, after) in pixs.iter() {
@@ -54,7 +54,7 @@ impl ImageDiff {
         }
     }
 
-    pub fn unapply_to(&mut self, image: &mut UnifiedImage) {
+    pub fn unapply_to(&mut self, image: &mut FusedImage) {
         match self {
             ImageDiff::Diff(ref pixs) => {
                 for (i, before, _after) in pixs.iter() {
@@ -76,7 +76,7 @@ impl ImageDiff {
 }
 
 pub struct ImageState {
-    img: UnifiedImage,
+    img: FusedImage,
     id: usize,
 }
 
@@ -117,7 +117,7 @@ pub struct ImageHistory {
 }
 
 impl ImageHistory {
-    pub fn new(initial_image: UnifiedImage) -> ImageHistory {
+    pub fn new(initial_image: FusedImage) -> ImageHistory {
         let initial_state = ImageState {
             img: initial_image,
             id: 0,
@@ -130,7 +130,7 @@ impl ImageHistory {
         }
     }
 
-    pub fn now(&self) -> &UnifiedImage {
+    pub fn now(&self) -> &FusedImage {
         &self.now.img
     }
 
@@ -138,7 +138,7 @@ impl ImageHistory {
         self.now.id
     }
 
-    pub fn now_mut(&mut self) -> &mut UnifiedImage {
+    pub fn now_mut(&mut self) -> &mut FusedImage {
         &mut self.now.img
     }
 

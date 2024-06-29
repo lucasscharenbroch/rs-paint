@@ -1,4 +1,4 @@
-use crate::image::UnifiedImage;
+use crate::image::FusedImage;
 use super::{ImageStateDiff, ImageDiff, ImageState};
 use super::action::ActionName;
 use super::ImageHistory;

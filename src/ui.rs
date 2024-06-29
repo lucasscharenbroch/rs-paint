@@ -10,7 +10,7 @@ mod form;
 use canvas::Canvas;
 use toolbar::Toolbar;
 use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, truncate_dialog, close_dialog, ok_dialog_str_, scale_dialog, CloseDialog};
-use crate::image::{Image, UnifiedImage, generate::{NewImageProps, generate}};
+use crate::image::{Image, FusedImage, generate::{NewImageProps, generate}};
 use crate::image::resize::Crop;
 use tab::{Tab, Tabbar};
 use toolbar::mode::{MouseMode, RectangleSelectState, RectangleSelectMode};
@@ -170,7 +170,7 @@ impl UiState {
     }
 
     fn new_tab(ui_p: &Rc<RefCell<UiState>>, image: Image, name: &str) -> usize {
-        let canvas_p = Canvas::new_p(&ui_p, UnifiedImage::from_image(image));
+        let canvas_p = Canvas::new_p(&ui_p, FusedImage::from_image(image));
         let new_tab = Tab::new(&canvas_p, name);
         let new_idx = ui_p.borrow().tabbar.tabs.len();
         ui_p.borrow_mut().tabbar.tabs.push(new_tab);

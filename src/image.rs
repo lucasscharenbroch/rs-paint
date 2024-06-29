@@ -270,12 +270,12 @@ impl DrawableImage {
     }
 }
 
-// UnifiedImage = Image + DrawableImage
+// FusedImage = Image + DrawableImage
 // Image has all the necessary information, but a DrawableImage
 // is kept to avoid re-computation on each draw.
 // All data is read from the Image, but writes are applied to both
 #[derive(Clone)]
-pub struct UnifiedImage {
+pub struct FusedImage {
     image: Image,
     drawable: DrawableImage,
     pix_modified_since_draw: HashMap<usize, Pixel>,
@@ -283,12 +283,12 @@ pub struct UnifiedImage {
     save_image_before_overwritten: Option<Image>,
 }
 
-impl UnifiedImage {
+impl FusedImage {
     pub fn new(image: Image, drawable: DrawableImage) -> Self {
         assert!(image.width == drawable.width);
         assert!(image.height == drawable.height);
 
-        UnifiedImage {
+        FusedImage {
             image,
             drawable,
             pix_modified_since_draw: HashMap::new(),
@@ -298,7 +298,7 @@ impl UnifiedImage {
     }
 
     pub fn from_image(image: Image) -> Self {
-        UnifiedImage {
+        FusedImage {
             drawable: DrawableImage::from_image(&image),
             image,
             pix_modified_since_draw: HashMap::new(),

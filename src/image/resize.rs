@@ -1,5 +1,5 @@
 use super::undo::action::{ActionName, DoableAction, StaticDoableAction, UndoableAction, StaticUndoableAction};
-use super::{Image, ImageLike, Pixel, UnifiedImage};
+use super::{Image, ImageLike, Pixel, FusedImage};
 
 use gtk::gdk::{Toplevel, RGBA};
 use itertools::{Itertools, Either};
@@ -34,7 +34,7 @@ impl StaticDoableAction for Scale {
 }
 
 impl Scale {
-    fn exec_scale_with_fn(&self, image: &mut UnifiedImage, interpolation_fn: fn(&Image, f32, f32) -> Pixel) {
+    fn exec_scale_with_fn(&self, image: &mut FusedImage, interpolation_fn: fn(&Image, f32, f32) -> Pixel) {
         let new_sz = self.w * self.h;
         let mut new_pix = Vec::with_capacity(new_sz);
 
@@ -58,7 +58,7 @@ impl DoableAction for Scale {
         ActionName::Scale
     }
 
-    fn exec(self, image: &mut UnifiedImage) {
+    fn exec(self, image: &mut FusedImage) {
         match self.method {
             ScaleMethod::NearestNeighbor => self.exec_scale_with_fn(image, nearest_neighbor),
             ScaleMethod::Bilinear => self.exec_scale_with_fn(image, bilinear),

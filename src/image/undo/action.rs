@@ -1,4 +1,4 @@
-use crate::image::{DrawableImage, Image, UnifiedImage};
+use crate::image::{DrawableImage, Image, FusedImage};
 use super::{ImageDiff, ImageHistory, ImageStateDiff};
 
 #[derive(Debug)] // TODO remove/change
@@ -20,7 +20,7 @@ pub enum ActionName {
 
 pub trait DoableAction {
     fn name(&self) -> ActionName;
-    fn exec(self, image: &mut UnifiedImage);
+    fn exec(self, image: &mut FusedImage);
     // undo is imlpicit: it will be done by diffing the image
 }
 
@@ -71,7 +71,7 @@ impl ImageHistory {
     }
 }
 
-impl UnifiedImage {
+impl FusedImage {
     pub fn apply_action(&mut self, action: &mut Box<dyn UndoableAction>) {
         action.exec(&mut self.image);
         self.drawable = DrawableImage::from_image(&self.image);
