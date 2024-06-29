@@ -100,12 +100,29 @@ struct PrimarySecondaryButton {
 
 impl PrimarySecondaryButton {
     fn new_p(color: RGBA, kind: PrimaryOrSecondary) -> Rc<RefCell<Self>> {
+        let hw = match kind {
+            PrimaryOrSecondary::Primary => 40,
+            PrimaryOrSecondary::Secondary => 20,
+        };
+
         let widget = gtk::ToggleButton::builder()
             .active(kind == PrimaryOrSecondary::Primary)
+            .height_request(hw)
+            .width_request(hw)
+            .css_classes(["no-padding", "primary-secondary-border"])
+            .valign(gtk::Align::Center)
+            .halign(gtk::Align::Center)
+            .hexpand(false)
+            .vexpand(false)
             .build();
+
         let drawing_area =  DrawingArea::builder()
-            .content_height(30)
-            .content_width(30)
+            .content_height(hw)
+            .content_width(hw)
+            .hexpand(false)
+            .vexpand(false)
+            .valign(gtk::Align::Fill)
+            .halign(gtk::Align::Fill)
             .build();
 
         widget.set_child(Some(&drawing_area));

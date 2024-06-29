@@ -61,6 +61,21 @@ impl UiState {
             ui_p.borrow().window.present();
         }));
 
+        app.connect_startup(|_| {
+            // From [the gtk-rs guide](https://gtk-rs.org/gtk4-rs/git/book/css.html?highlight=css#css)
+
+            // Load the CSS file and add it to the provider
+            let provider = gtk::CssProvider::new();
+            provider.load_from_string(include_str!("../css/style.css"));
+
+            // Add the provider to the default screen
+            gtk::style_context_add_provider_for_display(
+                &gtk::gdk::Display::default().expect("Could not connect to a display."),
+                &provider,
+                gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+            );
+        });
+
         let (menu, menu_actions) = menu::mk_menu(ui_p.clone());
 
         let _ = app.register(None::<&gtk::gio::Cancellable>);
