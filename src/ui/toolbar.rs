@@ -40,6 +40,8 @@ const INITIAL_MODE: MouseMode = MouseMode::cursor_default();
 
 impl Toolbar {
     pub fn new_p() -> Rc<RefCell<Toolbar>> {
+        let default_primary_color = RGBA::new(0.0, 0.0, 0.0, 1.0);
+        let default_secondary_color = RGBA::new(0.0, 0.0, 0.0, 0.0);
         let default_palette_colors = vec![
             RGBA::new(0.0, 0.0, 0.0, 1.0),
             RGBA::new(1.0, 0.0, 0.0, 1.0),
@@ -51,7 +53,9 @@ impl Toolbar {
         let default_color = default_palette_colors[0].clone();
         let widget =  GBox::new(Orientation::Horizontal, 10);
         let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
-        let palette_p = Palette::new_p(default_palette_colors);
+        let palette_p = Palette::new_p(
+            default_primary_color, default_secondary_color, default_palette_colors
+        );
         let mode_toolbar_wrapper = GBox::builder().build();
         let mode_toolbar = ModeToolbar::new(&mode_toolbar_wrapper, Some(INITIAL_MODE.variant()));
         let brush = Brush::new(default_color, BrushType::Round, 5);
@@ -159,8 +163,8 @@ impl Toolbar {
         self.palette_p.borrow().primary_color()
     }
 
-    pub fn set_primary_color(&self, color: RGBA) {
-        self.palette_p.borrow_mut().set_primary_color(color);
+    pub fn set_active_color(&self, color: RGBA) {
+        self.palette_p.borrow_mut().set_active_color(color);
     }
 
     pub fn widget(&self) -> &GBox {
