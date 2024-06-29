@@ -56,7 +56,11 @@ impl Toolbar {
         let palette_p = Palette::new_p(
             default_primary_color, default_secondary_color, default_palette_colors
         );
-        let mode_toolbar_wrapper = GBox::builder().build();
+        let mode_toolbar_wrapper = GBox::builder()
+            .orientation(gtk::Orientation::Horizontal)
+            .hexpand(true)
+            .vexpand(false)
+            .build();
         let mode_toolbar = ModeToolbar::new(&mode_toolbar_wrapper, Some(INITIAL_MODE.variant()));
         let brush = Brush::new(default_color, BrushType::Round, 5);
         let eyedropper_brush = Brush::new(default_color, BrushType::Square, 1);

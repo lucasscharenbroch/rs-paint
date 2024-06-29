@@ -7,7 +7,7 @@ pub use nary::*;
 use crate::image::generate::NewImageProps;
 use crate::ui::form::{ColorField, ExpandJustificationField};
 use super::form::DropdownField;
-use super::form::{Form, gadget::AspectRatioGadget};
+use super::form::{Form, FormBuilderIsh, gadget::AspectRatioGadget};
 use crate::image::resize::{Scale, ScaleMethod, Expand, ExpandJustification, Crop};
 
 use gtk::{prelude::*, FileDialog, Window};

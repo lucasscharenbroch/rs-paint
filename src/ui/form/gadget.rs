@@ -1,3 +1,5 @@
+use crate::composite_field;
+
 use super::*;
 
 use std::rc::Rc;
@@ -7,10 +9,16 @@ use glib_macros::clone;
 /// A gadget is a wrapper of FormFeilds that can support
 /// extra state and interconnected behavior
 trait FormGadget {
-    fn add_to_builder(&self, buider: FormBuilder) -> FormBuilder;
+    fn add_to_builder<T: FormBuilderIsh>(&self, buider: T) -> T;
 }
 
 impl FormBuilder {
+    pub fn with_gadget(self, new_gadget: &impl FormGadget) -> Self {
+        new_gadget.add_to_builder(self)
+    }
+}
+
+impl FlowFormBuilder {
     pub fn with_gadget(self, new_gadget: &impl FormGadget) -> Self {
         new_gadget.add_to_builder(self)
     }
@@ -26,7 +34,7 @@ pub struct AspectRatioGadget {
 }
 
 impl FormGadget for AspectRatioGadget {
-     fn add_to_builder(&self, builder: FormBuilder) -> FormBuilder {
+     fn add_to_builder<T: FormBuilderIsh>(&self, builder: T) -> T {
         builder
             .with_field(&self.width_field)
             .with_field(&self.height_field)
@@ -140,9 +148,8 @@ impl NumberedSliderGadget {
 }
 
 impl FormGadget for NumberedSliderGadget {
-     fn add_to_builder(&self, builder: FormBuilder) -> FormBuilder {
+     fn add_to_builder<T: FormBuilderIsh>(&self, builder: T) -> T {
         builder
-            .with_field(&self.slider_field)
-            .with_field(&self.label_field)
+            .with_field(&composite_field!(&self.slider_field, &self.label_field))
      }
 }

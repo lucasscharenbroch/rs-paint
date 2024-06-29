@@ -3,12 +3,12 @@ use super::{CursorState, MagicWandState, PencilState, EyedropperState, Rectangle
 use crate::image::blend::BlendingMode;
 use crate::image::brush::{Brush, BrushType};
 use crate::ui::form::gadget::NumberedSliderGadget;
-use crate::ui::form::{DropdownField, Form, NaturalField, SliderField};
+use crate::ui::form::{DropdownField, FlowForm, FormBuilderIsh, NaturalField, SliderField};
 
 use gtk::prelude::*;
 
 type PencilSettings = (BrushType, BlendingMode, u8);
-fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
+fn mk_pencil_toolbar() -> (FlowForm, Box<dyn Fn() -> PencilSettings>) {
     let brush_types = vec![
         ("Round", BrushType::Round),
         ("Square", BrushType::Square),
@@ -28,7 +28,7 @@ fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
     let blending_mode_dropdown = DropdownField::new(None, blending_modes, 0);
     let radius_selector = NaturalField::new(Some("Brush Radius"), 1, 255, 1, 5);
 
-    let form = Form::builder()
+    let form = FlowForm::builder()
         .orientation(gtk::Orientation::Horizontal)
         .with_field(&type_dropdown)
         .with_field(&blending_mode_dropdown)
@@ -47,7 +47,7 @@ fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
 }
 
 type MagicWandSettings = f64;
-fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
+fn mk_magic_wand_toolbar() -> (FlowForm, Box<dyn Fn() -> MagicWandSettings>) {
     let threshold_slider_gadget_p = NumberedSliderGadget::new_p(
         Some("Tolerance"),
         gtk::Orientation::Horizontal,
@@ -58,7 +58,7 @@ fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
         String::from("%"),
     );
 
-    let form = Form::builder()
+    let form = FlowForm::builder()
         .orientation(gtk::Orientation::Horizontal)
         .with_gadget(&*threshold_slider_gadget_p.borrow())
         .build();
@@ -71,7 +71,7 @@ fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
 }
 
 type FillSettings = f64;
-fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
+fn mk_fill_toolbar() -> (FlowForm, Box<dyn Fn() -> FillSettings>) {
     let threshold_slider_gadget_p = NumberedSliderGadget::new_p(
         Some("Tolerance"),
         gtk::Orientation::Horizontal,
@@ -82,7 +82,7 @@ fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
         String::from("%"),
     );
 
-    let form = Form::builder()
+    let form = FlowForm::builder()
         .orientation(gtk::Orientation::Horizontal)
         .with_gadget(&*threshold_slider_gadget_p.borrow())
         .build();
@@ -97,12 +97,12 @@ fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
 pub struct ModeToolbar {
     active_variant: Option<MouseModeVariant>,
     widget_wrapper: gtk::Box,
-    empty_form: Form,
-    pencil_form: Form,
+    empty_form: FlowForm,
+    pencil_form: FlowForm,
     get_pencil_settings_p: Box<dyn Fn() -> PencilSettings>,
-    magic_wand_form: Form,
+    magic_wand_form: FlowForm,
     get_magic_wand_settings_p: Box<dyn Fn() -> MagicWandSettings>,
-    fill_form: Form,
+    fill_form: FlowForm,
     get_fill_settings_p: Box<dyn Fn() -> FillSettings>,
 }
 
@@ -115,7 +115,7 @@ impl ModeToolbar {
         let mut res = ModeToolbar {
             active_variant: None,
             widget_wrapper: widget_wrapper.clone(),
-            empty_form: Form::builder().build(),
+            empty_form: FlowForm::builder().build(),
             pencil_form,
             get_pencil_settings_p,
             magic_wand_form,
@@ -128,7 +128,7 @@ impl ModeToolbar {
         res
     }
 
-    fn variant_to_form(&self, variant: &MouseModeVariant) -> &Form {
+    fn variant_to_form(&self, variant: &MouseModeVariant) -> &FlowForm {
         match variant {
             MouseModeVariant::Cursor => &self.empty_form,
             MouseModeVariant::Eyedropper => &self.empty_form,
@@ -139,7 +139,7 @@ impl ModeToolbar {
         }
     }
 
-    pub fn active_form(&self) -> Option<&Form> {
+    pub fn active_form(&self) -> Option<&FlowForm> {
         self.active_variant.as_ref().map(|variant| {
             self.variant_to_form(variant)
         })

@@ -446,8 +446,63 @@ impl FormField for ExpandJustificationField {
     }
 }
 
+/// A field composed of multiple fields
+/// (used solely for avoiding line-breaks).
+/// This struct uses linked-list-like construction
+/// to allow for compile-time composition.
+/// Use the `composite_field!` macro to construct it.
+pub struct CompositeField {
+    widget: gtk::Box,
+}
+
+impl CompositeField {
+    /// Combine two fields into one (base-case)
+    fn from2<L, R>(left: &L, right: &R) -> Self
+    where
+        L: FormField,
+        R: FormField,
+    {
+        let widget = gtk::Box::builder()
+            .build();
+
+        widget.append(left.outer_widget());
+        widget.append(right.outer_widget());
+
+        Self {
+            widget
+        }
+    }
+
+    fn append<R: FormField>(self, right: &R) -> Self {
+        let widget = self.widget;
+        widget.append(right.outer_widget());
+
+        Self {
+            widget
+        }
+    }
+}
+
+impl FormField for CompositeField {
+    fn outer_widget(&self) -> &impl IsA<Widget> {
+        &self.widget
+    }
+}
+
+/// Combines the provided `FormField`s into a single `FormField`
+/// (this is useless except for dislpay purposes)
+#[macro_export]
+macro_rules! composite_field {
+    ($first:expr, $second:expr $(, $another:expr)*) => {
+        CompositeField::from2($first, $second)
+        $(
+            .append($another);
+        )*
+    };
+}
+
 pub struct Form {
-    widget: GBox,
+    widget: gtk::Box,
 }
 
 impl Form {
@@ -460,14 +515,26 @@ impl Form {
     }
 }
 
+pub trait FormBuilderIsh {
+    fn with_field(self, new_field: &impl FormField) -> Self;
+}
+
 pub struct FormBuilder {
     title: Option<String>,
-    widget: GBox,
+    widget: gtk::Box,
+
+}
+
+impl FormBuilderIsh for FormBuilder {
+    fn with_field(self, new_field: &impl FormField) -> Self {
+        self.widget.append(new_field.outer_widget());
+        self
+    }
 }
 
 impl FormBuilder {
     fn new() -> Self {
-        let widget = GBox::builder()
+        let widget = gtk::Box::builder()
             .orientation(Orientation::Vertical)
             .spacing(4)
             .build();
@@ -497,8 +564,70 @@ impl FormBuilder {
         self
     }
 
-    pub fn with_field(self, new_field: &impl FormField) -> Self {
+    pub fn orientation(self, orientation: gtk::Orientation) -> Self {
+        self.widget.set_orientation(orientation);
+        self
+    }
+}
+
+pub struct FlowForm {
+    widget: gtk::FlowBox,
+}
+
+impl FlowForm {
+    pub fn builder() -> FlowFormBuilder {
+        FlowFormBuilder::new()
+    }
+
+    pub fn widget(&self) -> &impl IsA<Widget> {
+        &self.widget
+    }
+}
+
+pub struct FlowFormBuilder {
+    title: Option<String>,
+    widget: gtk::FlowBox,
+}
+
+
+impl FormBuilderIsh for FlowFormBuilder {
+    fn with_field(self, new_field: &impl FormField) -> Self {
         self.widget.append(new_field.outer_widget());
+        self
+    }
+}
+
+impl FlowFormBuilder {
+    fn new() -> Self {
+        let widget = gtk::FlowBox::builder()
+            .orientation(Orientation::Vertical)
+            .row_spacing(4)
+            .column_spacing(4)
+            // .selection_mode(gtk::SelectionMode::None)
+            .build();
+
+        FlowFormBuilder {
+            title: None,
+            widget,
+        }
+    }
+
+    pub fn build(self) -> FlowForm {
+        if let Some(title_str) = self.title {
+            let title_label = Label::builder()
+                .label(title_str)
+                .build();
+
+            self.widget.prepend(&title_label);
+        }
+
+        FlowForm {
+            widget: self.widget,
+        }
+    }
+
+    pub fn title(mut self, new_title: &str) -> Self {
+        self.title = Some(String::from(new_title));
         self
     }
 
