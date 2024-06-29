@@ -11,7 +11,10 @@ use std::cell::RefCell;
 use glib_macros::clone;
 
 fn new_label(text: &str) -> Label {
-    Label::new(Some(text))
+    Label::builder()
+        .label(text)
+        .valign(gtk::Align::Center)
+        .build()
 }
 
 pub trait FormField {
@@ -63,6 +66,7 @@ pub struct NaturalField {
 impl NaturalField {
     pub fn new(label: Option<&str>, min: usize, max: usize, step: usize, default_value: usize) -> Self {
         let num_entry = SpinButton::with_range(min as f64, max as f64, step as f64);
+        num_entry.set_valign(gtk::Align::Center);
         num_entry.set_value(default_value as f64);
 
         let wrapper = GBox::builder()
@@ -92,6 +96,10 @@ impl NaturalField {
         self.num_entry.connect_value_changed(move |b| {
             f(b.value() as usize)
         });
+    }
+
+    pub fn set_orientation(&self, orientation: gtk::Orientation) {
+        self.wrapper.set_orientation(orientation);
     }
 }
 
@@ -251,6 +259,7 @@ impl<T> DropdownField<T> {
 
         let dropdown = gtk::DropDown::builder()
             .model(&variant_str_list)
+            .valign(gtk::Align::Center)
             .build();
 
         let variants = variants.into_iter()
@@ -275,6 +284,10 @@ impl<T> DropdownField<T> {
 
     pub fn value(&self) -> &T {
         &self.variants[self.dropdown.selected() as usize]
+    }
+
+    pub fn set_orientation(&self, orientation: gtk::Orientation) {
+        self.wrapper.set_orientation(orientation);
     }
 }
 
@@ -329,6 +342,10 @@ impl SliderField {
         self.scale.connect_value_changed(move |b| {
             f(b.value() as usize)
         });
+    }
+
+    pub fn set_population_orientation(&self, orientation: gtk::Orientation) {
+        self.wrapper.set_orientation(orientation);
     }
 }
 
@@ -457,12 +474,13 @@ pub struct CompositeField {
 
 impl CompositeField {
     /// Combine two fields into one (base-case)
-    fn from2<L, R>(left: &L, right: &R) -> Self
+    pub fn from2<L, R>(left: &L, right: &R) -> Self
     where
         L: FormField,
         R: FormField,
     {
         let widget = gtk::Box::builder()
+            .orientation(Orientation::Horizontal)
             .build();
 
         widget.append(left.outer_widget());
@@ -473,13 +491,18 @@ impl CompositeField {
         }
     }
 
-    fn append<R: FormField>(self, right: &R) -> Self {
+    pub fn append<R: FormField>(self, right: &R) -> Self {
         let widget = self.widget;
         widget.append(right.outer_widget());
 
         Self {
             widget
         }
+    }
+
+    pub fn made_vertical(self) -> Self {
+        self.widget.set_orientation(Orientation::Vertical);
+        self
     }
 }
 
@@ -494,10 +517,19 @@ impl FormField for CompositeField {
 #[macro_export]
 macro_rules! composite_field {
     ($first:expr, $second:expr $(, $another:expr)*) => {
-        CompositeField::from2($first, $second)
+        crate::ui::form::CompositeField::from2($first, $second)
         $(
             .append($another);
         )*
+    };
+}
+
+
+#[macro_export]
+macro_rules! vertical_composite_field {
+    ($($args:expr),*) => {
+        crate::composite_field!($($args),*)
+            .made_vertical()
     };
 }
 
@@ -568,6 +600,11 @@ impl FormBuilder {
         self.widget.set_orientation(orientation);
         self
     }
+
+    pub fn spacing(self, n: i32) -> Self {
+        self.widget.set_spacing(n);
+        self
+    }
 }
 
 pub struct FlowForm {
@@ -603,7 +640,7 @@ impl FlowFormBuilder {
             .orientation(Orientation::Vertical)
             .row_spacing(4)
             .column_spacing(4)
-            // .selection_mode(gtk::SelectionMode::None)
+            .selection_mode(gtk::SelectionMode::None)
             .build();
 
         FlowFormBuilder {

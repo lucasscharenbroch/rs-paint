@@ -111,12 +111,15 @@ impl AspectRatioGadget {
 pub struct NumberedSliderGadget {
     slider_field: SliderField,
     label_field: LabelField,
+    /// Place the label above (and the number below) the slider?
+    use_vertical_layout: bool,
 }
 
 impl NumberedSliderGadget {
     pub fn new_p(
         label: Option<&str>,
         orientation: Orientation,
+        use_vertical_layout: bool,
         min: usize,
         max: usize,
         step: usize,
@@ -133,11 +136,16 @@ impl NumberedSliderGadget {
         let state_p = Rc::new(RefCell::new(NumberedSliderGadget {
             slider_field,
             label_field,
+            use_vertical_layout,
         }));
 
         state_p.borrow().slider_field.set_changed_hook(clone!(@strong state_p => move |new_val| {
             state_p.borrow().label_field.set_text(&gen_label(new_val))
         }));
+
+        if use_vertical_layout {
+            state_p.borrow().slider_field.set_population_orientation(gtk::Orientation::Vertical);
+        }
 
         state_p
     }
@@ -149,7 +157,15 @@ impl NumberedSliderGadget {
 
 impl FormGadget for NumberedSliderGadget {
      fn add_to_builder<T: FormBuilderIsh>(&self, builder: T) -> T {
-        builder
-            .with_field(&composite_field!(&self.slider_field, &self.label_field))
+        if self.use_vertical_layout {
+            builder
+                .with_field(&self.slider_field)
+                .with_field(&self.label_field)
+        } else {
+            // ensure the label-slider and number are all on the same line by binding
+            // the two into a composite
+            builder
+                .with_field(&composite_field!(&self.slider_field, &self.label_field))
+        }
      }
 }
