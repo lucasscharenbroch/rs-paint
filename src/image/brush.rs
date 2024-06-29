@@ -10,6 +10,7 @@ pub enum BrushType {
     Square,
     Round,
     Dither,
+    Caligraphy,
     Pen, // faded round
     Crayon, // faded dither
 }
@@ -76,6 +77,8 @@ fn mk_round_brush_image(n: u8, fade: bool, dither: bool, color: RGBA) -> BrushIm
 
     const CIRC_THRESH: f64 = 0.15;
 
+    // include points closer than CIRC_THRESH to the center
+
     for i in 0..n {
         for j in 0..n {
             let x = (n as f64 / 2.0) - (j as f64 + 0.5);
@@ -96,6 +99,34 @@ fn mk_round_brush_image(n: u8, fade: bool, dither: bool, color: RGBA) -> BrushIm
     BrushImage::from_pixels_options(pix)
 }
 
+fn mk_caligraphy_brush_image(n: u8, color: RGBA) -> BrushImage {
+    let p = Pixel::from_rgba_struct(color);
+    let n = n as usize;
+    let mut pix = vec![vec![None; n]; n];
+
+    // scuffed, but easier to change than some random formula
+    let dist_thresh: f64 = match n {
+        0..=2 => 1.0,
+        3..=5 => 0.35,
+        6 => 0.25,
+        7.. => 0.15,
+    };
+
+    // include points closer than dist_thresh to the line (y=x)
+
+    for i in 0..n {
+        for j in 0..n {
+            let diff = (i as f64 - j as f64) / n as f64;
+
+            if diff.abs() < dist_thresh  {
+                pix[i][j] = Some(p.clone());
+            }
+        }
+    }
+
+    BrushImage::from_pixels_options(pix)
+}
+
 impl Brush {
     fn image_from_props(props: &BrushProperties) -> BrushImage {
         let r = props.radius;
@@ -103,6 +134,7 @@ impl Brush {
             BrushType::Square => mk_square_brush_image(r, props.color),
             BrushType::Round => mk_round_brush_image(r, false, false, props.color),
             BrushType::Dither => mk_round_brush_image(r, false, true, props.color),
+            BrushType::Caligraphy => mk_caligraphy_brush_image(r, props.color),
             BrushType::Pen => mk_round_brush_image(r, true, false, props.color),
             BrushType::Crayon => mk_round_brush_image(r, true, true, props.color),
         }

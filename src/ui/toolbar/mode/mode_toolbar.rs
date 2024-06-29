@@ -12,6 +12,7 @@ fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
     let brush_types = vec![
         ("Round", BrushType::Round),
         ("Square", BrushType::Square),
+        ("Caligraphy", BrushType::Caligraphy),
         ("Dither", BrushType::Dither),
         ("Pen", BrushType::Pen),
         ("Crayon", BrushType::Crayon),
