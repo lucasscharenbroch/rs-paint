@@ -158,4 +158,11 @@ impl super::MouseModeState for RectangleSelectState {
             Self::visual_box_around(x, y, w, h, *canvas.zoom())(cr);
         }
     }
+
+    fn handle_right_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+        // deselect
+        self.mode = RectangleSelectMode::Unselected;
+        canvas.set_selection(Selection::NoSelection);
+        canvas.update();
+    }
 }

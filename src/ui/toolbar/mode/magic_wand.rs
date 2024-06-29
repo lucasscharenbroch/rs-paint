@@ -28,4 +28,10 @@ impl super::MouseModeState for MagicWandState {
         canvas.set_selection(Selection::Bitmask(bitmask));
         canvas.update()
     }
+
+    fn handle_right_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+        // deselect
+        canvas.set_selection(Selection::NoSelection);
+        canvas.update();
+    }
 }

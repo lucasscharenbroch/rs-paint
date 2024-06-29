@@ -163,6 +163,10 @@ impl Toolbar {
         self.palette_p.borrow().primary_color()
     }
 
+    pub fn secondary_color(&self) -> RGBA {
+        self.palette_p.borrow().secondary_color()
+    }
+
     pub fn set_primary_color(&self, color: RGBA) {
         self.palette_p.borrow_mut().set_primary_color(color);
     }
