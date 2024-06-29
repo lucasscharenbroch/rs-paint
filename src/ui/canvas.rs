@@ -151,10 +151,12 @@ impl Canvas {
     }
 
     fn init_ui_state_connections(canvas_p: &Rc<RefCell<Self>>, ui_p: &Rc<RefCell<UiState>>) {
-        // drag
+        // left click drag
 
-        let drag_controller = GestureDrag::new();
-        drag_controller.connect_begin(clone!(@strong ui_p, @strong canvas_p => move |dc, _| {
+        let left_drag_controller = GestureDrag::builder()
+            .button(1) // left click
+            .build();
+        left_drag_controller.connect_begin(clone!(@strong ui_p, @strong canvas_p => move |dc, _| {
             let ui = ui_p.borrow();
             let mut toolbar = ui.toolbar_p.borrow_mut();
             let mut mouse_mode = toolbar.mouse_mode().clone();
@@ -162,7 +164,7 @@ impl Canvas {
             toolbar.set_mouse_mode(mouse_mode);
         }));
 
-        drag_controller.connect_drag_update(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
+        left_drag_controller.connect_drag_update(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
             let ui = ui_p.borrow();
             let mut toolbar = ui.toolbar_p.borrow_mut();
             let mut mouse_mode = toolbar.mouse_mode().clone();
@@ -170,7 +172,7 @@ impl Canvas {
             toolbar.set_mouse_mode(mouse_mode);
         }));
 
-        drag_controller.connect_drag_end(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
+        left_drag_controller.connect_drag_end(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
             let ui = ui_p.borrow();
             let mut toolbar = ui.toolbar_p.borrow_mut();
             let mut mouse_mode = toolbar.mouse_mode().clone();
@@ -178,7 +180,38 @@ impl Canvas {
             toolbar.set_mouse_mode(mouse_mode);
         }));
 
-        canvas_p.borrow().drawing_area().add_controller(drag_controller);
+        canvas_p.borrow().drawing_area().add_controller(left_drag_controller);
+
+        // right click drag
+
+        let right_drag_controller = GestureDrag::builder()
+            .button(3) // right click
+            .build();
+        right_drag_controller.connect_begin(clone!(@strong ui_p, @strong canvas_p => move |dc, _| {
+            let ui = ui_p.borrow();
+            let mut toolbar = ui.toolbar_p.borrow_mut();
+            let mut mouse_mode = toolbar.mouse_mode().clone();
+            mouse_mode.handle_right_drag_start(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
+            toolbar.set_mouse_mode(mouse_mode);
+        }));
+
+        right_drag_controller.connect_drag_update(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
+            let ui = ui_p.borrow();
+            let mut toolbar = ui.toolbar_p.borrow_mut();
+            let mut mouse_mode = toolbar.mouse_mode().clone();
+            mouse_mode.handle_right_drag_update(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
+            toolbar.set_mouse_mode(mouse_mode);
+        }));
+
+        right_drag_controller.connect_drag_end(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
+            let ui = ui_p.borrow();
+            let mut toolbar = ui.toolbar_p.borrow_mut();
+            let mut mouse_mode = toolbar.mouse_mode().clone();
+            mouse_mode.handle_right_drag_end(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
+            toolbar.set_mouse_mode(mouse_mode);
+        }));
+
+        canvas_p.borrow().drawing_area().add_controller(right_drag_controller);
 
         // mouse movement
 

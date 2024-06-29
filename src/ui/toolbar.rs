@@ -163,8 +163,12 @@ impl Toolbar {
         self.palette_p.borrow().primary_color()
     }
 
-    pub fn set_active_color(&self, color: RGBA) {
-        self.palette_p.borrow_mut().set_active_color(color);
+    pub fn set_primary_color(&self, color: RGBA) {
+        self.palette_p.borrow_mut().set_primary_color(color);
+    }
+
+    pub fn set_secondary_color(&self, color: RGBA) {
+        self.palette_p.borrow_mut().set_secondary_color(color);
     }
 
     pub fn widget(&self) -> &GBox {

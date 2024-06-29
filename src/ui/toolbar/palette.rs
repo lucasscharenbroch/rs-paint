@@ -253,9 +253,19 @@ impl Palette {
         self.secondary_button_p.borrow().color
     }
 
+    pub fn set_primary_color(&self, color: RGBA) {
+        self.primary_button_p.borrow_mut().color = color;
+        self.primary_button_p.borrow().drawing_area.queue_draw();
+    }
+
+    pub fn set_secondary_color(&self, color: RGBA) {
+        self.secondary_button_p.borrow_mut().color = color;
+        self.secondary_button_p.borrow().drawing_area.queue_draw();
+    }
+
     /// Sets the primary or secondary color (whichever
     /// is currently active) to the argument
-    pub fn set_active_color(&mut self, color: RGBA) {
+    fn set_active_color(&mut self, color: RGBA) {
         let active_button_p = match self.active {
             PrimaryOrSecondary::Primary => &self.primary_button_p,
             PrimaryOrSecondary::Secondary => &self.secondary_button_p,

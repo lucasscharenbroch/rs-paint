@@ -41,9 +41,16 @@ pub enum MouseModeVariant {
 }
 
 trait MouseModeState {
+    // left-click drags
     fn handle_drag_start(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
     fn handle_drag_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
     fn handle_drag_end(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
+
+    // right-click drags
+    fn handle_right_drag_start(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
+    fn handle_right_drag_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
+    fn handle_right_drag_end(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
+
     fn handle_motion(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
     fn handle_mod_key_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
     fn draw(&self, _canvas: &Canvas, _cr: &Context, _toolbar: &mut Toolbar) {}
@@ -130,6 +137,18 @@ impl MouseMode {
 
     pub fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         self.get_state().handle_drag_end(mod_keys, canvas, toolbar);
+    }
+
+    pub fn handle_right_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.get_state().handle_right_drag_start(mod_keys, canvas, toolbar);
+    }
+
+    pub fn handle_right_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.get_state().handle_right_drag_update(mod_keys, canvas, toolbar);
+    }
+
+    pub fn handle_right_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.get_state().handle_right_drag_end(mod_keys, canvas, toolbar);
     }
 
     pub fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
