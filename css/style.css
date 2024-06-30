@@ -12,6 +12,11 @@
     border: 2px solid slategrey;
 }
 
+.primary-secondary-border:hover {
+    margin: 3px 3px 3px 3px;
+    border: 2px solid darkslategrey;
+}
+
 .primary-secondary-border:checked {
     margin: 3px 3px 3px 3px;
     border: 2px solid blue;
@@ -19,6 +24,11 @@
 
 .palette-button {
     border: 1.5px solid black;
+    border-radius: 0%;
+}
+
+.palette-button:hover {
+    border: 1.5px solid slategrey;
     border-radius: 0%;
 }
 
