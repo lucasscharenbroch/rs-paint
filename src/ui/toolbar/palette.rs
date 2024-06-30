@@ -127,7 +127,7 @@ impl PrimarySecondaryButton {
     fn new_p(color: RGBA, kind: PrimaryOrSecondary) -> Rc<RefCell<Self>> {
         let size = match kind {
             PrimaryOrSecondary::Primary => 40,
-            PrimaryOrSecondary::Secondary => 20,
+            PrimaryOrSecondary::Secondary => 25,
         };
 
         let widget = gtk::ToggleButton::builder()
@@ -161,12 +161,12 @@ impl PrimarySecondaryButton {
 
             let transparent_pattern = cb_p.borrow_mut().checkerboard.to_repeated_surface_pattern();
             let _ = cr.set_source(&transparent_pattern);
-            cr.rectangle(0.0, 0.0, 2.0, 2.0);
+            cr.rectangle(0.0, 0.0, 2.1, 2.1);
             let _ = cr.fill();
 
             let color = cb_p.borrow().color;
             cr.set_source_rgba(color.red().into(), color.green().into(), color.blue().into(), color.alpha().into());
-            cr.rectangle(0.0, 0.0, 2.0, 2.0);
+            cr.rectangle(0.0, 0.0, 2.1, 2.1);
             let _ = cr.fill();
         }));
 
@@ -275,6 +275,8 @@ impl Palette {
             color_array_wrapper_widget.append(&row_widget);
         }
 
+        Self::set_up_util_buttons(&palette_p);
+
         palette_p.borrow().widget.append(&color_array_wrapper_widget);
 
         let primary_secondary_wrapper = gtk::Box::new(gtk::Orientation::Vertical, 4);
@@ -301,6 +303,82 @@ impl Palette {
             }));
 
         palette_p
+    }
+
+    fn set_up_util_buttons(palette_p: &Rc<RefCell<Self>>) {
+        let util_button_wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(4)
+            .build();
+
+        use crate::icon_file;
+
+        let arrow_icon1 = gtk::Image::builder()
+            .file(icon_file!("right-arrow"))
+            .build();
+
+        let arrow_icon2 = gtk::Image::builder()
+            .file(icon_file!("right-arrow"))
+            .build();
+
+        let swap_icon = gtk::Image::builder()
+            .file(icon_file!("swap"))
+            .build();
+
+        let primary_to_palette = gtk::Button::builder()
+            .child(&arrow_icon1)
+            .css_classes(["no-padding"])
+            .build();
+
+        let swap_primary_and_secondary = gtk::Button::builder()
+            .child(&swap_icon)
+            .css_classes(["no-padding"])
+            .build();
+
+        let secondary_to_palette = gtk::Button::builder()
+            .child(&arrow_icon2)
+            .css_classes(["no-padding"])
+            .build();
+
+        primary_to_palette.connect_clicked(clone!(@strong palette_p => move |_| {
+            let palette = palette_p.borrow_mut();
+            for row in palette.color_buttons.iter() {
+                for cb_p in row.iter() {
+                    if cb_p.borrow().color.is_none() {
+                        cb_p.borrow_mut().color = Some(palette.primary_color());
+                        cb_p.borrow().drawing_area.queue_draw();
+                        return;
+                    }
+                }
+            }
+        }));
+
+        swap_primary_and_secondary.connect_clicked(clone!(@strong palette_p => move |_| {
+            let palette = palette_p.borrow_mut();
+            let primary = palette.primary_color();
+            let secondary = palette.secondary_color();
+            palette.set_primary_color(secondary);
+            palette.set_secondary_color(primary);
+        }));
+
+        secondary_to_palette.connect_clicked(clone!(@strong palette_p => move |_| {
+            let palette = palette_p.borrow_mut();
+            for row in palette.color_buttons.iter() {
+                for cb_p in row.iter() {
+                    if cb_p.borrow().color.is_none() {
+                        cb_p.borrow_mut().color = Some(palette.secondary_color());
+                        cb_p.borrow().drawing_area.queue_draw();
+                        return;
+                    }
+                }
+            }
+        }));
+
+        util_button_wrapper.append(&primary_to_palette);
+        util_button_wrapper.append(&swap_primary_and_secondary);
+        util_button_wrapper.append(&secondary_to_palette);
+
+        palette_p.borrow().widget.append(&util_button_wrapper);
     }
 
     pub fn widget(&self) -> &gtk::Box {
