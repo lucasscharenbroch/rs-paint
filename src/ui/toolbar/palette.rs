@@ -16,10 +16,19 @@ struct PaletteColorButton {
 
 impl PaletteColorButton {
     fn new_p(color: RGBA) -> Rc<RefCell<Self>> {
-        let widget = gtk::Button::new();
+        const SIZE: i32 = 25;
+
+        let widget = gtk::Button::builder()
+            .height_request(SIZE)
+            .width_request(SIZE)
+            .css_classes(["no-padding", "palette-button"])
+            .valign(gtk::Align::Center)
+            .halign(gtk::Align::Center)
+            .build();
+
         let drawing_area =  DrawingArea::builder()
-            .content_height(30)
-            .content_width(30)
+            .content_height(SIZE)
+            .content_width(SIZE)
             .build();
 
         widget.set_child(Some(&drawing_area));
@@ -38,12 +47,12 @@ impl PaletteColorButton {
 
             let transparent_pattern = cb_p.borrow_mut().checkerboard.to_repeated_surface_pattern();
             let _ = cr.set_source(&transparent_pattern);
-            cr.rectangle(0.0, 0.0, 2.0, 2.0);
+            cr.rectangle(0.0, 0.0, 2.1, 2.1);
             let _ = cr.fill();
 
             let color = cb_p.borrow().color;
             cr.set_source_rgba(color.red().into(), color.green().into(), color.blue().into(), color.alpha().into());
-            cr.rectangle(0.0, 0.0, 2.0, 2.0);
+            cr.rectangle(0.0, 0.0, 2.1, 2.1);
             let _ = cr.fill();
         }));
 
@@ -187,7 +196,7 @@ impl PrimarySecondaryButton {
 }
 
 pub struct Palette {
-    widget: GBox,
+    widget: gtk::FlowBox,
     color_buttons: Vec<Rc<RefCell<PaletteColorButton>>>,
     active: PrimaryOrSecondary,
     primary_button_p: Rc<RefCell<PrimarySecondaryButton>>,
@@ -202,7 +211,12 @@ enum PrimaryOrSecondary {
 
 impl Palette {
     pub fn new_p(default_primary: RGBA, default_secondary: RGBA, colors: Vec<RGBA>) -> Rc<RefCell<Self>> {
-        let widget = GBox::new(Orientation::Horizontal, 10);
+        let widget = gtk::FlowBox::builder()
+            .selection_mode(gtk::SelectionMode::None)
+            .orientation(Orientation::Vertical)
+            .row_spacing(5)
+            .column_spacing(5)
+            .build();
 
         let color_buttons = colors.iter()
             .map(|rgba| PaletteColorButton::new_p(*rgba))
@@ -252,7 +266,7 @@ impl Palette {
         palette_p
     }
 
-    pub fn widget(&self) -> &GBox {
+    pub fn widget(&self) -> &gtk::FlowBox {
         &self.widget
     }
 

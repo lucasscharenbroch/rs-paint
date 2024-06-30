@@ -67,7 +67,10 @@ impl Toolbar {
         let eyedropper_brush = Brush::new(default_primary_color, default_secondary_color, BrushType::Square, 1);
 
         widget.append(&mode_button_box);
+        // If you think this is over then you're wrong...
+        widget.append(&gtk::Separator::new(gtk::Orientation::Vertical));
         widget.append(palette_p.borrow().widget());
+        widget.append(&gtk::Separator::new(gtk::Orientation::Vertical));
         widget.append(&mode_toolbar_wrapper);
 
         let toolbar_p = Rc::new(RefCell::new(Toolbar {
