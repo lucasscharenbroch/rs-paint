@@ -67,7 +67,8 @@ pub fn new_image_dialog<P: Fn(NewImageProps) + 'static>(
         "Width",
         "Height",
         DEFAULT_IMAGE_WIDTH,
-        DEFAULT_IMAGE_HEIGHT
+        DEFAULT_IMAGE_HEIGHT,
+        false,
     );
     let color_button = ColorField::new(Some("Fill Color"), DEFAULT_FILL_COLOR);
 
@@ -102,7 +103,8 @@ pub fn scale_dialog<P: Fn(Scale) + 'static>(
         "Width",
         "Height",
         default_w,
-        default_h
+        default_h,
+        false,
     );
     let methods = vec![
         ("Bilinear", ScaleMethod::Bilinear),
@@ -141,6 +143,7 @@ pub fn expand_dialog<P: Fn(Expand) + 'static>(
         "Height Expansion",
         DEFAULT_EXPANSION_WIDTH,
         DEFAULT_EXPANSION_HEIGHT,
+        true,
     );
 
     let color_button = ColorField::new(Some("Fill Color"), DEFAULT_FILL_COLOR);
@@ -184,6 +187,7 @@ pub fn truncate_dialog<P: Fn((i32, i32, i32, i32)) + 'static>(
         "Height Truncation",
         DEFAULT_TRUNCATION_WIDTH,
         DEFAULT_TRUNCATION_HEIGHT,
+        true,
     );
 
     let justification_field = ExpandJustificationField::new(ExpandJustification::MiddleCenter);
