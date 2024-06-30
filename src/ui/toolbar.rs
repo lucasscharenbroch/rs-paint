@@ -187,6 +187,10 @@ impl Toolbar {
         self.palette_p.borrow_mut().set_secondary_color(color);
     }
 
+    fn add_color_to_palette(&mut self, color: RGBA) -> Result<(), ()> {
+        self.palette_p.borrow_mut().add_color(color)
+    }
+
     pub fn widget(&self) -> &GBox {
         &self.widget
     }

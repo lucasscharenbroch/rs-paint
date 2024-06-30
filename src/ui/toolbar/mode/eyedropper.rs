@@ -21,10 +21,14 @@ impl EyedropperState {
 }
 
 impl super::MouseModeState for EyedropperState {
-    fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+    fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let (x, y) = canvas.cursor_pos_pix_u();
         if let Some(pix) = canvas.image().try_pix_at(y as i32, x as i32) {
-           toolbar.set_primary_color(pix.to_rgba_struct());
+            if mod_keys.contains(ModifierType::CONTROL_MASK) {
+                let _ = toolbar.add_color_to_palette(pix.to_rgba_struct());
+            } else {
+                toolbar.set_primary_color(pix.to_rgba_struct());
+            }
         }
     }
 

@@ -341,37 +341,17 @@ impl Palette {
             .build();
 
         primary_to_palette.connect_clicked(clone!(@strong palette_p => move |_| {
-            let palette = palette_p.borrow_mut();
-            for row in palette.color_buttons.iter() {
-                for cb_p in row.iter() {
-                    if cb_p.borrow().color.is_none() {
-                        cb_p.borrow_mut().color = Some(palette.primary_color());
-                        cb_p.borrow().drawing_area.queue_draw();
-                        return;
-                    }
-                }
-            }
+            let color = palette_p.borrow().primary_color();
+            let _ = palette_p.borrow_mut().add_color(color);
         }));
 
         swap_primary_and_secondary.connect_clicked(clone!(@strong palette_p => move |_| {
-            let palette = palette_p.borrow_mut();
-            let primary = palette.primary_color();
-            let secondary = palette.secondary_color();
-            palette.set_primary_color(secondary);
-            palette.set_secondary_color(primary);
+            palette_p.borrow_mut().swap_primary_and_secondary();
         }));
 
         secondary_to_palette.connect_clicked(clone!(@strong palette_p => move |_| {
-            let palette = palette_p.borrow_mut();
-            for row in palette.color_buttons.iter() {
-                for cb_p in row.iter() {
-                    if cb_p.borrow().color.is_none() {
-                        cb_p.borrow_mut().color = Some(palette.secondary_color());
-                        cb_p.borrow().drawing_area.queue_draw();
-                        return;
-                    }
-                }
-            }
+            let color = palette_p.borrow().secondary_color();
+            let _ = palette_p.borrow_mut().add_color(color);
         }));
 
         util_button_wrapper.append(&primary_to_palette);
@@ -413,5 +393,28 @@ impl Palette {
 
         active_button_p.borrow_mut().color = color;
         active_button_p.borrow().drawing_area.queue_draw();
+    }
+
+    /// Looks for an empty color slot in the palette,
+    /// inserting the given color if found
+    pub fn add_color(&mut self, color: RGBA) -> Result<(), ()> {
+        for row in self.color_buttons.iter() {
+            for cb_p in row.iter() {
+                if cb_p.borrow().color.is_none() {
+                    cb_p.borrow_mut().color = Some(color);
+                    cb_p.borrow().drawing_area.queue_draw();
+                    return Ok(());
+                }
+            }
+        }
+
+        Err(())
+    }
+
+    fn swap_primary_and_secondary(&mut self) {
+        let primary = self.primary_color();
+        let secondary = self.secondary_color();
+        self.set_primary_color(secondary);
+        self.set_secondary_color(primary);
     }
 }
