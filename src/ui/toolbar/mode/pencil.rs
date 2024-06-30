@@ -105,7 +105,7 @@ impl PencilState {
         let brush = toolbar.get_brush_from_click_type(click_type);
 
         let num_points = self.get_and_claim_num_points_to_sample(d, brush);
-        let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points, brush.radius());
+        let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points);
 
         target_pixels.iter().for_each(|&(x, y)| {
             let x_offset = (brush.image.width() as i32 - 1) / 2;
@@ -121,7 +121,7 @@ impl PencilState {
 
     fn draw_straight_line_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar, click_type: ClickType) {
         let line_pt0 = self.last_cursor_pos_pix;
-        let line_pt1 = canvas.cursor_pos_pix_f();
+        let line_pt1 = canvas.cursor_pos_pix_f_rounded();
         self.last_cursor_pos_pix = line_pt1;
 
         self.draw_line_between(line_pt0, line_pt1, canvas, toolbar, click_type);
@@ -242,23 +242,19 @@ fn pixels_along_segment(
     (x0, y0): (f64, f64),
     (x1, y1): (f64, f64),
     num_pix: usize,
-    brush_radius: usize,
 ) -> Vec<(i32, i32)> {
     let total_dx = x1 - x0;
     let total_dy = y1 - y0;
-
-    let brush_radius = brush_radius as f64;
 
     let dx = total_dx / (num_pix as f64);
     let dy = total_dy / (num_pix as f64);
 
     (0..num_pix).map(|i| {
-        let i = i as f64;
+        let i = i as f64 + 0.5;
         let x = x0 + dx * i;
         let y = y0 + dy * i;
         (x, y)
     })
-        .filter(|(x, y)| *x > -brush_radius && *y > -brush_radius)
         .map(|(x, y)| (x as i32, y as i32))
         .collect::<Vec<_>>()
 }

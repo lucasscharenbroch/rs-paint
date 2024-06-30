@@ -288,6 +288,11 @@ impl Canvas {
          (y - top_left_y) / self.zoom)
     }
 
+    pub fn cursor_pos_pix_f_rounded(&self) -> (f64, f64) {
+        let (x, y) = self.cursor_pos_pix_f();
+        (x.floor(), y.floor())
+    }
+
     pub fn cursor_pos_pix_u(&self) -> (usize, usize) {
         let (x, y) = self.cursor_pos_pix_f();
         (x.floor() as usize, y.floor() as usize)
