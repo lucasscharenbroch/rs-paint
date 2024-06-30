@@ -44,11 +44,14 @@ impl Toolbar {
         let default_primary_color = RGBA::new(0.0, 0.0, 0.0, 1.0);
         let default_secondary_color = RGBA::new(0.0, 0.0, 0.0, 0.0);
         let default_palette_colors = vec![
-            RGBA::new(0.0, 0.0, 0.0, 1.0),
-            RGBA::new(1.0, 0.0, 0.0, 1.0),
-            RGBA::new(0.0, 1.0, 0.0, 1.0),
-            RGBA::new(0.0, 0.0, 1.0, 1.0),
-            RGBA::new(0.0, 0.0, 0.0, 0.0),
+            vec![
+                Some(RGBA::new(0.0, 0.0, 0.0, 1.0)),
+                Some(RGBA::new(1.0, 0.0, 0.0, 1.0)),
+                Some(RGBA::new(0.0, 1.0, 0.0, 1.0)),
+                Some(RGBA::new(0.0, 0.0, 1.0, 1.0)),
+                Some(RGBA::new(0.0, 0.0, 0.0, 0.0)),
+            ],
+            vec![None, None, None, None, None],
         ];
 
         let widget =  GBox::new(Orientation::Horizontal, 10);

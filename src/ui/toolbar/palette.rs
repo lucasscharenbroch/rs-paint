@@ -11,12 +11,12 @@ struct PaletteColorButton {
     widget: gtk::Button,
     drawing_area: DrawingArea,
     checkerboard: DrawableImage,
-    color: RGBA,
+    color: Option<RGBA>,
 }
 
 impl PaletteColorButton {
-    fn new_p(color: RGBA) -> Rc<RefCell<Self>> {
-        const SIZE: i32 = 25;
+    fn new_p(color: Option<RGBA>) -> Rc<RefCell<Self>> {
+        const SIZE: i32 = 30;
 
         let widget = gtk::Button::builder()
             .height_request(SIZE)
@@ -50,10 +50,21 @@ impl PaletteColorButton {
             cr.rectangle(0.0, 0.0, 2.1, 2.1);
             let _ = cr.fill();
 
-            let color = cb_p.borrow().color;
-            cr.set_source_rgba(color.red().into(), color.green().into(), color.blue().into(), color.alpha().into());
-            cr.rectangle(0.0, 0.0, 2.1, 2.1);
-            let _ = cr.fill();
+            if let Some(color) = cb_p.borrow().color {
+                cr.set_source_rgba(color.red().into(), color.green().into(), color.blue().into(), color.alpha().into());
+                cr.rectangle(0.0, 0.0, 2.1, 2.1);
+                let _ = cr.fill();
+            } else {
+                // color is empty: button disabled: draw x
+                cr.set_line_width(0.1);
+                cr.set_source_rgb(0.0, 0.0, 0.0);
+                cr.move_to(0.0, 0.0);
+                cr.line_to(2.1, 2.1);
+                let _ = cr.stroke();
+                cr.move_to(2.1, 0.0);
+                cr.line_to(0.0, 2.1);
+                let _ = cr.stroke();
+            }
         }));
 
         let click_controller = GestureClick::builder()
@@ -71,7 +82,12 @@ impl PaletteColorButton {
 
         click_controller.connect_stopped(clone!(@strong cb_p => move |controller| {
             if controller.current_button() == RIGHT_CLICK_BUTTON {
-                Self::select_new_color(cb_p.clone());
+                if controller.current_event_state().contains(gtk::gdk::ModifierType::CONTROL_MASK) {
+                    cb_p.borrow_mut().color = None;
+                    cb_p.borrow().drawing_area.queue_draw();
+                } else {
+                    Self::select_new_color(cb_p.clone());
+                }
             }
         }));
 
@@ -90,7 +106,7 @@ impl PaletteColorButton {
 
         choose_color_dialog(parent_ref, move |res_color| {
             if let Ok(rgba) = res_color {
-                self_p.borrow_mut().color = rgba;
+                self_p.borrow_mut().color = Some(rgba);
                 self_p.borrow_mut().drawing_area.queue_draw();
             }
         });
@@ -196,8 +212,8 @@ impl PrimarySecondaryButton {
 }
 
 pub struct Palette {
-    widget: gtk::FlowBox,
-    color_buttons: Vec<Rc<RefCell<PaletteColorButton>>>,
+    widget: gtk::Box,
+    color_buttons: Vec<Vec<Rc<RefCell<PaletteColorButton>>>>,
     active: PrimaryOrSecondary,
     primary_button_p: Rc<RefCell<PrimarySecondaryButton>>,
     secondary_button_p: Rc<RefCell<PrimarySecondaryButton>>,
@@ -210,16 +226,18 @@ enum PrimaryOrSecondary {
 }
 
 impl Palette {
-    pub fn new_p(default_primary: RGBA, default_secondary: RGBA, colors: Vec<RGBA>) -> Rc<RefCell<Self>> {
-        let widget = gtk::FlowBox::builder()
-            .selection_mode(gtk::SelectionMode::None)
-            .orientation(Orientation::Vertical)
-            .row_spacing(5)
-            .column_spacing(5)
+    pub fn new_p(default_primary: RGBA, default_secondary: RGBA, colors: Vec<Vec<Option<RGBA>>>) -> Rc<RefCell<Self>> {
+        let widget = gtk::Box::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(10)
             .build();
 
         let color_buttons = colors.iter()
-            .map(|rgba| PaletteColorButton::new_p(*rgba))
+            .map(|inner_vec| {
+                inner_vec.iter()
+                    .map(|color| PaletteColorButton::new_p(*color))
+                    .collect::<Vec<_>>()
+            })
             .collect::<Vec<_>>();
 
         let primary_button_p = PrimarySecondaryButton::new_p(default_primary, PrimaryOrSecondary::Primary);
@@ -233,12 +251,31 @@ impl Palette {
             secondary_button_p,
         }));
 
-        for cb_p in palette_p.borrow().color_buttons.iter() {
-            palette_p.borrow().widget.append(&cb_p.borrow().widget);
-            cb_p.borrow().widget.connect_clicked(clone!(@strong palette_p, @strong cb_p => move |_button| {
-                palette_p.borrow_mut().set_active_color(cb_p.borrow().color);
-            }));
+        let color_array_wrapper_widget = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(4)
+            .valign(gtk::Align::Center)
+            .build();
+
+        for row in palette_p.borrow().color_buttons.iter() {
+            let row_widget = gtk::Box::builder()
+                .orientation(gtk::Orientation::Horizontal)
+                .spacing(4)
+                .build();
+
+            for cb_p in row {
+                row_widget.append(&cb_p.borrow().widget);
+                cb_p.borrow().widget.connect_clicked(clone!(@strong palette_p, @strong cb_p => move |_button| {
+                    if let Some(color) = cb_p.borrow().color {
+                        palette_p.borrow_mut().set_active_color(color);
+                    }
+                }));
+            }
+
+            color_array_wrapper_widget.append(&row_widget);
         }
+
+        palette_p.borrow().widget.append(&color_array_wrapper_widget);
 
         let primary_secondary_wrapper = gtk::Box::new(gtk::Orientation::Vertical, 4);
 
@@ -266,7 +303,7 @@ impl Palette {
         palette_p
     }
 
-    pub fn widget(&self) -> &gtk::FlowBox {
+    pub fn widget(&self) -> &gtk::Box {
         &self.widget
     }
 
