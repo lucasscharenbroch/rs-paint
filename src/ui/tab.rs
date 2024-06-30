@@ -3,7 +3,7 @@ use super::UiState;
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use gtk::{pango, DrawingArea, Align};
+use gtk::{pango, Align, DrawingArea, GestureClick, StateFlags};
 use glib_macros::clone;
 use gtk::{prelude::*, Box as GBox, Orientation, Label, Button};
 
@@ -11,46 +11,32 @@ pub struct Tab {
     pub canvas_p: Rc<RefCell<Canvas>>,
     name: String,
     last_export_id: usize,
-    drawing_area: Rc<RefCell<Option<DrawingArea>>>,
+    drawing_area: Rc<RefCell<DrawingArea>>,
+    widget: gtk::Box,
+    container: gtk::Box,
+    x_button: gtk::Button,
+    x_button_signal_handler_id: Option<gtk::glib::SignalHandlerId>,
+    click_handler: GestureClick,
 }
 
 impl Tab {
     pub fn new(canvas_p: &Rc<RefCell<Canvas>>, name: &str) -> Self {
-        Tab {
-            canvas_p: canvas_p.clone(),
-            name: String::from(name),
-            last_export_id: canvas_p.borrow().undo_id(),
-            drawing_area: Rc::new(RefCell::new(None)),
-        }
-    }
-
-    pub fn widget(&self, ui_p: &Rc<RefCell<UiState>>, idx: usize, is_active: bool) -> GBox {
-        let res = GBox::builder()
+        let widget = GBox::builder()
             .orientation(Orientation::Horizontal)
-            .margin_start(6)
-            .margin_end(6)
-            .margin_top(6)
-            .margin_bottom(6)
+            .css_classes(["tab"])
             .build();
 
-        let attributes = pango::AttrList::new();
-        if is_active {
-            let bold = pango::AttrInt::new_weight(pango::Weight::Bold);
-            attributes.insert(bold);
-        }
-
         let text_label = Label::builder()
-            .label(self.name.as_str())
-            .attributes(&attributes)
+            .label(name)
             .build();
 
         let container = GBox::builder()
             .orientation(Orientation::Horizontal)
             .build();
 
-        let canvas_p = self.canvas_p.clone();
-        let aspect_ratio = self.canvas_p.borrow().image_width() as f64 /
-                           self.canvas_p.borrow().image_height() as f64;
+        let canvas_p = canvas_p.clone();
+        let aspect_ratio = canvas_p.borrow().image_width() as f64 /
+                           canvas_p.borrow().image_height() as f64;
 
         const MAX_DIMENSION: i32 = 30;
 
@@ -72,33 +58,65 @@ impl Tab {
             canvas_p.borrow_mut().draw_thumbnail(area, cr, width, height);
         }));
 
-
         container.append(&text_label);
         container.append(&thumbnail_area);
 
-        *self.drawing_area.borrow_mut() = Some(thumbnail_area);
+        let click_handler = gtk::GestureClick::new();
+        container.add_controller(click_handler.clone());
 
-        let name_button = Button::builder()
-            .child(&container)
-            .build();
-
-        name_button.connect_clicked(clone!(@strong ui_p => move |_| {
-            ui_p.borrow_mut().set_tab(idx);
-            UiState::update_tabbar_widget(&ui_p);
-        }));
+        let drawing_area = Rc::new(RefCell::new(
+            thumbnail_area
+        ));
 
         let x_button = Button::builder()
             .label("x")
             .build();
 
-        x_button.connect_clicked(clone!(@strong ui_p => move |_| {
-            UiState::try_close_tab(&ui_p, idx);
+        widget.append(&container);
+        widget.append(&x_button);
+
+        let last_export_id = canvas_p.borrow().undo_id();
+
+        Tab {
+            canvas_p: canvas_p.clone(),
+            name: String::from(name),
+            last_export_id,
+            drawing_area,
+            widget,
+            container,
+            x_button,
+            x_button_signal_handler_id: None,
+            click_handler,
+        }
+    }
+
+    pub fn update_ui_hooks(&mut self, ui_p: &Rc<RefCell<UiState>>, idx: usize) {
+        if let Some(id) = std::mem::replace(&mut self.x_button_signal_handler_id, None) {
+            self.x_button.disconnect(id)
+        }
+
+        self.x_button_signal_handler_id = Some(
+            self.x_button.connect_clicked(clone!(@strong ui_p => move |_| {
+                UiState::try_close_tab(&ui_p, idx);
+            }))
+        );
+
+        self.click_handler.connect_pressed(clone!(@strong ui_p => move |_, _, _, _| {
+            ui_p.borrow_mut().set_tab(idx);
         }));
+    }
 
-        res.append(&name_button);
-        res.append(&x_button);
+    /// Update the visual cue for this tab (active/not)
+    pub fn update_activity_visual(&self, is_active: bool) {
+        if is_active {
+            self.widget.add_css_class("active-tab");
+        } else {
+            self.widget.remove_css_class("active-tab");
+        }
+    }
 
-        res
+    pub fn widget(&self) -> &impl IsA<gtk::Widget> {
+        &self.widget
     }
 
     pub fn modified_since_export(&self) -> bool {
@@ -114,33 +132,52 @@ impl Tab {
     }
 
     pub fn redraw_thumbnail(&self) {
-        if let Some(drawing_area) = self.drawing_area.borrow().as_ref() {
-            drawing_area.queue_draw();
-        }
+        self.drawing_area.borrow().queue_draw();
     }
 }
 
 pub struct Tabbar {
     pub tabs: Vec<Tab>,
-    pub active_idx: Option<usize>
+    pub active_idx: Option<usize>,
+    widget: gtk::Box,
 }
 
 impl Tabbar {
     pub fn new() -> Self {
-        Tabbar {
-            tabs: vec![],
-            active_idx: None,
-        }
-    }
-
-    pub fn widget(&self, ui_p: &Rc<RefCell<UiState>>) -> GBox {
-        let res = GBox::builder()
+        let widget = GBox::builder()
             .orientation(Orientation::Horizontal)
             .build();
 
-        self.tabs.iter().zip(0..)
-            .for_each(|(tab, i)| res.append(&tab.widget(ui_p, i, self.active_idx.map(|ai| ai == i).unwrap_or(false))));
+        Tabbar {
+            tabs: vec![],
+            active_idx: None,
+            widget,
+        }
+    }
 
-        res
+    pub fn update_widget(&mut self, ui_p: &Rc<RefCell<UiState>>) {
+        self.update_activity_visual();
+
+        // detach the current widget from its children, if it exists
+        while let Some(child) = self.widget.first_child() {
+            self.widget.remove(&child)
+        }
+
+        self.tabs.iter_mut().zip(0..)
+            .for_each(|(tab, i)| {
+                tab.update_ui_hooks(ui_p, i);
+                self.widget.append(tab.widget());
+            });
+    }
+
+    pub fn update_activity_visual(&self) {
+        self.tabs.iter().zip(0..)
+            .for_each(|(tab, i)| {
+                tab.update_activity_visual(self.active_idx.map(|ai| ai == i).unwrap_or(false));
+            });
+    }
+
+    pub fn widget(&self) -> &impl IsA<gtk::Widget> {
+        &self.widget
     }
 }

@@ -21,3 +21,17 @@
     border: 1.5px solid black;
     border-radius: 0%;
 }
+
+.tab {
+    border: 2px solid black;
+    margin: 6px;
+    padding: 3px;
+}
+
+.tab:hover {
+    background: #dad6d2;
+}
+
+.active-tab {
+    background: #dad6d2;
+}

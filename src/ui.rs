@@ -42,7 +42,6 @@ fn get_parent_window(widget: &impl IsA<Widget>) -> Option<Window> {
 
 pub struct UiState {
     tabbar: Tabbar,
-    tabbar_widget: Option<GBox>,
     toolbar_p: Rc<RefCell<Toolbar>>,
     grid: Grid,
     window: ApplicationWindow,
@@ -86,13 +85,7 @@ impl UiState {
     }
 
     fn update_tabbar_widget(ui_p: &Rc<RefCell<Self>>) {
-        if let Some(ref w) = ui_p.borrow().tabbar_widget {
-            ui_p.borrow().grid.remove(w);
-        }
-
-        let new_widget = ui_p.borrow_mut().tabbar.widget(ui_p);
-        ui_p.borrow().grid.attach(&new_widget, 0, 0, 1, 1);
-        ui_p.borrow_mut().tabbar_widget = Some(new_widget);
+        ui_p.borrow_mut().tabbar.update_widget(ui_p);
     }
 
     fn set_tab(&mut self, target_idx: usize) {
@@ -104,6 +97,7 @@ impl UiState {
 
             self.grid.attach(target_canvas_p.borrow().widget(), 0, 2, 1, 1);
             self.tabbar.active_idx = Some(target_idx);
+            self.tabbar.update_activity_visual();
         }
     }
 
@@ -198,7 +192,6 @@ impl UiState {
         let ui_p = Rc::new(RefCell::new(UiState {
             toolbar_p: Toolbar::new_p(),
             tabbar: Tabbar::new(),
-            tabbar_widget: None,
             grid: Grid::new(),
             window: ApplicationWindow::builder()
                 .show_menubar(true)
@@ -209,7 +202,7 @@ impl UiState {
 
         Toolbar::init_ui_hooks(&ui_p);
 
-        ui_p.borrow().grid.attach(&ui_p.borrow().tabbar.widget(&ui_p), 0, 0, 1, 1);
+        ui_p.borrow().grid.attach(ui_p.borrow().tabbar.widget(), 0, 0, 1, 1);
         ui_p.borrow().grid.attach(ui_p.borrow().toolbar_p.borrow().widget(), 0, 1, 1, 1);
         ui_p.borrow().grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 2, 1, 1);
 
