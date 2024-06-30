@@ -19,7 +19,8 @@ pub enum BrushType {
 struct BrushProperties {
     brush_type: BrushType,
     radius: u8,
-    color: RGBA,
+    primary_color: RGBA,
+    secondary_color: RGBA,
 }
 
 pub struct BrushImage {
@@ -65,13 +66,14 @@ pub struct Brush {
     bitmask: ImageBitmask,
 }
 
-fn mk_square_brush_image(n: u8, color: RGBA) -> BrushImage {
-    let p = Pixel::from_rgba_struct(color);
+fn mk_square_brush_image(n: u8, primary_color: RGBA, _secondary_color: RGBA) -> BrushImage {
+    let p = Pixel::from_rgba_struct(primary_color);
     BrushImage::from_pixels_options(vec![vec![Some(p); n as usize]; n as usize])
 }
 
-fn mk_round_brush_image(n: u8, fade: bool, dither: bool, color: RGBA) -> BrushImage {
-    let p = Pixel::from_rgba_struct(color);
+fn mk_round_brush_image(n: u8, fade: bool, dither: bool, primary_color: RGBA, secondary_color: RGBA) -> BrushImage {
+    let p = Pixel::from_rgba_struct(primary_color);
+    let p2 = Pixel::from_rgba_struct(secondary_color);
     let n = n as usize;
     let mut pix = vec![vec![None; n]; n];
 
@@ -92,6 +94,12 @@ fn mk_round_brush_image(n: u8, fade: bool, dither: bool, color: RGBA) -> BrushIm
                 } else {
                     pix[i][j] = Some(p.clone());
                 }
+            } else if opacity > CIRC_THRESH && dither {
+                if fade {
+                    pix[i][j] = Some(p2.scale_alpha(opacity));
+                } else {
+                    pix[i][j] = Some(p2.clone());
+                }
             }
         }
     }
@@ -99,8 +107,8 @@ fn mk_round_brush_image(n: u8, fade: bool, dither: bool, color: RGBA) -> BrushIm
     BrushImage::from_pixels_options(pix)
 }
 
-fn mk_caligraphy_brush_image(n: u8, color: RGBA) -> BrushImage {
-    let p = Pixel::from_rgba_struct(color);
+fn mk_caligraphy_brush_image(n: u8, primary_color: RGBA, _secondary_color: RGBA) -> BrushImage {
+    let p = Pixel::from_rgba_struct(primary_color);
     let n = n as usize;
     let mut pix = vec![vec![None; n]; n];
 
@@ -131,18 +139,19 @@ impl Brush {
     fn image_from_props(props: &BrushProperties) -> BrushImage {
         let r = props.radius;
         match props.brush_type {
-            BrushType::Square => mk_square_brush_image(r, props.color),
-            BrushType::Round => mk_round_brush_image(r, false, false, props.color),
-            BrushType::Dither => mk_round_brush_image(r, false, true, props.color),
-            BrushType::Caligraphy => mk_caligraphy_brush_image(r, props.color),
-            BrushType::Pen => mk_round_brush_image(r, true, false, props.color),
-            BrushType::Crayon => mk_round_brush_image(r, true, true, props.color),
+            BrushType::Square => mk_square_brush_image(r, props.primary_color, props.secondary_color),
+            BrushType::Round => mk_round_brush_image(r, false, false, props.primary_color, props.secondary_color),
+            BrushType::Dither => mk_round_brush_image(r, false, true, props.primary_color, props.secondary_color),
+            BrushType::Caligraphy => mk_caligraphy_brush_image(r, props.primary_color, props.secondary_color),
+            BrushType::Pen => mk_round_brush_image(r, true, false, props.primary_color, props.secondary_color),
+            BrushType::Crayon => mk_round_brush_image(r, true, true, props.primary_color, props.secondary_color),
         }
     }
 
-    pub fn modify(&mut self, color: RGBA, brush_type: BrushType, radius: u8) {
+    pub fn modify(&mut self, primary_color: RGBA, secondary_color: RGBA, brush_type: BrushType, radius: u8) {
         let new_props = BrushProperties {
-            color,
+            primary_color,
+            secondary_color,
             brush_type,
             radius,
         };
@@ -154,9 +163,10 @@ impl Brush {
         }
     }
 
-    pub fn new(color: RGBA, brush_type: BrushType, radius: u8) -> Self {
+    pub fn new(primary_color: RGBA, secondary_color: RGBA, brush_type: BrushType, radius: u8) -> Self {
         let props = BrushProperties {
-            color,
+            primary_color,
+            secondary_color,
             brush_type,
             radius,
         };

@@ -62,9 +62,9 @@ impl Toolbar {
             .vexpand(false)
             .build();
         let mode_toolbar = ModeToolbar::new(&mode_toolbar_wrapper, Some(INITIAL_MODE.variant()));
-        let primary_brush = Brush::new(default_primary_color, BrushType::Round, 5);
-        let secondary_brush = Brush::new(default_secondary_color, BrushType::Round, 5);
-        let eyedropper_brush = Brush::new(default_primary_color, BrushType::Square, 1);
+        let primary_brush = Brush::new(default_primary_color, default_secondary_color, BrushType::Round, 5);
+        let secondary_brush = Brush::new(default_secondary_color, default_primary_color, BrushType::Round, 5);
+        let eyedropper_brush = Brush::new(default_primary_color, default_secondary_color, BrushType::Square, 1);
 
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
@@ -190,16 +190,18 @@ impl Toolbar {
     }
 
     fn get_primary_brush(&mut self) -> &Brush {
-        let color = self.primary_color();
+        let primary_color = self.primary_color();
+        let secondary_color = self.secondary_color();
         let (brush_type, _blending_mode, radius) = self.mode_toolbar.get_pencil_settings();
-        self.primary_brush.modify(color, brush_type, radius);
+        self.primary_brush.modify(primary_color, secondary_color, brush_type, radius);
         &self.primary_brush
     }
 
     fn get_secondary_brush(&mut self) -> &Brush {
-        let color = self.secondary_color();
+        let primary_color = self.primary_color();
+        let secondary_color = self.secondary_color();
         let (brush_type, _blending_mode, radius) = self.mode_toolbar.get_pencil_settings();
-        self.secondary_brush.modify(color, brush_type, radius);
+        self.secondary_brush.modify(secondary_color, primary_color, brush_type, radius);
         &self.secondary_brush
     }
 
