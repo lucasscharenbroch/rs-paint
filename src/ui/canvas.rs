@@ -290,7 +290,12 @@ impl Canvas {
 
     pub fn cursor_pos_pix_u(&self) -> (usize, usize) {
         let (x, y) = self.cursor_pos_pix_f();
-        (x.floor() as usize, y as usize)
+        (x.floor() as usize, y.floor() as usize)
+    }
+
+    pub fn cursor_pos_pix_i(&self) -> (i32, i32) {
+        let (x, y) = self.cursor_pos_pix_f();
+        (x.floor() as i32, y.floor() as i32)
     }
 
     pub fn inc_zoom(&mut self, inc: f64) {

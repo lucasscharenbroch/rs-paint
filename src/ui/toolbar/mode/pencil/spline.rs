@@ -1,24 +1,24 @@
 pub trait SplineSegment {
     /// Approximate of the curve's length
     fn rough_length(&self) -> f64;
-    fn sample_n_pixels(&self, num_pix: usize) -> Vec<(usize, usize)>;
+    fn sample_n_pixels(&self, num_pix: usize) -> Vec<(i32, i32)>;
     fn endpoint(&self) -> (f64, f64);
 }
 
 pub struct SplineSegment3 {
-    x0: usize,
-    y0: usize,
-    x1: usize,
-    y1: usize,
-    x2: usize,
-    y2: usize,
+    x0: i32,
+    y0: i32,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
 }
 
 impl SplineSegment3 {
     pub fn from_grouped(
-        (x0, y0): (usize, usize),
-        (x1, y1): (usize, usize),
-        (x2, y2): (usize, usize),
+        (x0, y0): (i32, i32),
+        (x1, y1): (i32, i32),
+        (x2, y2): (i32, i32),
     ) -> Self {
         Self { x0, y0, x1, y1, x2, y2 }
     }
@@ -41,7 +41,7 @@ impl SplineSegment for SplineSegment3 {
         a + b + c / 2.0
     }
 
-    fn sample_n_pixels(&self, num_pix: usize) -> Vec<(usize, usize)> {
+    fn sample_n_pixels(&self, num_pix: usize) -> Vec<(i32, i32)> {
         (0..num_pix).map(|i| {
             let t = (i as f64 + 0.5) / num_pix as f64;
             let tn = 1.0 - t;
@@ -57,10 +57,7 @@ impl SplineSegment for SplineSegment3 {
             let y = tn * (tn * y0 + t * y1) + t * (tn * y1 + t * y2);
             (x, y)
         })
-            // filter out the negatives, else they'll be converted to 0
-            // (and stick to the side of the image)
-            .filter(|(x, y)| *x > 0.0 && *y > 0.0)
-            .map(|(x, y)| (x.round() as usize, y.round() as usize))
+            .map(|(x, y)| (x.round() as i32, y.round() as i32))
             .collect::<Vec<_>>()
     }
 
@@ -70,22 +67,22 @@ impl SplineSegment for SplineSegment3 {
 }
 
 pub struct SplineSegment4 {
-    x0: usize,
-    y0: usize,
-    x1: usize,
-    y1: usize,
-    x2: usize,
-    y2: usize,
-    x3: usize,
-    y3: usize,
+    x0: i32,
+    y0: i32,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+    x3: i32,
+    y3: i32,
 }
 
 impl SplineSegment4 {
     fn from_grouped(
-        (x0, y0): (usize, usize),
-        (x1, y1): (usize, usize),
-        (x2, y2): (usize, usize),
-        (x3, y3): (usize, usize),
+        (x0, y0): (i32, i32),
+        (x1, y1): (i32, i32),
+        (x2, y2): (i32, i32),
+        (x3, y3): (i32, i32),
     ) -> Self {
         Self { x0, y0, x1, y1, x2, y2, x3, y3 }
     }
@@ -110,7 +107,7 @@ impl SplineSegment for SplineSegment4 {
         a + b + c + d / 2.0
     }
 
-    fn sample_n_pixels(&self, num_pix: usize) -> Vec<(usize, usize)> {
+    fn sample_n_pixels(&self, num_pix: usize) -> Vec<(i32, i32)> {
         (0..num_pix).map(|i| {
             let t = (i as f64 + 0.5) / num_pix as f64;
             let t2 = t.powi(2);
@@ -135,10 +132,7 @@ impl SplineSegment for SplineSegment4 {
                                     (y0 + 4.0 * y1 + y2));
             (x, y)
         })
-            // filter out the negatives, else they'll be converted to 0
-            // (and stick to the side of the image)
-            .filter(|(x, y)| *x > 0.0 && *y > 0.0)
-            .map(|(x, y)| (x.round() as usize, y.round() as usize))
+            .map(|(x, y)| (x.round() as i32, y.round() as i32))
             .collect::<Vec<_>>()
     }
 
@@ -150,14 +144,14 @@ impl SplineSegment for SplineSegment4 {
 #[derive(Clone, Copy)]
 pub enum IncrementalSplineSnapshot {
     NoPoints,
-    One((usize, usize)),
-    Two((usize, usize), (usize, usize)),
-    Three((usize, usize), (usize, usize), (usize, usize)),
+    One((i32, i32)),
+    Two((i32, i32), (i32, i32)),
+    Three((i32, i32), (i32, i32), (i32, i32)),
 }
 
 impl IncrementalSplineSnapshot {
     pub fn append_point(
-        &mut self, pt: (usize, usize)
+        &mut self, pt: (i32, i32)
     ) -> Option<SplineSegment4> {
         match self {
             Self::NoPoints => {

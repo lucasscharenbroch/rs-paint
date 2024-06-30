@@ -88,6 +88,7 @@ impl PencilState {
         return res;
     }
 
+
     fn draw_line_between(
         &mut self,
         line_pt0: (f64, f64),
@@ -104,7 +105,7 @@ impl PencilState {
         let brush = toolbar.get_brush_from_click_type(click_type);
 
         let num_points = self.get_and_claim_num_points_to_sample(d, brush);
-        let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points);
+        let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points, brush.radius());
 
         target_pixels.iter().for_each(|&(x, y)| {
             let x_offset = (brush.image.width() as i32 - 1) / 2;
@@ -112,8 +113,8 @@ impl PencilState {
             canvas.sample_image_respecting_pencil_mask(
                 &brush.image,
                 &blending_mode,
-                x as i32 - x_offset,
-                y as i32 - y_offset
+                x - x_offset,
+                y - y_offset
             );
         });
     }
@@ -161,12 +162,8 @@ impl PencilState {
         // at the cursor to not leave the user hanging
         if let IncrementalSplineSnapshot::NoPoints = self.spline_snapshot {
             let target_pixels = vec![
-                canvas.cursor_pos_pix_f()
+                    canvas.cursor_pos_pix_i()
                 ].into_iter()
-                // filter out the negatives, else they'll be converted to 0
-                // (and stick to the side of the image)
-                .filter(|(x, y)| *x > 0.0 && *y > 0.0)
-                .map(|(x, y)| (x as usize, y as usize))
                 .collect::<Vec<_>>();
 
             let blending_mode = toolbar.get_blending_mode();
@@ -184,7 +181,7 @@ impl PencilState {
             });
         }
 
-        let new_point = canvas.cursor_pos_pix_u();
+        let new_point = canvas.cursor_pos_pix_i();
 
         if let Some(segment) = self.spline_snapshot.append_point(new_point) {
             self.draw_spline_segment(&segment, canvas, toolbar, click_type);
@@ -199,7 +196,7 @@ impl PencilState {
                 self.draw_straight_line_to_cursor(canvas, toolbar, click_type)
             },
             IncrementalSplineSnapshot::Two(last_last, last) => {
-                let cursor_pos = canvas.cursor_pos_pix_u();
+                let cursor_pos = canvas.cursor_pos_pix_i();
                 let segment = SplineSegment3::from_grouped(last_last, last, cursor_pos);
                 self.draw_spline_segment(&segment, canvas, toolbar, click_type);
             },
@@ -245,9 +242,12 @@ fn pixels_along_segment(
     (x0, y0): (f64, f64),
     (x1, y1): (f64, f64),
     num_pix: usize,
-) -> Vec<(usize, usize)> {
+    brush_radius: usize,
+) -> Vec<(i32, i32)> {
     let total_dx = x1 - x0;
     let total_dy = y1 - y0;
+
+    let brush_radius = brush_radius as f64;
 
     let dx = total_dx / (num_pix as f64);
     let dy = total_dy / (num_pix as f64);
@@ -258,10 +258,8 @@ fn pixels_along_segment(
         let y = y0 + dy * i;
         (x, y)
     })
-        // filter out the negatives, else they'll be converted to 0
-        // (and stick to the side of the image)
-        .filter(|(x, y)| *x > 0.0 && *y > 0.0)
-        .map(|(x, y)| (x as usize, y as usize))
+        .filter(|(x, y)| *x > -brush_radius && *y > -brush_radius)
+        .map(|(x, y)| (x as i32, y as i32))
         .collect::<Vec<_>>()
 }
 
