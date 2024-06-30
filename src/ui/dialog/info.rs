@@ -69,6 +69,11 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
         ("Eyedrop into palette", "<Ctrl>Pointer_Left"),
     ]);
 
+    let palette = group_from_specs("Palette", &[
+        ("Change palette color", "Pointer_Right"),
+        ("Remove palette color", "<Ctrl>Pointer_Right"),
+    ]);
+
     let undo = group_from_specs("Undo", &[
         ("Undo", "<Ctrl>z"),
         ("Redo", "<Ctrl>y"),
@@ -96,6 +101,7 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
     main_section.add_group(&rectangle_select_mode);
     main_section.add_group(&magic_wand_mode);
     main_section.add_group(&eyedropper_mode);
+    main_section.add_group(&palette);
     main_section.add_group(&misc);
     main_section.add_group(&io);
 
