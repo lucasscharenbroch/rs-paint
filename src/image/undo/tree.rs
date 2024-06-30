@@ -55,6 +55,7 @@ impl UndoNode {
     fn new_button(label: &Label) -> Button {
         let button = Button::builder()
             .child(label)
+            .css_classes(["undo-tree-node-button"])
             .build();
 
         button

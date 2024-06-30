@@ -236,8 +236,8 @@ impl PencilState {
     }
 }
 
-// given a continuous line segment, return the given number
-// of discrete points (pixels) that "intersect" it
+/// Given a continuous line segment, return the given number
+/// of discrete points (pixels) that "intersect" it
 fn pixels_along_segment(
     (x0, y0): (f64, f64),
     (x1, y1): (f64, f64),
