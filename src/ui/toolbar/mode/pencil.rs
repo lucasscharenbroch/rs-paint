@@ -10,6 +10,23 @@ use std::collections::HashMap;
 use gtk::gdk::{ModifierType, RGBA};
 use gtk::cairo::{Context, LineCap};
 
+/// Used to specify which click was handled
+/// (to factor out the common logic between the two)
+#[derive(Clone, Copy)]
+enum ClickType {
+    Left,
+    Right,
+}
+
+impl Toolbar {
+    fn get_brush_from_click_type(&mut self, click_type: ClickType) -> &Brush {
+        match click_type {
+            ClickType::Left => self.get_primary_brush(),
+            ClickType::Right => self.get_secondary_brush(),
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 enum PencilMode {
     PencilUp,
@@ -76,14 +93,15 @@ impl PencilState {
         line_pt0: (f64, f64),
         line_pt1: (f64, f64),
         canvas: &mut Canvas,
-        toolbar: &mut Toolbar
+        toolbar: &mut Toolbar,
+        click_type: ClickType,
     ) {
         let dx = line_pt0.0 - line_pt1.0;
         let dy = line_pt0.1 - line_pt1.1;
         let d = (dx.powi(2) + dy.powi(2)).sqrt();
 
         let blending_mode = toolbar.get_blending_mode();
-        let brush = toolbar.get_brush();
+        let brush = toolbar.get_brush_from_click_type(click_type);
 
         let num_points = self.get_and_claim_num_points_to_sample(d, brush);
         let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points);
@@ -100,12 +118,12 @@ impl PencilState {
         });
     }
 
-    fn draw_straight_line_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+    fn draw_straight_line_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar, click_type: ClickType) {
         let line_pt0 = self.last_cursor_pos_pix;
         let line_pt1 = canvas.cursor_pos_pix_f();
         self.last_cursor_pos_pix = line_pt1;
 
-        self.draw_line_between(line_pt0, line_pt1, canvas, toolbar);
+        self.draw_line_between(line_pt0, line_pt1, canvas, toolbar, click_type);
 
         canvas.update();
     }
@@ -115,12 +133,13 @@ impl PencilState {
         segment: &impl SplineSegment,
         canvas: &mut Canvas,
         toolbar: &mut Toolbar,
+        click_type: ClickType,
     ) {
         self.last_cursor_pos_pix = segment.endpoint();
         let d = segment.rough_length();
 
         let blending_mode = toolbar.get_blending_mode();
-        let brush = toolbar.get_brush();
+        let brush = toolbar.get_brush_from_click_type(click_type);
 
         let num_points = self.get_and_claim_num_points_to_sample(d, brush);
         let target_pixels = segment.sample_n_pixels(num_points);
@@ -137,7 +156,7 @@ impl PencilState {
         });
     }
 
-    fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+    fn draw_to_cursor(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar, click_type: ClickType) {
         // We're starting a new stroke: draw a single brush sample
         // at the cursor to not leave the user hanging
         if let IncrementalSplineSnapshot::NoPoints = self.spline_snapshot {
@@ -151,7 +170,7 @@ impl PencilState {
                 .collect::<Vec<_>>();
 
             let blending_mode = toolbar.get_blending_mode();
-            let brush = toolbar.get_brush();
+            let brush = toolbar.get_brush_from_click_type(click_type);
 
             target_pixels.iter().for_each(|&(x, y)| {
                 let x_offset = (brush.image.width() as i32 - 1) / 2;
@@ -168,23 +187,23 @@ impl PencilState {
         let new_point = canvas.cursor_pos_pix_u();
 
         if let Some(segment) = self.spline_snapshot.append_point(new_point) {
-            self.draw_spline_segment(&segment, canvas, toolbar);
+            self.draw_spline_segment(&segment, canvas, toolbar, click_type);
         }
     }
 
-    fn complete_curve(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+    fn complete_curve(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar, click_type: ClickType) {
         match self.spline_snapshot {
             IncrementalSplineSnapshot::NoPoints => (),
             IncrementalSplineSnapshot::One(pt) => {
                 self.last_cursor_pos_pix = (pt.0 as f64, pt.1 as f64);
-                self.draw_straight_line_to_cursor(canvas, toolbar)
+                self.draw_straight_line_to_cursor(canvas, toolbar, click_type)
             },
             IncrementalSplineSnapshot::Two(last_last, last) => {
                 let cursor_pos = canvas.cursor_pos_pix_u();
                 let segment = SplineSegment3::from_grouped(last_last, last, cursor_pos);
-                self.draw_spline_segment(&segment, canvas, toolbar);
+                self.draw_spline_segment(&segment, canvas, toolbar, click_type);
             },
-            IncrementalSplineSnapshot::Three(_, _, _) => self.draw_to_cursor(canvas, toolbar),
+            IncrementalSplineSnapshot::Three(_, _, _) => self.draw_to_cursor(canvas, toolbar, click_type),
         }
         self.spline_snapshot = IncrementalSplineSnapshot::NoPoints;
     }
@@ -246,11 +265,12 @@ fn pixels_along_segment(
         .collect::<Vec<_>>()
 }
 
-impl super::MouseModeState for PencilState {
-    fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+// Generic handlers for both left and right click variants
+impl PencilState {
+    fn drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar, click_type: ClickType) {
         self.dist_till_resample = 0.0;
         if mod_keys.intersects(ModifierType::SHIFT_MASK) {
-            self.draw_straight_line_to_cursor(canvas, toolbar);
+            self.draw_straight_line_to_cursor(canvas, toolbar, click_type);
             self.mode = PencilMode::PencilUp;
         } else {
             self.mode = PencilMode::PencilDown;
@@ -259,17 +279,17 @@ impl super::MouseModeState for PencilState {
         self.last_cursor_pos_pix = canvas.cursor_pos_pix_f();
     }
 
-    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+    fn drag_update(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar, click_type: ClickType) {
         match self.mode {
-            PencilMode::PencilDown => self.draw_to_cursor(canvas, toolbar),
+            PencilMode::PencilDown => self.draw_to_cursor(canvas, toolbar, click_type),
             PencilMode::PencilUp => (), // line already drawn
         }
     }
 
-    fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+    fn drag_end(&mut self, canvas: &mut Canvas, toolbar: &mut Toolbar, click_type: ClickType) {
         match self.mode {
             PencilMode::PencilDown => {
-                self.complete_curve(canvas, toolbar);
+                self.complete_curve(canvas, toolbar, click_type);
                 self.mode = PencilMode::PencilUp;
             },
             PencilMode::PencilUp => (),
@@ -277,6 +297,32 @@ impl super::MouseModeState for PencilState {
 
         canvas.save_state_for_undo(ActionName::Pencil);
         canvas.clear_pencil_mask();
+    }
+}
+
+impl super::MouseModeState for PencilState {
+    fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.drag_start(mod_keys, canvas, toolbar, ClickType::Left);
+    }
+
+    fn handle_right_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.drag_start(mod_keys, canvas, toolbar, ClickType::Right);
+    }
+
+    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.drag_update(canvas, toolbar, ClickType::Left);
+    }
+
+    fn handle_right_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.drag_update(canvas, toolbar, ClickType::Right);
+    }
+
+    fn handle_drag_end(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.drag_end(canvas, toolbar, ClickType::Left);
+    }
+
+    fn handle_right_drag_end(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
+        self.drag_end(canvas, toolbar, ClickType::Right);
     }
 
     fn handle_motion(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
@@ -295,7 +341,7 @@ impl super::MouseModeState for PencilState {
         let cursor_pos = canvas.cursor_pos_pix_f();
         let cursor_pos = (cursor_pos.0.floor(), cursor_pos.1.floor());
 
-        let brush = toolbar.get_brush_mut();
+        let brush = toolbar.get_primary_brush_mut();
         let x_offset = (brush.image.width() as i32 - 1) / 2;
         let y_offset = (brush.image.height() as i32 - 1) / 2;
         let path = brush.outline_path(cr);

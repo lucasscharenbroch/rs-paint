@@ -25,7 +25,8 @@ pub struct Toolbar {
     mouse_mode_buttons: Vec<MouseModeButton>,
     mode_change_hook: Option<Box<dyn Fn(&Toolbar)>>,
     mode_toolbar: ModeToolbar,
-    brush: Brush,
+    primary_brush: Brush,
+    secondary_brush: Brush,
     /// One-pixel brush to use for the eyedropper,
     /// solely for the visual of highlighting one pixel
     eyedropper_brush: Brush,
@@ -50,7 +51,6 @@ impl Toolbar {
             RGBA::new(0.0, 0.0, 0.0, 0.0),
         ];
 
-        let default_color = default_palette_colors[0].clone();
         let widget =  GBox::new(Orientation::Horizontal, 10);
         let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
         let palette_p = Palette::new_p(
@@ -62,8 +62,9 @@ impl Toolbar {
             .vexpand(false)
             .build();
         let mode_toolbar = ModeToolbar::new(&mode_toolbar_wrapper, Some(INITIAL_MODE.variant()));
-        let brush = Brush::new(default_color, BrushType::Round, 5);
-        let eyedropper_brush = Brush::new(default_color, BrushType::Square, 1);
+        let primary_brush = Brush::new(default_primary_color, BrushType::Round, 5);
+        let secondary_brush = Brush::new(default_secondary_color, BrushType::Round, 5);
+        let eyedropper_brush = Brush::new(default_primary_color, BrushType::Square, 1);
 
         widget.append(&mode_button_box);
         widget.append(palette_p.borrow().widget());
@@ -77,7 +78,8 @@ impl Toolbar {
             mouse_mode_buttons: vec![],
             mode_change_hook: None,
             mode_toolbar,
-            brush,
+            primary_brush,
+            secondary_brush,
             eyedropper_brush,
         }));
 
@@ -187,16 +189,23 @@ impl Toolbar {
         self.mode_change_hook = Some(f);
     }
 
-    fn get_brush(&mut self) -> &Brush {
+    fn get_primary_brush(&mut self) -> &Brush {
         let color = self.primary_color();
         let (brush_type, _blending_mode, radius) = self.mode_toolbar.get_pencil_settings();
-        self.brush.modify(color, brush_type, radius);
-        &self.brush
+        self.primary_brush.modify(color, brush_type, radius);
+        &self.primary_brush
     }
 
-    fn get_brush_mut(&mut self) -> &mut Brush {
-        self.get_brush();
-        &mut self.brush
+    fn get_secondary_brush(&mut self) -> &Brush {
+        let color = self.secondary_color();
+        let (brush_type, _blending_mode, radius) = self.mode_toolbar.get_pencil_settings();
+        self.secondary_brush.modify(color, brush_type, radius);
+        &self.secondary_brush
+    }
+
+    fn get_primary_brush_mut(&mut self) -> &mut Brush {
+        self.get_primary_brush();
+        &mut self.primary_brush
     }
 
     fn get_eyedropper_brush_mut(&mut self) -> &mut Brush {
