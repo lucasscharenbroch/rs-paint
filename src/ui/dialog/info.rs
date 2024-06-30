@@ -49,15 +49,24 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
     ]);
 
     let editing = group_from_specs("Editing", &[
-        ("Delete Selection", "Delete")
+        ("Delete Selection", "Delete"),
     ]);
 
     let draw_mode = group_from_specs("Draw Mode", &[
-        ("Draw Straight Line", "<Shift>Pointer_Left")
+        ("Draw Straight Line", "<Shift>Pointer_Left"),
     ]);
 
     let rectangle_select_mode = group_from_specs("Rectangle Select Mode", &[
-        ("Crop to Selection", "<Ctrl>Pointer_Left")
+        ("Crop to Selection", "<Ctrl>Pointer_Left"),
+        ("Clear Selection", "Pointer_Right"),
+    ]);
+
+    let magic_wand_mode = group_from_specs("Magic Wand Mode", &[
+        ("Clear Selection", "Pointer_Right"),
+    ]);
+
+    let eyedropper_mode = group_from_specs("Eyedropper Mode", &[
+        ("Eyedrop into palette", "<Ctrl>Pointer_Left"),
     ]);
 
     let undo = group_from_specs("Undo", &[
@@ -85,6 +94,8 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
     main_section.add_group(&editing);
     main_section.add_group(&draw_mode);
     main_section.add_group(&rectangle_select_mode);
+    main_section.add_group(&magic_wand_mode);
+    main_section.add_group(&eyedropper_mode);
     main_section.add_group(&misc);
     main_section.add_group(&io);
 
