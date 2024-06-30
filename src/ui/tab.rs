@@ -32,6 +32,7 @@ impl Tab {
 
         let container = GBox::builder()
             .orientation(Orientation::Horizontal)
+            .spacing(6)
             .build();
 
         let canvas_p = canvas_p.clone();
@@ -58,8 +59,8 @@ impl Tab {
             canvas_p.borrow_mut().draw_thumbnail(area, cr, width, height);
         }));
 
-        container.append(&text_label);
         container.append(&thumbnail_area);
+        container.append(&text_label);
 
         let click_handler = gtk::GestureClick::new();
         container.add_controller(click_handler.clone());
@@ -70,6 +71,7 @@ impl Tab {
 
         let x_button = Button::builder()
             .label("x")
+            .css_classes(["tab-x-button"])
             .build();
 
         widget.append(&container);

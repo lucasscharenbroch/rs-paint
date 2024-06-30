@@ -426,7 +426,7 @@ impl Canvas {
     pub fn draw_thumbnail(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, _area_height: i32) {
         let img_width = self.image_width() as f64;
         let img_height = self.image_height() as f64;
-        let scale = area_width as f64 / img_width as f64;
+        let scale = (area_width as f64 - 0.1) / img_width as f64;
 
         let image_surface_pattern = self.image_hist.now_mut().drawable().to_surface_pattern();
         let transparent_pattern = self.transparent_checkerboard.borrow_mut().to_repeated_surface_pattern();
@@ -446,14 +446,12 @@ impl Canvas {
         let _ = cr.set_source(image_surface_pattern);
         let _ = cr.fill();
 
-        /* TODO border?
         const BORDER_WIDTH: f64 = 1.5;
         cr.set_line_width(BORDER_WIDTH / scale);
 
         cr.rectangle(0.0, 0.0, img_width, img_height);
-        cr.set_source_rgb(1.0, 1.0, 0.0);
-        cr.stroke();
-        */
+        cr.set_source_rgb(0.0, 0.0, 0.0);
+        let _ = cr.stroke();
     }
 
     fn update_scrollbars(&mut self) {

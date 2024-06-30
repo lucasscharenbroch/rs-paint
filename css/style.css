@@ -35,3 +35,9 @@
 .active-tab {
     background: #dad6d2;
 }
+
+.tab-x-button {
+    margin: 0 0 15px 5px;
+    padding: 0;
+    font-weight: bold;
+}
