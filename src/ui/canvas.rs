@@ -605,6 +605,10 @@ impl Canvas {
         self.image_hist.widget_scrolled_to_active_commit()
     }
 
+    pub fn layers_widget(&self) -> &impl IsA<Widget> {
+        self.image_hist.layers_widget()
+    }
+
     pub fn crop_to(&mut self, x: usize, y: usize, w: usize, h: usize) {
         let img_width = self.image().width() as usize;
         let img_height = self.image().height() as usize;

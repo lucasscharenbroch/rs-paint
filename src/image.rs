@@ -15,6 +15,7 @@ use image_lib::{DynamicImage, RgbaImage, ImageFormat as ImgFmt};
 use std::mem;
 use std::path::Path;
 use std::collections::HashMap;
+use crate::ui::layers::LayersUi;
 
 use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter};
 use gtk::cairo;
@@ -612,6 +613,8 @@ impl LayeredImage {
     /// self.drawable will be re-computed by blending
     /// every pixel
     pub fn re_compute_drawable(&mut self) {
-        todo!() // TODO
+        self.drawable.pixels = (0..self.drawable.pixels.len())
+            .map(|i| self.get_blended_pixel_at(i))
+            .collect::<Vec<_>>();
     }
 }

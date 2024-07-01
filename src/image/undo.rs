@@ -1,15 +1,16 @@
 pub mod action;
 mod tree;
 
+use crate::ui::layers::LayersUi;
 use crate::{image::DrawableImage, ui::UiState};
 use self::action::UndoableAction;
 use super::{FusedImage, Image, LayerSpecifier, LayeredImage, Pixel};
-use action::{ActionName};
-use gtk::{prelude::*, Widget};
 use tree::UndoTree;
+use action::{ActionName};
 
 use std::{cell::RefCell, collections::HashMap};
 use std::rc::Rc;
+use gtk::{prelude::*, Widget};
 
 enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>, LayerSpecifier), // [(pos, old_pix, new_pix)], layer#
@@ -119,11 +120,14 @@ impl ImageStateDiff {
 pub struct ImageHistory {
     now: ImageState,
     undo_tree: UndoTree,
+    layers_ui: LayersUi,
     id_counter: usize,
 }
 
 impl ImageHistory {
     pub fn new(initial_image: LayeredImage) -> ImageHistory {
+        let layers_ui = LayersUi::from_layered_image(&initial_image);
+
         let initial_state = ImageState {
             img: initial_image,
             id: 0,
@@ -132,6 +136,7 @@ impl ImageHistory {
         ImageHistory {
             now: initial_state,
             undo_tree: UndoTree::new(),
+            layers_ui,
             id_counter: 1,
         }
     }
@@ -182,13 +187,17 @@ impl ImageHistory {
         self.undo_tree.widget()
     }
 
+    pub fn layers_widget(&self) -> &impl IsA<Widget> {
+        self.layers_ui.widget()
+    }
+
     fn id_exists(&self, id: usize) -> bool {
         self.id_counter > id
     }
 
     // locate the given commit-id in the tree, then
     // apply the diffs along the path to that commit
-    pub fn migrate_to_commit(&mut self, target_id: usize) {
+    fn migrate_to_commit(&mut self, target_id: usize) {
         assert!(self.id_exists(target_id), "can't migrate to a non-existant commit");
         let diffs = self.undo_tree.traverse_to(target_id);
 

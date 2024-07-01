@@ -1,3 +1,4 @@
+pub mod layers;
 mod selection;
 mod canvas;
 mod toolbar;
@@ -272,7 +273,8 @@ impl UiState {
                 Key::minus => Self::zoom_out(ui_p.clone()),
                 Key::z => Self::undo(ui_p.clone()),
                 Key::y => Self::redo(ui_p.clone()),
-                Key::h => Self::undo_history(ui_p.clone()),
+                Key::h => Self::undo_history_dialog(ui_p.clone()),
+                Key::l => Self::layers_dialog(ui_p.clone()),
                 Key::a => about_dialog(&ui_p.borrow().window),
                 Key::n => Self::new(ui_p.clone()),
                 Key::i => Self::import(ui_p.clone()),
@@ -326,6 +328,15 @@ impl UiState {
             let history_widget = canvas.history_widget();
 
             close_dialog(self.window(), "Image History", history_widget, || CloseDialog::Yes);
+        }
+    }
+
+    pub fn layers_popup(&self) {
+        if let Some(canvas_p) = self.active_canvas_p() {
+            let canvas = canvas_p.borrow();
+            let layers_widget = canvas.layers_widget();
+
+            close_dialog(self.window(), "Layers", layers_widget, || CloseDialog::Yes);
         }
     }
 
@@ -405,8 +416,12 @@ impl UiState {
         canvas_p.borrow_mut().redo();
     }
 
-    pub fn undo_history(ui_p: Rc<RefCell<Self>>) {
+    pub fn undo_history_dialog(ui_p: Rc<RefCell<Self>>) {
         ui_p.borrow().history_popup();
+    }
+
+    pub fn layers_dialog(ui_p: Rc<RefCell<Self>>) {
+        ui_p.borrow().layers_popup();
     }
 
     fn crop_to_selection(ui_p: Rc<RefCell<UiState>>) {
