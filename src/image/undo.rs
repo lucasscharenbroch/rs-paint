@@ -3,7 +3,7 @@ mod tree;
 
 use crate::{image::DrawableImage, ui::UiState};
 use self::action::UndoableAction;
-use super::{Image, FusedImage, Pixel};
+use super::{FusedImage, Image, LayerSpecifier, LayeredImage, Pixel};
 use action::{ActionName};
 use gtk::{prelude::*, Widget};
 use tree::UndoTree;
@@ -12,63 +12,69 @@ use std::{cell::RefCell, collections::HashMap};
 use std::rc::Rc;
 
 enum ImageDiff {
-    Diff(Vec<(usize, Pixel, Pixel)>), // [(pos, old_pix, new_pix)]
-    FullCopy(Image, Image), // (before, after)
-    ManualUndo(Box<dyn UndoableAction>),
+    Diff(Vec<(usize, Pixel, Pixel)>, LayerSpecifier), // [(pos, old_pix, new_pix)], layer#
+    // FullCopy(Image, Image), // (before, after)
+    ManualUndo(Box<dyn UndoableAction>, LayerSpecifier),
     Null,
 }
 
 impl ImageDiff {
     pub fn new(
-        to: &FusedImage,
-        (mod_pix, save_image): (HashMap<usize, (Pixel, Pixel)>, Option<Image>)
+        to: &LayeredImage,
+        (mod_pix, layer): (HashMap<usize, (Pixel, Pixel)>, LayerSpecifier)
     ) -> ImageDiff {
+        /* TODO
         if let Some(save_image) = save_image {
             ImageDiff::FullCopy(save_image, to.image().clone())
         } else { // just consider pixel coordinates in the hash map
+        */
             let diff_vec = mod_pix.into_iter()
                 .map(|(i, (b, a))| (i, b, a))
                 .collect::<Vec<_>>();
 
-            ImageDiff::Diff(diff_vec)
-        }
+            ImageDiff::Diff(diff_vec, layer)
+        // }
     }
 
-    pub fn apply_to(&mut self, image: &mut FusedImage) {
+    pub fn apply_to(&mut self, image: &mut LayeredImage) {
         match self {
-            ImageDiff::Diff(ref pixs) => {
+            ImageDiff::Diff(ref pixs, layer) => {
                 for (i, _before, after) in pixs.iter() {
-                    image.image.pixels[*i] = after.clone();
-                    image.drawable.pixels[*i] = after.to_drawable();
+                    image.image_at_layer_mut(*layer).pixels[*i] = after.clone();
+                    image.update_drawable_at(*i);
                 }
             },
+            /* TODO
             ImageDiff::FullCopy(ref _before, ref after) => {
                 image.image.pixels = after.pixels.clone();
                 (image.image.width, image.image.height) = (after.width, after.height);
                 image.drawable = DrawableImage::from_image(&image.image);
             },
-            ImageDiff::ManualUndo(action) => {
-                image.apply_action(action);
+            */
+            ImageDiff::ManualUndo(action, layer) => {
+                image.apply_action(action, *layer);
             },
             ImageDiff::Null => (),
         }
     }
 
-    pub fn unapply_to(&mut self, image: &mut FusedImage) {
+    pub fn unapply_to(&mut self, image: &mut LayeredImage) {
         match self {
-            ImageDiff::Diff(ref pixs) => {
+            ImageDiff::Diff(ref pixs, layer) => {
                 for (i, before, _after) in pixs.iter() {
-                    image.image.pixels[*i] = before.clone();
-                    image.drawable.pixels[*i] = before.to_drawable();
+                    image.image_at_layer_mut(*layer).pixels[*i] = before.clone();
+                    image.update_drawable_at(*i);
                 }
             },
+            /* TODO
             ImageDiff::FullCopy(ref before, ref _after) => {
                 image.image.pixels = before.pixels.clone();
                 (image.image.width, image.image.height) = (before.width, before.height);
                 image.drawable = DrawableImage::from_image(&image.image);
             },
-            ImageDiff::ManualUndo(action) => {
-                image.unapply_action(action);
+            */
+            ImageDiff::ManualUndo(action, layer) => {
+                image.unapply_action(action, *layer);
             },
             ImageDiff::Null => (),
         }
@@ -76,7 +82,7 @@ impl ImageDiff {
 }
 
 pub struct ImageState {
-    img: FusedImage,
+    img: LayeredImage,
     id: usize,
 }
 
@@ -117,7 +123,7 @@ pub struct ImageHistory {
 }
 
 impl ImageHistory {
-    pub fn new(initial_image: FusedImage) -> ImageHistory {
+    pub fn new(initial_image: LayeredImage) -> ImageHistory {
         let initial_state = ImageState {
             img: initial_image,
             id: 0,
@@ -130,7 +136,7 @@ impl ImageHistory {
         }
     }
 
-    pub fn now(&self) -> &FusedImage {
+    pub fn now(&self) -> &LayeredImage {
         &self.now.img
     }
 
@@ -138,7 +144,7 @@ impl ImageHistory {
         self.now.id
     }
 
-    pub fn now_mut(&mut self) -> &mut FusedImage {
+    pub fn now_mut(&mut self) -> &mut LayeredImage {
         &mut self.now.img
     }
 

@@ -1,4 +1,4 @@
-use crate::image::{DrawableImage, Image, FusedImage};
+use crate::image::{DrawableImage, Image, LayerSpecifier, LayeredImage};
 use super::{ImageDiff, ImageHistory, ImageStateDiff};
 
 #[derive(Debug)] // TODO remove/change
@@ -20,7 +20,7 @@ pub enum ActionName {
 
 pub trait DoableAction {
     fn name(&self) -> ActionName;
-    fn exec(self, image: &mut FusedImage);
+    fn exec(self, image: &mut LayeredImage);
     // undo is imlpicit: it will be done by diffing the image
 }
 
@@ -49,36 +49,36 @@ impl ImageHistory {
     }
 
     pub fn exec_undoable_action(&mut self, mut action: Box<dyn UndoableAction>) {
-        let (mod_pix, maybe_new_image) = self.now.img.get_and_reset_modified();
-        if !mod_pix.is_empty() || maybe_new_image.is_some() {
+        let (mod_pix, layer) = self.now.img.get_and_reset_modified();
+        if !mod_pix.is_empty() {
             // if self is modified in any way, push the sate with Anon
             self.push_current_state(ActionName::Anonymous);
         }
 
-        self.now_mut().apply_action(&mut action);
-        self.push_undo_action(action);
+        self.now_mut().apply_action(&mut action, layer);
+        self.push_undo_action(action, layer);
     }
 
-    fn push_undo_action(&mut self, action: Box<dyn UndoableAction>) {
+    fn push_undo_action(&mut self, action: Box<dyn UndoableAction>, layer: LayerSpecifier) {
         // assume the current state is already pushed (this is done in `exec_undoable_action`)
         // otherwise an anonymous undo step might get lost
 
         let culprit = action.name();
-        let image_diff = ImageDiff::ManualUndo(action);
+        let image_diff = ImageDiff::ManualUndo(action, layer);
         let image_state_diff = ImageStateDiff::new(image_diff, self.now.id, self.id_counter, culprit);
 
         self.push_state_diff(image_state_diff)
     }
 }
 
-impl FusedImage {
-    pub fn apply_action(&mut self, action: &mut Box<dyn UndoableAction>) {
-        action.exec(&mut self.image);
-        self.drawable = DrawableImage::from_image(&self.image);
+impl LayeredImage {
+    pub fn apply_action(&mut self, action: &mut Box<dyn UndoableAction>, layer: LayerSpecifier) {
+        action.exec(self.image_at_layer_mut(layer));
+        self.re_compute_drawable();
     }
 
-    pub fn unapply_action(&mut self, action: &mut Box<dyn UndoableAction>) {
-        action.undo(&mut self.image);
-        self.drawable = DrawableImage::from_image(&self.image);
+    pub fn unapply_action(&mut self, action: &mut Box<dyn UndoableAction>, layer: LayerSpecifier) {
+        action.undo(self.image_at_layer_mut(layer));
+        self.re_compute_drawable();
     }
 }

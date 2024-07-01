@@ -1,5 +1,5 @@
 use super::undo::action::{ActionName, DoableAction, StaticDoableAction, UndoableAction, StaticUndoableAction};
-use super::{Image, ImageLike, Pixel, FusedImage};
+use super::{FusedImage, Image, ImageLike, LayeredImage, Pixel};
 
 use gtk::gdk::{Toplevel, RGBA};
 use itertools::{Itertools, Either};
@@ -58,11 +58,14 @@ impl DoableAction for Scale {
         ActionName::Scale
     }
 
-    fn exec(self, image: &mut FusedImage) {
+    fn exec(self, image: &mut LayeredImage) {
+        todo!()
+        /* TODO implement size modification for `LayeredImages`s
         match self.method {
             ScaleMethod::NearestNeighbor => self.exec_scale_with_fn(image, nearest_neighbor),
             ScaleMethod::Bilinear => self.exec_scale_with_fn(image, bilinear),
         }
+        */
     }
 }
 

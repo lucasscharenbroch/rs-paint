@@ -102,7 +102,6 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
             .item("90\u{00B0} Counter-Clockwise", "rotate-90-counter-clockwise", rotate_counter_clockwise_fn)
             .item("180\u{00B0}", "rotate-180", rotate_180_fn));
 
-
     let help_menu = MenuBuilder::new()
         .item("Keyboard Shortcuts", "keyboard-shortcuts",
                 Box::new(clone!(@strong ui_state => move || keyboard_shortcuts_dialog(&ui_state.borrow().window))))

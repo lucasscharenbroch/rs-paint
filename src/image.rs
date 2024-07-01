@@ -20,6 +20,9 @@ use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter};
 use gtk::cairo;
 use gtk::gdk::RGBA;
 
+/// The ambivalent (r, g, b, a) pixel type, used for
+/// importing and drawing (it cannot be directly displayed to cairo,
+/// though: use `DrawablePixel` (and `DrawableImage`) instead)
 #[derive(Clone)]
 pub struct Pixel {
     // the order of the fields is in the unsafe cast in Image::to_file
@@ -207,6 +210,9 @@ impl Image {
 // same as Pixel/Image, but with pre-multiplied-alpha;
 // this is necessary for drawing in cairo
 
+/// The same data as `Pixel`, but fields in a different order,
+/// plus a pre-multipled alpha (to allow for direct drawing
+/// in cairo)
 #[derive(Clone)]
 #[allow(dead_code)]
 struct DrawablePixel {
@@ -228,6 +234,16 @@ impl DrawablePixel {
             a,
         }
     }
+
+    fn blend_onto(self, below: &Pixel) -> DrawablePixel {
+        let alpha_mult = 1.0 - self.a as f64;
+        DrawablePixel {
+            r: (self.r as f64 + (below.r as f64) * alpha_mult) as u8,
+            g: (self.g as f64 + (below.g as f64) * alpha_mult) as u8,
+            b: (self.b as f64 + (below.b as f64) * alpha_mult) as u8,
+            a: self.a.max(below.a), // ???
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -237,6 +253,7 @@ pub struct DrawableImage {
     height: usize,
 }
 
+/// An `Image` that can be efficiently drawn to cairo
 impl DrawableImage {
     pub fn from_image(image: &Image) -> Self {
         DrawableImage {
@@ -270,10 +287,10 @@ impl DrawableImage {
     }
 }
 
-// FusedImage = Image + DrawableImage
-// Image has all the necessary information, but a DrawableImage
-// is kept to avoid re-computation on each draw.
-// All data is read from the Image, but writes are applied to both
+/// `FusedImage` = `Image` + `DrawableImage`
+/// `Image` has all the necessary information, but a `DrawableImage`
+/// is kept to avoid re-computation on each draw.
+/// All data is read from the Image, but writes are applied to both
 #[derive(Clone)]
 pub struct FusedImage {
     image: Image,
@@ -410,5 +427,191 @@ impl FusedImage {
         std::mem::swap(&mut save_img, &mut self.save_image_before_overwritten);
 
         (mod_pix, save_img)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum LayerSpecifier {
+    /// The bottom layer
+    BaseLayer,
+    /// The (n + 1)'th from bottom layer (0 = first from bottom)
+    Nth(usize),
+}
+
+/// `LayeredImage` = `Vec<FusedImage>` + `DrawableImage`
+/// A `FusedImage` must be kept for each layer to draw
+/// the thumbnails. The extra `DrawableImage` is used to
+/// draw the entire thing: its pixels are blended downward
+/// upon construction, then lazily as the layers are updated.
+pub struct LayeredImage {
+    // Yes, it's inefficient to have so many `DrawableImages`,
+    // but hey, at least we're using `u8`s: that makes the whole thing
+    // (8x + 1) byes per pixel (where x is the number of layers).
+    // That confidently beats one-image-per-layer with `f32`s (16x)
+    // and `f64`s (32x)
+
+    drawable: DrawableImage,
+    base_layer: FusedImage,
+    /// Non-base layers, increasing in height
+    other_layers: Vec<FusedImage>,
+
+    active_layer: LayerSpecifier,
+
+    // Only one layer is active at a time:
+    // the below keep track of changes made to
+    // the currently-active layer
+
+    pix_modified_since_draw: HashMap<usize, Pixel>,
+    pix_modified_since_save: HashMap<usize, (Pixel, Pixel)>,
+    save_image_before_overwritten: Option<Image>,
+}
+
+impl LayeredImage {
+    pub fn from_image(image: Image) -> Self {
+        LayeredImage {
+            drawable: DrawableImage::from_image(&image),
+            base_layer: FusedImage::from_image(image),
+            other_layers: Vec::new(),
+            active_layer: LayerSpecifier::BaseLayer,
+            pix_modified_since_draw: HashMap::new(),
+            pix_modified_since_save: HashMap::new(),
+            save_image_before_overwritten: None,
+        }
+    }
+
+    #[inline]
+    fn active_image(&self) -> &FusedImage {
+        match self.active_layer {
+            LayerSpecifier::BaseLayer => &self.base_layer,
+            LayerSpecifier::Nth(n) => &self.other_layers[n],
+        }
+    }
+
+    #[inline]
+    fn active_image_mut(&mut self) -> &mut FusedImage {
+        match self.active_layer {
+            LayerSpecifier::BaseLayer => &mut self.base_layer,
+            LayerSpecifier::Nth(n) => &mut self.other_layers[n],
+        }
+    }
+
+    #[inline]
+    fn image_at_layer(&self, layer: LayerSpecifier) -> &Image {
+        match layer {
+            LayerSpecifier::BaseLayer => &self.base_layer.image,
+            LayerSpecifier::Nth(n) => &self.other_layers[n].image,
+        }
+    }
+
+    #[inline]
+    fn image_at_layer_mut(&mut self, layer: LayerSpecifier) -> &mut Image {
+        match layer {
+            LayerSpecifier::BaseLayer => &mut self.base_layer.image,
+            LayerSpecifier::Nth(n) => &mut self.other_layers[n].image,
+        }
+    }
+
+    #[inline]
+    pub fn pix_at(&self, r: i32, c: i32) -> &Pixel {
+        let i = (r * self.width() + c) as usize;
+        &self.active_image().image.pixels[i]
+    }
+
+    #[inline]
+    pub fn pix_at_mut(&mut self, r: i32, c: i32) -> &mut Pixel {
+        let i = (r * self.width() + c) as usize;
+
+        let current_value = self.active_image().image.pixels[i].clone();
+        self.pix_modified_since_draw.entry(i).or_insert(current_value);
+
+        &mut self.active_image_mut().image.pixels[i]
+    }
+
+    #[inline]
+    pub fn try_pix_at(&mut self, r: i32, c: i32) -> Option<&Pixel> {
+        let image = &self.active_image().image;
+        if r < 0 || c < 0 || r as usize >= image.height || c as usize >= image.width {
+            None
+        } else {
+            Some(self.pix_at(r, c))
+        }
+    }
+
+    #[inline]
+    pub fn try_pix_at_mut(&mut self, r: i32, c: i32) -> Option<&mut Pixel> {
+        let image = &self.active_image().image;
+        if r < 0 || c < 0 || r as usize >= image.height || c as usize >= image.width {
+            None
+        } else {
+            Some(self.pix_at_mut(r, c))
+        }
+    }
+
+    #[inline]
+    pub fn width(&self) -> i32 {
+        self.active_image().image.width as i32
+    }
+
+    #[inline]
+    pub fn height(&self) -> i32 {
+        self.active_image().image.height as i32
+    }
+
+    #[inline]
+    pub fn image(&self) -> &Image {
+        &self.active_image().image
+    }
+
+    /// Blends the cross-section (across all layers) of the given pixel,
+    /// returning a drawable pixel (as seen from the top)
+    #[inline]
+    fn get_blended_pixel_at(&self, i: usize) -> DrawablePixel {
+        self.other_layers.iter()
+            .chain(std::iter::once(&self.base_layer))
+            .fold(DrawablePixel::from_rgba(0, 0, 0, 0), |x, layer| {
+                x.blend_onto(&layer.image.pixels[i])
+            })
+    }
+
+    #[inline]
+    fn update_drawable_at(&mut self, i: usize) {
+        self.drawable.pixels[i] = self.get_blended_pixel_at(i);
+    }
+
+    pub fn drawable(&mut self) -> &mut DrawableImage {
+        fn update_pix_modified_dict(dict: &mut HashMap<usize, (Pixel, Pixel)>, i: usize, before: &Pixel, after: &Pixel) {
+            let entry = dict.entry(i);
+            if let std::collections::hash_map::Entry::Occupied(mut oe) = entry {
+                oe.insert((oe.get().0.clone(), after.clone()));
+            } else {
+                dict.insert(i, (before.clone(), after.clone()));
+            }
+        }
+
+        for (i, p_before) in self.pix_modified_since_draw.iter() {
+            self.drawable.pixels[*i] = self.get_blended_pixel_at(*i);
+            let new_value = self.active_image().image.pixels[*i].clone();
+            update_pix_modified_dict(&mut self.pix_modified_since_save, *i, p_before, &new_value);
+        }
+
+        self.pix_modified_since_draw.clear();
+        &mut self.drawable
+    }
+
+    pub fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerSpecifier) {
+        self.drawable(); // flush pix_modified_since_draw
+
+        let mut mod_pix = HashMap::new();
+        std::mem::swap(&mut mod_pix, &mut self.pix_modified_since_save);
+
+        (mod_pix, self.active_layer)
+    }
+
+    /// Call this after manually editing a child
+    /// (outside of the change-tracking API):
+    /// self.drawable will be re-computed by blending
+    /// every pixel
+    pub fn re_compute_drawable(&mut self) {
+        todo!() // TODO
     }
 }
