@@ -34,7 +34,7 @@ impl LayerTab {
             .build();
 
         thumbnail_widget.set_draw_func(clone!(@strong canvas_p => move |area, cr, width, height| {
-            canvas_p.borrow_mut().draw_thumbnail(area, cr, width, height);
+            canvas_p.borrow_mut().draw_layer_thumbnail(area, cr, width, height, layer_index);
         }));
 
         let widget = gtk::Box::builder()
@@ -72,13 +72,36 @@ impl LayersUi {
         }
     }
 
+    fn new_tab_with_index(&mut self, canvas_p: &Rc<RefCell<Canvas>>, layer_idx: LayerIndex) {
+        let new_tab = LayerTab::new(&canvas_p, layer_idx);
+        self.widget.prepend(&new_tab.widget);
+        self.layer_tabs.push(new_tab);
+    }
+
     /// Finishes initialization (populating the widget)
     pub fn finish_init(&mut self, canvas_p: Rc<RefCell<Canvas>>) {
         for layer_idx in canvas_p.borrow().image_ref().layer_indices() {
-            let new_button = LayerTab::new(&canvas_p, layer_idx);
-            self.widget.append(&new_button.widget);
-            self.layer_tabs.push(new_button);
+            self.new_tab_with_index(&canvas_p, layer_idx);
         }
+
+        let new_button = gtk::Button::builder()
+            .label("New")
+            .build();
+
+        new_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
+            let self_p = canvas_p.borrow().layers_ui_p().clone();
+            let idx = canvas_p.borrow_mut().append_layer(
+                        gtk::gdk::RGBA::new(0.0, 0.0, 0.0, 0.0),
+                );
+
+            self_p.borrow_mut()
+                .new_tab_with_index(
+                    &canvas_p,
+                    idx
+                );
+        }));
+
+        self.widget.append(&new_button);
 
         self.canvas_p = Some(canvas_p);
     }

@@ -9,12 +9,13 @@ use action::{ActionName};
 
 use std::{cell::RefCell, collections::HashMap};
 use std::rc::Rc;
-use gtk::{prelude::*, Widget};
+use gtk::{prelude::*, ColorChooserDialog, Widget};
 
 enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>, LayerIndex), // [(pos, old_pix, new_pix)], layer#
     // FullCopy(Image, Image), // (before, after)
     ManualUndo(Box<dyn UndoableAction>, LayerIndex),
+    AppendLayer(gtk::gdk::RGBA, LayerIndex),
     Null,
 }
 
@@ -54,6 +55,9 @@ impl ImageDiff {
             ImageDiff::ManualUndo(action, layer) => {
                 image.apply_action(action, *layer);
             },
+            ImageDiff::AppendLayer(color, idx) => {
+                image.append_layer(*color, *idx);
+            },
             ImageDiff::Null => (),
         }
     }
@@ -75,6 +79,9 @@ impl ImageDiff {
             */
             ImageDiff::ManualUndo(action, layer) => {
                 image.unapply_action(action, *layer);
+            },
+            ImageDiff::AppendLayer(_color, idx) => {
+                image.remove_layer(*idx);
             },
             ImageDiff::Null => (),
         }
@@ -203,5 +210,18 @@ impl ImageHistory {
         update_canvas: Rc<dyn Fn()>,
     ) {
         self.undo_tree.set_hooks(mod_self, update_canvas);
+    }
+
+    pub fn append_layer(&mut self, fill_color: gtk::gdk::RGBA, idx: LayerIndex) {
+        let image_diff = ImageDiff::AppendLayer(fill_color, self.now().next_unused_layer_idx());
+        let image_state_diff = ImageStateDiff::new(
+            image_diff,
+            self.now.id,
+            self.id_counter,
+            ActionName::AppendLayer,
+        );
+
+        self.push_state_diff(image_state_diff);
+        self.now_mut().append_layer(fill_color, idx);
     }
 }

@@ -14,7 +14,7 @@ use super::layers::LayersUi;
 
 use gtk::{prelude::*, Widget};
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
-use gtk::gdk::ModifierType;
+use gtk::gdk::{ModifierType, RGBA};
 use gtk::{DrawingArea, EventControllerScroll, EventControllerScrollFlags, GestureDrag, EventControllerMotion};
 use gtk::cairo::Context;
 use gtk::cairo;
@@ -751,5 +751,15 @@ impl Canvas {
                 }
             }
         }
+    }
+
+    pub fn append_layer(&mut self, fill_color: RGBA) -> LayerIndex {
+        let idx = self.image_hist.now().next_unused_layer_idx();
+        self.image_hist.append_layer(fill_color, idx);
+        idx
+    }
+
+    pub fn layers_ui_p(&self) -> &Rc<RefCell<LayersUi>> {
+        &self.layers_ui_p
     }
 }

@@ -639,4 +639,32 @@ impl LayeredImage {
                     .map(|i| LayerIndex::Nth(i))
             )
     }
+
+    pub fn next_unused_layer_idx(&self) -> LayerIndex {
+        LayerIndex::Nth(self.other_layers.len())
+    }
+
+    pub fn append_layer(&mut self, fill_color: gtk::gdk::RGBA, idx: LayerIndex) {
+        let width = self.width() as usize;
+        let height = self.height() as usize;
+        let pixels = vec![Pixel::from_rgba_struct(fill_color); width * height];
+
+        let new_image = FusedImage::from_image(Image::new(pixels, width, height));
+        self.other_layers.push(new_image);
+    }
+
+    pub fn remove_layer(&mut self, idx: LayerIndex) {
+        match idx {
+            LayerIndex::BaseLayer => {
+                assert!(self.other_layers.len() != 0);
+                let new_base = self.other_layers.remove(0);
+                self.base_layer = new_base;
+            },
+            LayerIndex::Nth(n) => {
+                self.other_layers.remove(n);
+            }
+        }
+
+        self.re_compute_drawable();
+    }
 }

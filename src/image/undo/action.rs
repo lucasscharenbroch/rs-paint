@@ -16,6 +16,7 @@ pub enum ActionName {
     LevelShift,
     Crop,
     Expand,
+    AppendLayer,
 }
 
 pub trait DoableAction {
