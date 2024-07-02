@@ -6,7 +6,7 @@ mod menu;
 mod io;
 mod tab;
 mod form;
-mod layers;
+mod layers_ui;
 
 use canvas::Canvas;
 use toolbar::Toolbar;

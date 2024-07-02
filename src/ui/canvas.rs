@@ -10,7 +10,7 @@ use super::UiState;
 use super::toolbar::Toolbar;
 use super::toolbar::mode::MouseMode;
 use crate::image::{ImageLike, blend::BlendingMode};
-use super::layers::LayersUi;
+use super::layers_ui::LayersUi;
 
 use gtk::{prelude::*, Widget};
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};

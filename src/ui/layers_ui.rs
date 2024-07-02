@@ -7,12 +7,14 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-/// Wrapper for the box/frame that represents
-/// a layer in `LayersUi`
+/// Wrapper for the box/frame that represents a layer in `LayersUi`:
+/// this object has no direct ties to any specific image (it accesses
+/// its image by suppling an index to a `Rc<RefCell<Canvas>>`: both
+/// of which are stored in the draw-function closure of `thumbnail_widget`)
+/// and contains no stateful information (except the index)
 struct LayerTab {
     widget: gtk::Box,
     thumbnail_widget: gtk::DrawingArea,
-    layer_index: LayerIndex,
 }
 
 impl LayerTab {
@@ -49,7 +51,6 @@ impl LayerTab {
         Self {
             widget,
             thumbnail_widget,
-            layer_index,
         }
     }
 }
