@@ -430,7 +430,7 @@ impl FusedImage {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum LayerIndex {
     /// The bottom layer
     BaseLayer,
@@ -496,19 +496,29 @@ impl LayeredImage {
     }
 
     #[inline]
-    fn image_at_layer(&self, layer: LayerIndex) -> &Image {
+    fn fused_image_at_layer(&self, layer: LayerIndex) -> &FusedImage {
         match layer {
-            LayerIndex::BaseLayer => &self.base_layer.image,
-            LayerIndex::Nth(n) => &self.other_layers[n].image,
+            LayerIndex::BaseLayer => &self.base_layer,
+            LayerIndex::Nth(n) => &self.other_layers[n],
+        }
+    }
+
+    #[inline]
+    fn image_at_layer(&self, layer: LayerIndex) -> &Image {
+        &self.fused_image_at_layer(layer).image
+    }
+
+    #[inline]
+    fn fused_image_at_layer_mut(&mut self, layer: LayerIndex) -> &mut FusedImage {
+        match layer {
+            LayerIndex::BaseLayer => &mut self.base_layer,
+            LayerIndex::Nth(n) => &mut self.other_layers[n],
         }
     }
 
     #[inline]
     fn image_at_layer_mut(&mut self, layer: LayerIndex) -> &mut Image {
-        match layer {
-            LayerIndex::BaseLayer => &mut self.base_layer.image,
-            LayerIndex::Nth(n) => &mut self.other_layers[n].image,
-        }
+        &mut self.fused_image_at_layer_mut(layer).image
     }
 
     #[inline]
@@ -596,6 +606,11 @@ impl LayeredImage {
 
         self.pix_modified_since_draw.clear();
         &mut self.drawable
+    }
+
+    pub fn layer_drawable(&mut self, layer_index: LayerIndex) -> &mut DrawableImage {
+        // TODO: is this okay to do? how does the double-caching work?
+        self.fused_image_at_layer_mut(layer_index).drawable()
     }
 
     pub fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerIndex) {

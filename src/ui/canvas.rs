@@ -1,4 +1,5 @@
 use crate::image::undo::action::{DoableAction, UndoableAction};
+use crate::image::LayerIndex;
 
 use super::super::image::{Image, LayeredImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::bitmask::DeletePix;
@@ -438,12 +439,14 @@ impl Canvas {
         cr.set_dash(&[], 0.0);
     }
 
-    pub fn draw_thumbnail(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, _area_height: i32) {
-        let img_width = self.image_width() as f64;
-        let img_height = self.image_height() as f64;
-        let scale = (area_width as f64 - 0.1) / img_width as f64;
-
-        let image_surface_pattern = self.image_hist.now_mut().drawable().to_surface_pattern();
+    fn draw_thumbnail_helper(
+        &mut self,
+        scale: f64,
+        cr: &Context,
+        img_width: f64,
+        img_height: f64,
+        image_surface_pattern: gtk::cairo::SurfacePattern,
+    ) {
         let transparent_pattern = self.transparent_checkerboard.borrow_mut().to_repeated_surface_pattern();
 
         cr.scale(scale, scale);
@@ -467,6 +470,33 @@ impl Canvas {
         cr.rectangle(0.0, 0.0, img_width, img_height);
         cr.set_source_rgb(0.0, 0.0, 0.0);
         let _ = cr.stroke();
+    }
+
+    pub fn draw_thumbnail(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, _area_height: i32) {
+        let img_width = self.image_width() as f64;
+        let img_height = self.image_height() as f64;
+        let scale = (area_width as f64 - 0.1) / img_width as f64;
+        let image_surface_pattern = self.image_hist.now_mut().drawable().to_surface_pattern();
+
+        self.draw_thumbnail_helper(scale, cr, img_width, img_height, image_surface_pattern);
+    }
+
+    pub fn draw_layer_thumbnail(
+        &mut self,
+        _drawing_area: &DrawingArea,
+        cr: &Context,
+        area_width: i32,
+        _area_height: i32,
+        layer_index: LayerIndex,
+    ) {
+        let img_width = self.image_width() as f64;
+        let img_height = self.image_height() as f64;
+        let scale = (area_width as f64 - 0.1) / img_width as f64;
+
+        let image_surface_pattern = self.image_hist.now_mut()
+            .layer_drawable(layer_index).to_surface_pattern();
+
+        self.draw_thumbnail_helper(scale, cr, img_width, img_height, image_surface_pattern);
     }
 
     fn update_scrollbars(&mut self) {
@@ -516,6 +546,7 @@ impl Canvas {
         self.update_scrollbars();
         self.validate_selection();
         self.drawing_area.queue_draw();
+        self.layers_ui_p.borrow().redraw();
         if let Ok(ui) = self.ui_p.try_borrow() {
             if let Some(tab) = ui.active_tab() {
                 tab.redraw_thumbnail();
