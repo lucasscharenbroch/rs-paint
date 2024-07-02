@@ -9,6 +9,7 @@ use super::UiState;
 use super::toolbar::Toolbar;
 use super::toolbar::mode::MouseMode;
 use crate::image::{ImageLike, blend::BlendingMode};
+use super::layers::LayersUi;
 
 use gtk::{prelude::*, Widget};
 use gtk::{Grid, Scrollbar, Orientation, Adjustment};
@@ -50,6 +51,7 @@ pub struct Canvas {
     /// during the current pencil stroke
     pencil_mask: Vec<usize>,
     pencil_mask_counter: usize,
+    layers_ui_p: Rc<RefCell<LayersUi>>,
 }
 
 impl Canvas {
@@ -89,6 +91,7 @@ impl Canvas {
             history_id_to_cursor_pos_pix: HashMap::new(),
             pencil_mask: vec![0; image_net_size],
             pencil_mask_counter: 1,
+            layers_ui_p: Rc::new(RefCell::new(LayersUi::new())),
         }));
 
         let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
@@ -100,6 +103,8 @@ impl Canvas {
         }));
 
         canvas_p.borrow_mut().image_hist.set_hooks(mod_hist, update_canvas);
+
+        canvas_p.borrow().layers_ui_p.borrow_mut().finish_init(canvas_p.clone());
 
         Self::init_internal_connections(&canvas_p);
         Self::init_ui_state_connections(&canvas_p, &ui_p);
@@ -605,8 +610,9 @@ impl Canvas {
         self.image_hist.widget_scrolled_to_active_commit()
     }
 
-    pub fn layers_widget(&self) -> &impl IsA<Widget> {
-        self.image_hist.layers_widget()
+    pub fn layers_widget(&self) -> impl IsA<Widget> {
+        let x = self.layers_ui_p.borrow();
+        x.widget()
     }
 
     pub fn crop_to(&mut self, x: usize, y: usize, w: usize, h: usize) {

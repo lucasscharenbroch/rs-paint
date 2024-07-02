@@ -15,7 +15,6 @@ use image_lib::{DynamicImage, RgbaImage, ImageFormat as ImgFmt};
 use std::mem;
 use std::path::Path;
 use std::collections::HashMap;
-use crate::ui::layers::LayersUi;
 
 use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter};
 use gtk::cairo;
@@ -431,8 +430,8 @@ impl FusedImage {
     }
 }
 
-#[derive(Clone, Copy)]
-enum LayerSpecifier {
+#[derive(Clone, Copy, Debug)]
+pub enum LayerIndex {
     /// The bottom layer
     BaseLayer,
     /// The (n + 1)'th from bottom layer (0 = first from bottom)
@@ -456,7 +455,7 @@ pub struct LayeredImage {
     /// Non-base layers, increasing in height
     other_layers: Vec<FusedImage>,
 
-    active_layer: LayerSpecifier,
+    active_layer: LayerIndex,
 
     // Only one layer is active at a time:
     // the below keep track of changes made to
@@ -473,7 +472,7 @@ impl LayeredImage {
             drawable: DrawableImage::from_image(&image),
             base_layer: FusedImage::from_image(image),
             other_layers: Vec::new(),
-            active_layer: LayerSpecifier::BaseLayer,
+            active_layer: LayerIndex::BaseLayer,
             pix_modified_since_draw: HashMap::new(),
             pix_modified_since_save: HashMap::new(),
             save_image_before_overwritten: None,
@@ -483,32 +482,32 @@ impl LayeredImage {
     #[inline]
     fn active_image(&self) -> &FusedImage {
         match self.active_layer {
-            LayerSpecifier::BaseLayer => &self.base_layer,
-            LayerSpecifier::Nth(n) => &self.other_layers[n],
+            LayerIndex::BaseLayer => &self.base_layer,
+            LayerIndex::Nth(n) => &self.other_layers[n],
         }
     }
 
     #[inline]
     fn active_image_mut(&mut self) -> &mut FusedImage {
         match self.active_layer {
-            LayerSpecifier::BaseLayer => &mut self.base_layer,
-            LayerSpecifier::Nth(n) => &mut self.other_layers[n],
+            LayerIndex::BaseLayer => &mut self.base_layer,
+            LayerIndex::Nth(n) => &mut self.other_layers[n],
         }
     }
 
     #[inline]
-    fn image_at_layer(&self, layer: LayerSpecifier) -> &Image {
+    fn image_at_layer(&self, layer: LayerIndex) -> &Image {
         match layer {
-            LayerSpecifier::BaseLayer => &self.base_layer.image,
-            LayerSpecifier::Nth(n) => &self.other_layers[n].image,
+            LayerIndex::BaseLayer => &self.base_layer.image,
+            LayerIndex::Nth(n) => &self.other_layers[n].image,
         }
     }
 
     #[inline]
-    fn image_at_layer_mut(&mut self, layer: LayerSpecifier) -> &mut Image {
+    fn image_at_layer_mut(&mut self, layer: LayerIndex) -> &mut Image {
         match layer {
-            LayerSpecifier::BaseLayer => &mut self.base_layer.image,
-            LayerSpecifier::Nth(n) => &mut self.other_layers[n].image,
+            LayerIndex::BaseLayer => &mut self.base_layer.image,
+            LayerIndex::Nth(n) => &mut self.other_layers[n].image,
         }
     }
 
@@ -599,7 +598,7 @@ impl LayeredImage {
         &mut self.drawable
     }
 
-    pub fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerSpecifier) {
+    pub fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerIndex) {
         self.drawable(); // flush pix_modified_since_draw
 
         let mut mod_pix = HashMap::new();
@@ -616,5 +615,13 @@ impl LayeredImage {
         self.drawable.pixels = (0..self.drawable.pixels.len())
             .map(|i| self.get_blended_pixel_at(i))
             .collect::<Vec<_>>();
+    }
+
+    pub fn layer_indices(&self) -> impl Iterator<Item = LayerIndex> {
+        std::iter::once(LayerIndex::BaseLayer)
+            .chain(
+                (0..self.other_layers.len())
+                    .map(|i| LayerIndex::Nth(i))
+            )
     }
 }

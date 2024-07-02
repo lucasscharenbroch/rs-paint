@@ -1,4 +1,4 @@
-use crate::image::{DrawableImage, Image, LayerSpecifier, LayeredImage};
+use crate::image::{DrawableImage, Image, LayerIndex, LayeredImage};
 use super::{ImageDiff, ImageHistory, ImageStateDiff};
 
 #[derive(Debug)] // TODO remove/change
@@ -59,7 +59,7 @@ impl ImageHistory {
         self.push_undo_action(action, layer);
     }
 
-    fn push_undo_action(&mut self, action: Box<dyn UndoableAction>, layer: LayerSpecifier) {
+    fn push_undo_action(&mut self, action: Box<dyn UndoableAction>, layer: LayerIndex) {
         // assume the current state is already pushed (this is done in `exec_undoable_action`)
         // otherwise an anonymous undo step might get lost
 
@@ -72,12 +72,12 @@ impl ImageHistory {
 }
 
 impl LayeredImage {
-    pub fn apply_action(&mut self, action: &mut Box<dyn UndoableAction>, layer: LayerSpecifier) {
+    pub fn apply_action(&mut self, action: &mut Box<dyn UndoableAction>, layer: LayerIndex) {
         action.exec(self.image_at_layer_mut(layer));
         self.re_compute_drawable();
     }
 
-    pub fn unapply_action(&mut self, action: &mut Box<dyn UndoableAction>, layer: LayerSpecifier) {
+    pub fn unapply_action(&mut self, action: &mut Box<dyn UndoableAction>, layer: LayerIndex) {
         action.undo(self.image_at_layer_mut(layer));
         self.re_compute_drawable();
     }

@@ -1,10 +1,9 @@
 pub mod action;
 mod tree;
 
-use crate::ui::layers::LayersUi;
 use crate::{image::DrawableImage, ui::UiState};
 use self::action::UndoableAction;
-use super::{FusedImage, Image, LayerSpecifier, LayeredImage, Pixel};
+use super::{FusedImage, Image, LayerIndex, LayeredImage, Pixel};
 use tree::UndoTree;
 use action::{ActionName};
 
@@ -13,16 +12,16 @@ use std::rc::Rc;
 use gtk::{prelude::*, Widget};
 
 enum ImageDiff {
-    Diff(Vec<(usize, Pixel, Pixel)>, LayerSpecifier), // [(pos, old_pix, new_pix)], layer#
+    Diff(Vec<(usize, Pixel, Pixel)>, LayerIndex), // [(pos, old_pix, new_pix)], layer#
     // FullCopy(Image, Image), // (before, after)
-    ManualUndo(Box<dyn UndoableAction>, LayerSpecifier),
+    ManualUndo(Box<dyn UndoableAction>, LayerIndex),
     Null,
 }
 
 impl ImageDiff {
     pub fn new(
         to: &LayeredImage,
-        (mod_pix, layer): (HashMap<usize, (Pixel, Pixel)>, LayerSpecifier)
+        (mod_pix, layer): (HashMap<usize, (Pixel, Pixel)>, LayerIndex)
     ) -> ImageDiff {
         /* TODO
         if let Some(save_image) = save_image {
@@ -120,14 +119,11 @@ impl ImageStateDiff {
 pub struct ImageHistory {
     now: ImageState,
     undo_tree: UndoTree,
-    layers_ui: LayersUi,
     id_counter: usize,
 }
 
 impl ImageHistory {
     pub fn new(initial_image: LayeredImage) -> ImageHistory {
-        let layers_ui = LayersUi::from_layered_image(&initial_image);
-
         let initial_state = ImageState {
             img: initial_image,
             id: 0,
@@ -136,7 +132,6 @@ impl ImageHistory {
         ImageHistory {
             now: initial_state,
             undo_tree: UndoTree::new(),
-            layers_ui,
             id_counter: 1,
         }
     }
@@ -185,10 +180,6 @@ impl ImageHistory {
         self.undo_tree.scroll_to_active_node_after_resize();
 
         self.undo_tree.widget()
-    }
-
-    pub fn layers_widget(&self) -> &impl IsA<Widget> {
-        self.layers_ui.widget()
     }
 
     fn id_exists(&self, id: usize) -> bool {

@@ -1,4 +1,3 @@
-pub mod layers;
 mod selection;
 mod canvas;
 mod toolbar;
@@ -7,6 +6,7 @@ mod menu;
 mod io;
 mod tab;
 mod form;
+mod layers;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
@@ -336,7 +336,7 @@ impl UiState {
             let canvas = canvas_p.borrow();
             let layers_widget = canvas.layers_widget();
 
-            close_dialog(self.window(), "Layers", layers_widget, || CloseDialog::Yes);
+            close_dialog(self.window(), "Layers", &layers_widget, || CloseDialog::Yes);
         }
     }
 
