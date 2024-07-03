@@ -446,6 +446,13 @@ impl LayerIndex {
             _ => Self::Nth(n - 1),
         }
     }
+
+    pub fn to_usize(&self) -> usize {
+        match self {
+            Self::BaseLayer => 0,
+            Self::Nth(n) => n + 1,
+        }
+    }
 }
 
 /// `LayeredImage` = `Vec<FusedImage>` + `DrawableImage`

@@ -68,6 +68,8 @@ pub struct LayersUi {
     widget: gtk::Box,
     layer_tabs: RefCell<Vec<LayerTab>>,
     canvas_p: Option<Rc<RefCell<Canvas>>>,
+    /// Which LayerTab has the "active" visual cue (if any)
+    last_active_idx: RefCell<Option<usize>>,
 }
 
 impl LayersUi {
@@ -78,6 +80,7 @@ impl LayersUi {
                 .build(),
             layer_tabs: RefCell::new(Vec::new()),
             canvas_p: None,
+            last_active_idx: RefCell::new(None),
         }
     }
 
@@ -121,6 +124,10 @@ impl LayersUi {
 
     /// Redraw, add/remove tabs if necessary
     pub fn update(&self, num_layers: usize, active_idx: LayerIndex) {
+        if let Some(i) = self.last_active_idx.borrow().as_ref() {
+            self.layer_tabs.borrow()[*i].widget.remove_css_class("active-layer-tab")
+        }
+
         while self.layer_tabs.borrow().len() < num_layers {
             self.new_tab()
         }
@@ -128,6 +135,9 @@ impl LayersUi {
         while self.layer_tabs.borrow().len() > num_layers {
             self.pop_tab();
         }
+
+        *self.last_active_idx.borrow_mut() = Some(active_idx.to_usize());
+        self.layer_tabs.borrow_mut()[active_idx.to_usize()].widget.add_css_class("active-layer-tab");
 
         self.layer_tabs.borrow().iter().for_each(|tab| {
             tab.thumbnail_widget.queue_draw()
