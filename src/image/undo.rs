@@ -9,7 +9,7 @@ use action::{ActionName};
 
 use std::{cell::RefCell, collections::HashMap};
 use std::rc::Rc;
-use gtk::{prelude::*, ColorChooserDialog, Widget};
+use gtk::{prelude::*, Widget};
 
 enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>, LayerIndex), // [(pos, old_pix, new_pix)], layer#

@@ -1,4 +1,4 @@
-use gtk::prelude::*;
+use gtk::{prelude::*, Ordering};
 
 use crate::image::{LayeredImage, LayerIndex};
 
@@ -19,20 +19,11 @@ struct LayerTab {
 
 impl LayerTab {
     fn new(canvas_p: &Rc<RefCell<Canvas>>, layer_index: LayerIndex) -> Self {
-        let aspect_ratio = canvas_p.borrow().image_width() as f64 /
-                           canvas_p.borrow().image_height() as f64;
-
         const MAX_DIMENSION: i32 = 100;
 
-        let (w, h) = if aspect_ratio >= 1.0 {
-            (MAX_DIMENSION, (MAX_DIMENSION as f64 / aspect_ratio).ceil() as i32)
-        } else {
-            ((MAX_DIMENSION as f64 * aspect_ratio).ceil() as i32, MAX_DIMENSION)
-        };
-
         let thumbnail_widget = gtk::DrawingArea::builder()
-            .content_width(w)
-            .content_height(h)
+            .content_width(MAX_DIMENSION)
+            .content_height(MAX_DIMENSION)
             .build();
 
         thumbnail_widget.set_draw_func(clone!(@strong canvas_p => move |area, cr, width, height| {
@@ -53,12 +44,29 @@ impl LayerTab {
             thumbnail_widget,
         }
     }
+
+    fn update_aspect_ratio(&self, canvas_p: &Rc<RefCell<Canvas>>) {
+        let aspect_ratio = canvas_p.borrow().image_width() as f64 /
+                           canvas_p.borrow().image_height() as f64;
+
+        const MAX_DIMENSION: i32 = 100;
+
+        let (w, h) = if aspect_ratio >= 1.0 {
+            (MAX_DIMENSION, (MAX_DIMENSION as f64 / aspect_ratio).ceil() as i32)
+        } else {
+            ((MAX_DIMENSION as f64 * aspect_ratio).ceil() as i32, MAX_DIMENSION)
+        };
+
+        self.thumbnail_widget.set_content_width(w);
+        self.thumbnail_widget.set_content_height(h);
+        self.thumbnail_widget.queue_resize();
+    }
 }
 
 /// Wrapper struct for the ui within the image layers dialog
 pub struct LayersUi {
     widget: gtk::Box,
-    layer_tabs: Vec<LayerTab>,
+    layer_tabs: RefCell<Vec<LayerTab>>,
     canvas_p: Option<Rc<RefCell<Canvas>>>,
 }
 
@@ -68,50 +76,61 @@ impl LayersUi {
             widget: gtk::Box::builder()
                 .orientation(gtk::Orientation::Vertical)
                 .build(),
-            layer_tabs: Vec::new(),
+            layer_tabs: RefCell::new(Vec::new()),
             canvas_p: None,
         }
     }
 
-    fn new_tab_with_index(&mut self, canvas_p: &Rc<RefCell<Canvas>>, layer_idx: LayerIndex) {
-        let new_tab = LayerTab::new(&canvas_p, layer_idx);
+    fn new_tab(&self) {
+        let layer_idx = LayerIndex::from_usize(self.layer_tabs.borrow().len());
+        let new_tab = LayerTab::new(&self.canvas_p.as_ref().unwrap(), layer_idx);
         self.widget.prepend(&new_tab.widget);
-        self.layer_tabs.push(new_tab);
+        self.layer_tabs.borrow_mut().push(new_tab);
+    }
+
+    fn pop_tab(&self) {
+        let tab = self.layer_tabs.borrow_mut().pop().unwrap();
+        self.widget.remove(&tab.widget);
     }
 
     /// Finishes initialization (populating the widget)
     pub fn finish_init(&mut self, canvas_p: Rc<RefCell<Canvas>>) {
-        for layer_idx in canvas_p.borrow().image_ref().layer_indices() {
-            self.new_tab_with_index(&canvas_p, layer_idx);
+        self.canvas_p = Some(canvas_p.clone());
+
+        for _ in 0..canvas_p.borrow().image_ref().num_layers() {
+            self.new_tab();
         }
 
         let new_button = gtk::Button::builder()
             .label("New")
             .build();
 
-        new_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
-            let self_p = canvas_p.borrow().layers_ui_p().clone();
-            let idx = canvas_p.borrow_mut().append_layer(
-                        gtk::gdk::RGBA::new(0.0, 0.0, 0.0, 0.0),
-                );
-
-            self_p.borrow_mut()
-                .new_tab_with_index(
-                    &canvas_p,
-                    idx
-                );
-        }));
+        new_button.connect_clicked(move |_button| {
+            canvas_p.borrow_mut().append_layer(
+                gtk::gdk::RGBA::new(0.0, 0.0, 0.0, 0.0),
+            );
+            canvas_p.borrow_mut().update();
+        });
 
         self.widget.append(&new_button);
-
-        self.canvas_p = Some(canvas_p);
     }
 
     pub fn widget(&self) -> impl gtk::prelude::IsA<gtk::Widget> {
         self.widget.clone()
     }
 
-    pub fn redraw(&self) {
-        self.layer_tabs.iter().for_each(|tab| tab.thumbnail_widget.queue_draw());
+    /// Redraw, add/remove tabs if necessary
+    pub fn update(&self, num_layers: usize, active_idx: LayerIndex) {
+        while self.layer_tabs.borrow().len() < num_layers {
+            self.new_tab()
+        }
+
+        while self.layer_tabs.borrow().len() > num_layers {
+            self.pop_tab();
+        }
+
+        self.layer_tabs.borrow().iter().for_each(|tab| {
+            tab.thumbnail_widget.queue_draw()
+        });
     }
 }

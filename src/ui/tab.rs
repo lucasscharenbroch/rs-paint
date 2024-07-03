@@ -3,7 +3,7 @@ use super::UiState;
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use gtk::{pango, Align, DrawingArea, GestureClick, StateFlags};
+use gtk::{Align, DrawingArea, GestureClick};
 use glib_macros::clone;
 use gtk::{prelude::*, Box as GBox, Orientation, Label, Button};
 

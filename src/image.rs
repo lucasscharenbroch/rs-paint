@@ -438,6 +438,16 @@ pub enum LayerIndex {
     Nth(usize),
 }
 
+impl LayerIndex {
+    /// 0 => BaseLayer, n => Nth(n + 1)
+    pub fn from_usize(n: usize) -> Self {
+        match n {
+            0 => Self::BaseLayer,
+            _ => Self::Nth(n - 1),
+        }
+    }
+}
+
 /// `LayeredImage` = `Vec<FusedImage>` + `DrawableImage`
 /// A `FusedImage` must be kept for each layer to draw
 /// the thumbnails. The extra `DrawableImage` is used to
@@ -638,6 +648,14 @@ impl LayeredImage {
                 (0..self.other_layers.len())
                     .map(|i| LayerIndex::Nth(i))
             )
+    }
+
+    pub fn num_layers(&self) -> usize {
+        self.other_layers.len() + 1
+    }
+
+    pub fn active_layer(&self) -> &LayerIndex {
+        &self.active_layer
     }
 
     pub fn next_unused_layer_idx(&self) -> LayerIndex {

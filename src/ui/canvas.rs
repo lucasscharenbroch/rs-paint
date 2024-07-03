@@ -546,7 +546,10 @@ impl Canvas {
         self.update_scrollbars();
         self.validate_selection();
         self.drawing_area.queue_draw();
-        self.layers_ui_p.borrow().redraw();
+        self.layers_ui_p.borrow().update(
+            self.image_hist.now().num_layers(),
+            *self.image_hist.now().active_layer()
+        );
         if let Ok(ui) = self.ui_p.try_borrow() {
             if let Some(tab) = ui.active_tab() {
                 tab.redraw_thumbnail();
@@ -753,13 +756,8 @@ impl Canvas {
         }
     }
 
-    pub fn append_layer(&mut self, fill_color: RGBA) -> LayerIndex {
+    pub fn append_layer(&mut self, fill_color: RGBA) {
         let idx = self.image_hist.now().next_unused_layer_idx();
         self.image_hist.append_layer(fill_color, idx);
-        idx
-    }
-
-    pub fn layers_ui_p(&self) -> &Rc<RefCell<LayersUi>> {
-        &self.layers_ui_p
     }
 }

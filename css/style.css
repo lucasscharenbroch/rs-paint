@@ -61,3 +61,7 @@
     padding: 6px;
     margin: 6px;
 }
+
+.active-layer-tab {
+    background: #dad6d2;
+}
