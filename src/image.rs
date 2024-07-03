@@ -696,9 +696,11 @@ impl LayeredImage {
                 assert!(self.other_layers.len() != 0);
                 let new_base = self.other_layers.remove(0);
                 self.base_layer = new_base;
+                self.active_layer = LayerIndex::BaseLayer;
             },
             LayerIndex::Nth(n) => {
                 self.other_layers.remove(n);
+                self.active_layer = LayerIndex::from_usize(idx.to_usize() - 1);
             }
         }
 
