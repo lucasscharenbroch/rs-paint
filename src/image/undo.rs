@@ -224,4 +224,14 @@ impl ImageHistory {
         self.push_state_diff(image_state_diff);
         self.now_mut().append_layer(fill_color, idx);
     }
+
+    pub fn focus_layer(&mut self, idx: LayerIndex) {
+        let (mod_pix, _layer) = self.now_mut().get_and_reset_modified();
+        if !mod_pix.is_empty() {
+            // if self is modified in any way, push the sate with Anon
+            self.push_current_state(ActionName::Anonymous);
+        }
+
+        self.now_mut().active_layer = idx;
+    }
 }

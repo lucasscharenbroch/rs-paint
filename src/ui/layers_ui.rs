@@ -39,6 +39,14 @@ impl LayerTab {
         widget.append(&thumbnail_widget);
         widget.append(&gtk::Label::new(Some(format!("{layer_index:?}").as_str())));
 
+        let click_handler = gtk::GestureClick::new();
+
+        click_handler.connect_pressed(clone!(@strong canvas_p => move |_, _, _, _| {
+            canvas_p.borrow_mut().focus_layer(layer_index);
+        }));
+
+        widget.add_controller(click_handler);
+
         Self {
             widget,
             thumbnail_widget,
@@ -126,7 +134,6 @@ impl LayersUi {
             canvas_p.borrow_mut().append_layer(
                 gtk::gdk::RGBA::new(0.0, 0.0, 0.0, 0.0),
             );
-            canvas_p.borrow_mut().update();
         });
 
         self.widget.append(&new_button);

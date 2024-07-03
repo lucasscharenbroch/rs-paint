@@ -765,5 +765,12 @@ impl Canvas {
     pub fn append_layer(&mut self, fill_color: RGBA) {
         let idx = self.image_hist.now().next_unused_layer_idx();
         self.image_hist.append_layer(fill_color, idx);
+        self.update();
+    }
+
+    /// Set the layer at the given index to active
+    pub fn focus_layer(&mut self, layer_index: LayerIndex) {
+        self.image_hist.focus_layer(layer_index);
+        self.update();
     }
 }

@@ -675,7 +675,7 @@ impl LayeredImage {
         let pixels = vec![Pixel::from_rgba_struct(fill_color); width * height];
 
         let new_image = FusedImage::from_image(Image::new(pixels, width, height));
-        self.other_layers.push(new_image);
+        self.other_layers.push(new_image); // TODO actually use `idx` here
     }
 
     pub fn remove_layer(&mut self, idx: LayerIndex) {
