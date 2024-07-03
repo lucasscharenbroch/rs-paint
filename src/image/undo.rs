@@ -42,7 +42,7 @@ impl ImageDiff {
             ImageDiff::Diff(ref pixs, layer) => {
                 for (i, _before, after) in pixs.iter() {
                     image.image_at_layer_mut(*layer).pixels[*i] = after.clone();
-                    image.update_drawables_at(*i);
+                    image.update_drawable_and_layer_at(*i, *layer);
                 }
             },
             /* TODO
@@ -67,7 +67,7 @@ impl ImageDiff {
             ImageDiff::Diff(ref pixs, layer) => {
                 for (i, before, _after) in pixs.iter() {
                     image.image_at_layer_mut(*layer).pixels[*i] = before.clone();
-                    image.update_drawables_at(*i);
+                    image.update_drawable_and_layer_at(*i, *layer);
                 }
             },
             /* TODO

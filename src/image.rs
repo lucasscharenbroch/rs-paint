@@ -610,14 +610,14 @@ impl LayeredImage {
 
     /// Update (re-compute/re-blend) the pixel at the given
     /// index for the whole-blended-image drawable and the
-    /// currently-active-layer drawable
+    /// given layer's drawable
     #[inline]
-    fn update_drawables_at(&mut self, i: usize) {
+    fn update_drawable_and_layer_at(&mut self, i: usize, layer: LayerIndex) {
         self.drawable.pixels[i] = self.get_blended_pixel_at(i);
-        match self.active_layer {
+        match layer {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
-        }.drawable.pixels[i] = self.active_image().image.pixels[i].to_drawable();
+        }.drawable.pixels[i] = self.image_at_layer(layer).pixels[i].to_drawable();
     }
 
     pub fn drawable(&mut self) -> &mut DrawableImage {
