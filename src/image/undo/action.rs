@@ -75,11 +75,11 @@ impl ImageHistory {
 impl LayeredImage {
     pub fn apply_action(&mut self, action: &mut Box<dyn UndoableAction>, layer: LayerIndex) {
         action.exec(self.image_at_layer_mut(layer));
-        self.re_compute_drawable();
+        self.re_compute_drawables();
     }
 
     pub fn unapply_action(&mut self, action: &mut Box<dyn UndoableAction>, layer: LayerIndex) {
         action.undo(self.image_at_layer_mut(layer));
-        self.re_compute_drawable();
+        self.re_compute_drawables();
     }
 }

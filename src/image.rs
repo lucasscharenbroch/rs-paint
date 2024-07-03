@@ -608,9 +608,16 @@ impl LayeredImage {
             })
     }
 
+    /// Update (re-compute/re-blend) the pixel at the given
+    /// index for the whole-blended-image drawable and the
+    /// currently-active-layer drawable
     #[inline]
-    fn update_drawable_at(&mut self, i: usize) {
+    fn update_drawables_at(&mut self, i: usize) {
         self.drawable.pixels[i] = self.get_blended_pixel_at(i);
+        match self.active_layer {
+            LayerIndex::BaseLayer => &mut self.base_layer,
+            LayerIndex::Nth(n) => &mut self.other_layers[n],
+        }.drawable.pixels[i] = self.active_image().image.pixels[i].to_drawable();
     }
 
     pub fn drawable(&mut self) -> &mut DrawableImage {
@@ -653,11 +660,15 @@ impl LayeredImage {
 
     /// Call this after manually editing a child
     /// (outside of the change-tracking API):
-    /// self.drawable will be re-computed by blending
-    /// every pixel
-    pub fn re_compute_drawable(&mut self) {
+    /// `self.drawable` and the active layer's drawable
+    /// will be re-computed by blending every pixel
+    pub fn re_compute_drawables(&mut self) {
         self.drawable.pixels = (0..self.drawable.pixels.len())
             .map(|i| self.get_blended_pixel_at(i))
+            .collect::<Vec<_>>();
+        self.active_drawable_mut().pixels = self.image_at_layer(self.active_layer)
+            .pixels.iter()
+            .map(|p| p.to_drawable())
             .collect::<Vec<_>>();
     }
 
@@ -708,6 +719,6 @@ impl LayeredImage {
             self.active_layer = LayerIndex::from_usize(self.num_layers());
         }
 
-        self.re_compute_drawable();
+        self.re_compute_drawables();
     }
 }
