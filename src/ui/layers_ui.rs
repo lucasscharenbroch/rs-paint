@@ -18,12 +18,12 @@ struct LayerTab {
 }
 
 impl LayerTab {
-    fn new(canvas_p: &Rc<RefCell<Canvas>>, layer_index: LayerIndex) -> Self {
-        const MAX_DIMENSION: i32 = 100;
+    fn new(canvas_p: &Rc<RefCell<Canvas>>, layer_index: LayerIndex, aspect_ratio: f64) -> Self {
+        let (w, h) = Self::wh_from_aspect_ratio(aspect_ratio);
 
         let thumbnail_widget = gtk::DrawingArea::builder()
-            .content_width(MAX_DIMENSION)
-            .content_height(MAX_DIMENSION)
+            .content_width(w)
+            .content_height(h)
             .build();
 
         thumbnail_widget.set_draw_func(clone!(@strong canvas_p => move |area, cr, width, height| {
@@ -45,10 +45,7 @@ impl LayerTab {
         }
     }
 
-    fn update_aspect_ratio(&self, canvas_p: &Rc<RefCell<Canvas>>) {
-        let aspect_ratio = canvas_p.borrow().image_width() as f64 /
-                           canvas_p.borrow().image_height() as f64;
-
+    fn wh_from_aspect_ratio(aspect_ratio: f64) -> (i32, i32) {
         const MAX_DIMENSION: i32 = 100;
 
         let (w, h) = if aspect_ratio >= 1.0 {
@@ -56,6 +53,12 @@ impl LayerTab {
         } else {
             ((MAX_DIMENSION as f64 * aspect_ratio).ceil() as i32, MAX_DIMENSION)
         };
+
+        (w, h)
+    }
+
+    fn update_aspect_ratio(&self, aspect_ratio: f64) {
+        let (w, h) = Self::wh_from_aspect_ratio(aspect_ratio);
 
         self.thumbnail_widget.set_content_width(w);
         self.thumbnail_widget.set_content_height(h);
@@ -70,6 +73,8 @@ pub struct LayersUi {
     canvas_p: Option<Rc<RefCell<Canvas>>>,
     /// Which LayerTab has the "active" visual cue (if any)
     last_active_idx: RefCell<Option<usize>>,
+    /// Aspect ratio of all thumbnails in `layer_tabs`
+    last_aspect_ratio: RefCell<f64>,
 }
 
 impl LayersUi {
@@ -81,12 +86,17 @@ impl LayersUi {
             layer_tabs: RefCell::new(Vec::new()),
             canvas_p: None,
             last_active_idx: RefCell::new(None),
+            last_aspect_ratio: RefCell::new(1.0),
         }
     }
 
-    fn new_tab(&self) {
+    fn new_tab(&self, aspect_ratio: f64) {
         let layer_idx = LayerIndex::from_usize(self.layer_tabs.borrow().len());
-        let new_tab = LayerTab::new(&self.canvas_p.as_ref().unwrap(), layer_idx);
+        let new_tab = LayerTab::new(
+            &self.canvas_p.as_ref().unwrap(),
+            layer_idx,
+            aspect_ratio,
+        );
         self.widget.prepend(&new_tab.widget);
         self.layer_tabs.borrow_mut().push(new_tab);
     }
@@ -100,8 +110,12 @@ impl LayersUi {
     pub fn finish_init(&mut self, canvas_p: Rc<RefCell<Canvas>>) {
         self.canvas_p = Some(canvas_p.clone());
 
+        let aspect_ratio = canvas_p.borrow().image_width() as f64 /
+                                canvas_p.borrow().image_height() as f64;
+        *self.last_aspect_ratio.borrow_mut() = aspect_ratio;
+
         for _ in 0..canvas_p.borrow().image_ref().num_layers() {
-            self.new_tab();
+            self.new_tab(aspect_ratio);
         }
 
         let new_button = gtk::Button::builder()
@@ -123,17 +137,24 @@ impl LayersUi {
     }
 
     /// Redraw, add/remove tabs if necessary
-    pub fn update(&self, num_layers: usize, active_idx: LayerIndex) {
+    pub fn update(&self, num_layers: usize, active_idx: LayerIndex, aspect_ratio: f64) {
         if let Some(i) = self.last_active_idx.borrow().as_ref() {
             self.layer_tabs.borrow()[*i].widget.remove_css_class("active-layer-tab")
         }
 
-        while self.layer_tabs.borrow().len() < num_layers {
-            self.new_tab()
-        }
-
         while self.layer_tabs.borrow().len() > num_layers {
             self.pop_tab();
+        }
+
+        if aspect_ratio != *self.last_aspect_ratio.borrow() {
+            *self.last_aspect_ratio.borrow_mut() = aspect_ratio;
+            for tab in self.layer_tabs.borrow_mut().iter_mut() {
+                tab.update_aspect_ratio(aspect_ratio)
+            }
+        }
+
+        while self.layer_tabs.borrow().len() < num_layers {
+            self.new_tab(aspect_ratio);
         }
 
         *self.last_active_idx.borrow_mut() = Some(active_idx.to_usize());

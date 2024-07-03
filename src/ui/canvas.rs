@@ -543,13 +543,19 @@ impl Canvas {
     }
 
     pub fn update(&mut self) {
+
         self.update_scrollbars();
         self.validate_selection();
         self.drawing_area.queue_draw();
+
+        let aspect_ratio = self.image_width() as f64 /
+            self.image_height() as f64;
         self.layers_ui_p.borrow().update(
             self.image_hist.now().num_layers(),
-            *self.image_hist.now().active_layer()
+            *self.image_hist.now().active_layer(),
+            aspect_ratio,
         );
+
         if let Ok(ui) = self.ui_p.try_borrow() {
             if let Some(tab) = ui.active_tab() {
                 tab.redraw_thumbnail();
