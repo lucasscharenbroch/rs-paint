@@ -601,7 +601,7 @@ impl LayeredImage {
     /// returning a drawable pixel (as seen from the top)
     #[inline]
     fn get_blended_pixel_at(&self, i: usize) -> DrawablePixel {
-        self.other_layers.iter()
+        self.other_layers.iter().rev()
             .chain(std::iter::once(&self.base_layer))
             .fold(DrawablePixel::from_rgba(0, 0, 0, 0), |x, layer| {
                 x.blend_onto(&layer.image.pixels[i])
