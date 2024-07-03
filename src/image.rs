@@ -513,6 +513,14 @@ impl LayeredImage {
     }
 
     #[inline]
+    fn active_drawable_mut(&mut self) -> &mut DrawableImage {
+        match self.active_layer {
+            LayerIndex::BaseLayer => &mut self.base_layer.drawable,
+            LayerIndex::Nth(n) => &mut self.other_layers[n].drawable,
+        }
+    }
+
+    #[inline]
     fn fused_image_at_layer(&self, layer: LayerIndex) -> &FusedImage {
         match layer {
             LayerIndex::BaseLayer => &self.base_layer,
@@ -617,6 +625,10 @@ impl LayeredImage {
 
         for (i, p_before) in self.pix_modified_since_draw.iter() {
             self.drawable.pixels[*i] = self.get_blended_pixel_at(*i);
+            match self.active_layer {
+                LayerIndex::BaseLayer => &mut self.base_layer,
+                LayerIndex::Nth(n) => &mut self.other_layers[n],
+            }.drawable.pixels[*i] = self.active_image().image.pixels[*i].to_drawable();
             let new_value = self.active_image().image.pixels[*i].clone();
             update_pix_modified_dict(&mut self.pix_modified_since_save, *i, p_before, &new_value);
         }
@@ -688,6 +700,10 @@ impl LayeredImage {
             LayerIndex::Nth(n) => {
                 self.other_layers.remove(n);
             }
+        }
+
+        if self.active_layer.to_usize() >= self.num_layers() {
+            self.active_layer = LayerIndex::from_usize(self.num_layers());
         }
 
         self.re_compute_drawable();
