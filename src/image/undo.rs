@@ -194,6 +194,19 @@ impl ImageHistory {
         self.push_state_diff(image_state_diff);
     }
 
+    fn apply_and_push_diff(&mut self, mut diff: ImageDiff, culprit: ActionName) {
+        diff.apply_to(self.now_mut());
+
+        let image_state_diff = ImageStateDiff::new(
+            diff,
+            self.now.id,
+            self.id_counter,
+            culprit,
+        );
+
+        self.push_state_diff(image_state_diff);
+    }
+
     pub fn undo(&mut self) {
         if let Some(d) = self.undo_tree.undo() {
             d.borrow_mut().unapply_to(&mut self.now);
@@ -238,15 +251,7 @@ impl ImageHistory {
 
     pub fn append_layer(&mut self, fill_color: gtk::gdk::RGBA, idx: LayerIndex) {
         let image_diff = ImageDiff::AppendLayer(fill_color, idx);
-        let image_state_diff = ImageStateDiff::new(
-            image_diff,
-            self.now.id,
-            self.id_counter,
-            ActionName::AppendLayer,
-        );
-
-        self.push_state_diff(image_state_diff);
-        self.now_mut().append_new_layer(fill_color, idx);
+        self.apply_and_push_diff(image_diff, ActionName::AppendLayer);
     }
 
     fn commit_any_changes_on_active_layer(&mut self) {
@@ -272,15 +277,7 @@ impl ImageHistory {
             idx,
         );
 
-        let image_state_diff = ImageStateDiff::new(
-            image_diff,
-            self.now.id,
-            self.id_counter,
-            ActionName::RemoveLayer,
-        );
-
-        self.push_state_diff(image_state_diff);
-        self.now_mut().remove_layer(idx);
+        self.apply_and_push_diff(image_diff, ActionName::RemoveLayer)
     }
 
     pub fn swap_layers(&mut self, i1: LayerIndex, i2: LayerIndex) {
@@ -290,15 +287,7 @@ impl ImageHistory {
 
         let image_diff = ImageDiff::SwapLayers(i1, i2);
 
-        let image_state_diff = ImageStateDiff::new(
-            image_diff,
-            self.now.id,
-            self.id_counter,
-            ActionName::RearrangeLayers,
-        );
-
-        self.push_state_diff(image_state_diff);
-        self.now_mut().swap_layers(i1, i2);
+        self.apply_and_push_diff(image_diff, ActionName::RearrangeLayers);
     }
 
     pub fn merge_layers(&mut self, top_index: LayerIndex, bottom_index: LayerIndex) {
@@ -313,14 +302,6 @@ impl ImageHistory {
             bottom_index,
         );
 
-        let image_state_diff = ImageStateDiff::new(
-            image_diff,
-            self.now.id,
-            self.id_counter,
-            ActionName::RearrangeLayers,
-        );
-
-        self.push_state_diff(image_state_diff);
-        self.now_mut().merge_layers(top_index, bottom_index);
+        self.apply_and_push_diff(image_diff, ActionName::MergeLayers);
     }
 }

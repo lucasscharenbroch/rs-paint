@@ -19,6 +19,7 @@ pub enum ActionName {
     AppendLayer,
     RemoveLayer,
     RearrangeLayers,
+    MergeLayers,
 }
 
 pub trait DoableAction {

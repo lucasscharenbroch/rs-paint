@@ -773,6 +773,8 @@ impl LayeredImage {
                 }
             }
         }
+
+        self.re_compute_drawables();
     }
 
     fn remove_layer(&mut self, idx: LayerIndex) {
