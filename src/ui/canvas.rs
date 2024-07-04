@@ -803,6 +803,19 @@ impl Canvas {
         Ok(target_idx)
     }
 
+    pub fn try_merge_active_layer_down(&mut self) -> Result<LayerIndex, ()> {
+        let active_layer_idx = self.image().active_layer_index().clone();
+        if active_layer_idx == LayerIndex::BaseLayer {
+            return Err(()); // can't move base layer down
+        }
+
+        let target_idx = LayerIndex::from_usize(active_layer_idx.to_usize() - 1);
+
+        self.image_hist.merge_layers(active_layer_idx, target_idx);
+        self.update();
+        Ok(target_idx)
+    }
+
     pub fn remove_layer(&mut self, layer_index: LayerIndex) {
         self.image_hist.remove_layer(layer_index);
         self.update();

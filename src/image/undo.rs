@@ -18,6 +18,8 @@ enum ImageDiff {
     AppendLayer(gtk::gdk::RGBA, LayerIndex),
     RemoveLayer(Image, LayerIndex),
     SwapLayers(LayerIndex, LayerIndex),
+    /// MergeLayers(save_top_image, top_index, save_bottom_image, bottom_index)
+    MergeLayers(Image, LayerIndex, Image, LayerIndex),
     Null,
 }
 
@@ -66,6 +68,9 @@ impl ImageDiff {
             ImageDiff::SwapLayers(i1, i2) => {
                 image.swap_layers(*i1, *i2);
             }
+            ImageDiff::MergeLayers(_save_top, top_idx, _save_bot, bot_idx) => {
+                image.merge_layers(*top_idx, *bot_idx);
+            },
             ImageDiff::Null => (),
         }
     }
@@ -97,6 +102,10 @@ impl ImageDiff {
             ImageDiff::SwapLayers(i1, i2) => {
                 image.swap_layers(*i1, *i2);
             }
+            ImageDiff::MergeLayers(save_top, top_index, save_bot, bot_index) => {
+                image.append_layer_with_image(save_top.clone(), *top_index);
+                *image.image_at_layer_mut(*bot_index) = save_bot.clone();
+            },
             ImageDiff::Null => (),
         }
     }
@@ -289,5 +298,28 @@ impl ImageHistory {
 
         self.push_state_diff(image_state_diff);
         self.now_mut().swap_layers(i1, i2);
+    }
+
+    pub fn merge_layers(&mut self, top_index: LayerIndex, bottom_index: LayerIndex) {
+        if [top_index, bottom_index].contains(self.now().active_layer_index()) {
+            self.commit_any_changes_on_active_layer();
+        }
+
+        let image_diff = ImageDiff::MergeLayers(
+            self.now().image_at_layer(top_index).clone(),
+            top_index,
+            self.now().image_at_layer(bottom_index).clone(),
+            bottom_index,
+        );
+
+        let image_state_diff = ImageStateDiff::new(
+            image_diff,
+            self.now.id,
+            self.id_counter,
+            ActionName::RearrangeLayers,
+        );
+
+        self.push_state_diff(image_state_diff);
+        self.now_mut().merge_layers(top_index, bottom_index);
     }
 }

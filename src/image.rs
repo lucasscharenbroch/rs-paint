@@ -64,6 +64,15 @@ impl Pixel {
     fn scale_alpha(&self, amount: f64) -> Pixel {
         Pixel::from_rgba(self.r, self.g, self.b, (self.a as f64 * amount) as u8)
     }
+
+    fn blend(above: &Pixel, below: &Pixel) -> Pixel {
+        let o = above.a as f64 / 255.0;
+        let t = 1.0 - o;
+        Pixel::from_rgba((above.r as f64 * o + below.r as f64 * t) as u8,
+                         (above.g as f64 * o + below.g as f64 * t) as u8,
+                         (above.b as f64 * o + below.b as f64 * t) as u8,
+                         std::cmp::max(above.a, below.a))
+    }
 }
 
 const GRAY: Pixel = Pixel::from_rgb(211, 211, 211);
@@ -96,6 +105,15 @@ impl Image {
             width: pixels[0].len(),
             height: pixels.len(),
             pixels: pixels.into_iter().flatten().collect::<Vec<_>>(),
+        }
+    }
+
+    /// Blend `above` onto  `self`, storing the results in `self`
+    fn blend_under(&mut self, above: &Image) {
+        assert!(self.height == above.height && self.width == above.width);
+
+        for (above_pix, below_pix) in above.pixels.iter().zip(self.pixels.iter_mut()) {
+            *below_pix = Pixel::blend(above_pix, &below_pix)
         }
     }
 
@@ -553,6 +571,38 @@ impl LayeredImage {
         &mut self.fused_image_at_layer_mut(layer).image
     }
 
+    /// Try to borrow two layers mutibly at the same time:
+    /// this should be no problem, but it's annoying with the
+    /// vector, so this function wraps it. `None` is returned
+    /// if the two layers are the same.
+    #[inline]
+    fn dual_layer_borrow_mut(&mut self, layer1: LayerIndex, layer2: LayerIndex) -> Option<(&mut FusedImage, &mut FusedImage)> {
+        match (layer1, layer2) {
+            (LayerIndex::BaseLayer, LayerIndex::BaseLayer) => None,
+            (LayerIndex::BaseLayer, LayerIndex::Nth(n)) => {
+                Some((&mut self.base_layer, &mut self.other_layers[n]))
+            },
+            (LayerIndex::Nth(n), LayerIndex::BaseLayer) => {
+                Some((&mut self.other_layers[n], &mut self.base_layer))
+            },
+            (LayerIndex::Nth(n), LayerIndex::Nth(m)) => {
+                if n == m {
+                    None
+                } else {
+                    // split `self.other_layers` to get two mutable references to it
+
+                    if n < m {
+                        let (left, right) = self.other_layers.split_at_mut(m);
+                        Some((&mut left[n], &mut right[0]))
+                    } else { // n > m
+                        let (left, right) = self.other_layers.split_at_mut(n);
+                        Some((&mut right[0], &mut left[m]))
+                    }
+                }
+            },
+        }
+    }
+
     #[inline]
     pub fn pix_at(&self, r: i32, c: i32) -> &Pixel {
         let i = (r * self.width() + c) as usize;
@@ -763,5 +813,13 @@ impl LayeredImage {
         };
 
         self.re_compute_drawables();
+    }
+
+    fn merge_layers(&mut self, top_idx: LayerIndex, bot_idx: LayerIndex) {
+        if let Some((below, above)) = self.dual_layer_borrow_mut(bot_idx, top_idx) {
+            below.image.blend_under(&above.image);
+
+            self.remove_layer(top_idx); // this calls `self.re_compute_drawables()`
+        }
     }
 }

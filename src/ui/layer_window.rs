@@ -230,6 +230,13 @@ impl LayerWindow {
             .label("Merge Down")
             .build();
 
+        merge_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
+            let res = canvas_p.borrow_mut().try_merge_active_layer_down() ;
+            if let Ok(target_idx) = res {
+                canvas_p.borrow_mut().focus_layer(target_idx)
+            }
+        }));
+
         button_container.append(&new_button);
         button_container.append(&up_button);
         button_container.append(&down_button);
