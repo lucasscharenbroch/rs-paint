@@ -439,6 +439,12 @@ pub enum LayerIndex {
     Nth(usize),
 }
 
+impl PartialOrd for LayerIndex {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.to_usize().partial_cmp(&other.to_usize())
+    }
+}
+
 impl LayerIndex {
     /// 0 => BaseLayer, n => Nth(n + 1)
     pub fn from_usize(n: usize) -> Self {
@@ -650,7 +656,7 @@ impl LayeredImage {
         self.fused_image_at_layer_mut(layer_index).drawable()
     }
 
-    pub fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerIndex) {
+    fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerIndex) {
         self.drawable(); // flush pix_modified_since_draw
 
         let mut mod_pix = HashMap::new();
@@ -663,7 +669,7 @@ impl LayeredImage {
     /// (outside of the change-tracking API):
     /// `self.drawable` and the active layer's drawable
     /// will be re-computed by blending every pixel
-    pub fn re_compute_drawables(&mut self) {
+    fn re_compute_drawables(&mut self) {
         self.drawable.pixels = (0..self.drawable.pixels.len())
             .map(|i| self.get_blended_pixel_at(i))
             .collect::<Vec<_>>();
@@ -693,7 +699,7 @@ impl LayeredImage {
         LayerIndex::Nth(self.other_layers.len())
     }
 
-    pub fn append_new_layer(&mut self, fill_color: gtk::gdk::RGBA, idx: LayerIndex) {
+    fn append_new_layer(&mut self, fill_color: gtk::gdk::RGBA, idx: LayerIndex) {
         let width = self.width() as usize;
         let height = self.height() as usize;
         let pixels = vec![Pixel::from_rgba_struct(fill_color); width * height];
@@ -701,7 +707,7 @@ impl LayeredImage {
         self.append_layer_with_image(Image::new(pixels, width, height), idx);
     }
 
-    pub fn append_layer_with_image(&mut self, image: Image, idx: LayerIndex) {
+    fn append_layer_with_image(&mut self, image: Image, idx: LayerIndex) {
         let mut new_image = FusedImage::from_image(image);
 
         match idx {
@@ -719,7 +725,7 @@ impl LayeredImage {
         }
     }
 
-    pub fn remove_layer(&mut self, idx: LayerIndex) {
+    fn remove_layer(&mut self, idx: LayerIndex) {
         match idx {
             LayerIndex::BaseLayer => {
                 assert!(self.other_layers.len() != 0);
@@ -736,6 +742,25 @@ impl LayeredImage {
         if self.active_layer_index.to_usize() >= self.num_layers() {
             self.active_layer_index = LayerIndex::from_usize(self.num_layers());
         }
+
+        self.re_compute_drawables();
+    }
+
+    fn swap_layers(&mut self, i1: LayerIndex, i2: LayerIndex) {
+        match (i1, i2) {
+            (LayerIndex::BaseLayer, LayerIndex::BaseLayer) => {
+                return;
+            },
+            (LayerIndex::BaseLayer, LayerIndex::Nth(n)) => {
+                std::mem::swap(&mut self.base_layer, &mut self.other_layers[n]);
+            },
+            (LayerIndex::Nth(n), LayerIndex::BaseLayer) => {
+                std::mem::swap(&mut self.other_layers[n], &mut self.base_layer);
+            },
+            (LayerIndex::Nth(n), LayerIndex::Nth(m)) => {
+                self.other_layers.swap(n, m);
+            },
+        };
 
         self.re_compute_drawables();
     }

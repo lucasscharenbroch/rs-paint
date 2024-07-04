@@ -54,6 +54,11 @@ impl LayerTab {
             .end_widget(&visible_button)
             .build();
 
+        // don't allow removal of base layer
+        if layer_index == LayerIndex::BaseLayer {
+            button_widget.set_start_widget(None::<&gtk::Box>);
+        }
+
         inner_widget.append(&thumbnail_widget);
         inner_widget.append(&gtk::Label::new(Some(format!("{layer_index:?}").as_str())));
 
@@ -185,11 +190,11 @@ impl LayerWindow {
             .label("New")
             .build();
 
-        new_button.connect_clicked(move |_button| {
+        new_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
             canvas_p.borrow_mut().append_layer(
                 gtk::gdk::RGBA::new(0.0, 0.0, 0.0, 0.0),
             );
-        });
+        }));
 
         let up_icon = gtk::Image::builder()
             .file(crate::icon_file!("up-arrow"))
@@ -203,9 +208,23 @@ impl LayerWindow {
             .child(&up_icon)
             .build();
 
+        up_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
+            let res = canvas_p.borrow_mut().try_move_active_layer_up();
+            if let Ok(target_idx) = res {
+                canvas_p.borrow_mut().focus_layer(target_idx)
+            }
+        }));
+
         let down_button = gtk::Button::builder()
             .child(&down_icon)
             .build();
+
+        down_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
+            let res = canvas_p.borrow_mut().try_move_active_layer_down() ;
+            if let Ok(target_idx) = res {
+                canvas_p.borrow_mut().focus_layer(target_idx)
+            }
+        }));
 
         let merge_button = gtk::Button::builder()
             .label("Merge Down")

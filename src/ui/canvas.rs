@@ -776,6 +776,33 @@ impl Canvas {
         self.update();
     }
 
+    /// Attempts to move the active layer up (by one)
+    pub fn try_move_active_layer_up(&mut self) -> Result<LayerIndex, ()> {
+        let active_layer_idx = self.image().active_layer_index().clone();
+        let target_idx = LayerIndex::from_usize(active_layer_idx.to_usize() + 1);
+        if target_idx >= self.image().next_unused_layer_idx() {
+            return Err(()); // can't move top layer up
+        }
+
+        self.image_hist.swap_layers(active_layer_idx, target_idx);
+        self.update();
+        Ok(target_idx)
+    }
+
+    /// Attempts to move the active layer down (by one)
+    pub fn try_move_active_layer_down(&mut self) -> Result<LayerIndex, ()> {
+        let active_layer_idx = self.image().active_layer_index().clone();
+        if active_layer_idx == LayerIndex::BaseLayer {
+            return Err(()); // can't move base layer down
+        }
+
+        let target_idx = LayerIndex::from_usize(active_layer_idx.to_usize() - 1);
+
+        self.image_hist.swap_layers(active_layer_idx, target_idx);
+        self.update();
+        Ok(target_idx)
+    }
+
     pub fn remove_layer(&mut self, layer_index: LayerIndex) {
         self.image_hist.remove_layer(layer_index);
         self.update();

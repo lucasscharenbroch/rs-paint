@@ -17,6 +17,7 @@ enum ImageDiff {
     ManualUndo(Box<dyn UndoableAction>, LayerIndex),
     AppendLayer(gtk::gdk::RGBA, LayerIndex),
     RemoveLayer(Image, LayerIndex),
+    SwapLayers(LayerIndex, LayerIndex),
     Null,
 }
 
@@ -62,6 +63,9 @@ impl ImageDiff {
             ImageDiff::RemoveLayer(_deleted_image, idx) => {
                 image.remove_layer(*idx);
             },
+            ImageDiff::SwapLayers(i1, i2) => {
+                image.swap_layers(*i1, *i2);
+            }
             ImageDiff::Null => (),
         }
     }
@@ -90,6 +94,9 @@ impl ImageDiff {
             ImageDiff::RemoveLayer(removed_layer_image, idx) => {
                 image.append_layer_with_image(removed_layer_image.clone(), *idx);
             },
+            ImageDiff::SwapLayers(i1, i2) => {
+                image.swap_layers(*i1, *i2);
+            }
             ImageDiff::Null => (),
         }
     }
@@ -264,5 +271,23 @@ impl ImageHistory {
 
         self.push_state_diff(image_state_diff);
         self.now_mut().remove_layer(idx);
+    }
+
+    pub fn swap_layers(&mut self, i1: LayerIndex, i2: LayerIndex) {
+        if [i1, i2].contains(self.now().active_layer_index()) {
+            self.commit_any_changes_on_active_layer();
+        }
+
+        let image_diff = ImageDiff::SwapLayers(i1, i2);
+
+        let image_state_diff = ImageStateDiff::new(
+            image_diff,
+            self.now.id,
+            self.id_counter,
+            ActionName::RearrangeLayers,
+        );
+
+        self.push_state_diff(image_state_diff);
+        self.now_mut().swap_layers(i1, i2);
     }
 }
