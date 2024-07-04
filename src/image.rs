@@ -236,7 +236,8 @@ impl DrawablePixel {
     }
 
     fn blend_onto(self, below: &Pixel) -> DrawablePixel {
-        let alpha_mult = 1.0 - self.a as f64;
+        let below = below.to_drawable();
+        let alpha_mult = 1.0 - (self.a as f64 / 255.0);
         DrawablePixel {
             r: (self.r as f64 + (below.r as f64) * alpha_mult) as u8,
             g: (self.g as f64 + (below.g as f64) * alpha_mult) as u8,
