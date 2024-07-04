@@ -13,7 +13,7 @@ use glib_macros::clone;
 /// of which are stored in the draw-function closure of `thumbnail_widget`)
 /// and contains no stateful information (except the index)
 struct LayerTab {
-    widget: gtk::Box,
+    widget: gtk::CenterBox,
     thumbnail_widget: gtk::DrawingArea,
 }
 
@@ -30,21 +30,39 @@ impl LayerTab {
             canvas_p.borrow_mut().draw_layer_thumbnail(area, cr, width, height, layer_index);
         }));
 
-        let widget = gtk::Box::builder()
+        let inner_widget = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
-            .css_classes(["layer-tab"])
             .spacing(10)
             .build();
 
         let close_button = gtk::Button::builder()
-            .label("x")
-            .valign(gtk::Align::Start)
-            .css_classes(["layer-tab-x-button"])
+            .child(&gtk::Image::from_file(crate::icon_file!("x")))
             .build();
 
-        widget.append(&thumbnail_widget);
-        widget.append(&gtk::Label::new(Some(format!("{layer_index:?}").as_str())));
-        widget.append(&close_button);
+        let lock_button = gtk::Button::builder()
+            .child(&gtk::Image::from_file(crate::icon_file!("lock")))
+            .build();
+
+        let visible_button = gtk::Button::builder()
+            .child(&gtk::Image::from_file(crate::icon_file!("eyeball")))
+            .build();
+
+        let button_widget = gtk::CenterBox::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .start_widget(&close_button)
+            .center_widget(&lock_button)
+            .end_widget(&visible_button)
+            .build();
+
+        inner_widget.append(&thumbnail_widget);
+        inner_widget.append(&gtk::Label::new(Some(format!("{layer_index:?}").as_str())));
+
+        let widget = gtk::CenterBox::builder()
+            .orientation(gtk::Orientation::Horizontal)
+            .css_classes(["layer-tab"])
+            .start_widget(&inner_widget)
+            .end_widget(&button_widget)
+            .build();
 
         let click_handler = gtk::GestureClick::new();
 
@@ -157,6 +175,12 @@ impl LayerWindow {
             self.new_tab(aspect_ratio);
         }
 
+        let button_container = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
+            .spacing(4)
+            .halign(gtk::Align::Center)
+            .build();
+
         let new_button = gtk::Button::builder()
             .label("New")
             .build();
@@ -167,7 +191,32 @@ impl LayerWindow {
             );
         });
 
-        self.outer_wrapper.append(&new_button);
+        let up_icon = gtk::Image::builder()
+            .file(crate::icon_file!("up-arrow"))
+            .build();
+
+        let down_icon = gtk::Image::builder()
+            .file(crate::icon_file!("down-arrow"))
+            .build();
+
+        let up_button = gtk::Button::builder()
+            .child(&up_icon)
+            .build();
+
+        let down_button = gtk::Button::builder()
+            .child(&down_icon)
+            .build();
+
+        let merge_button = gtk::Button::builder()
+            .label("Merge Down")
+            .build();
+
+        button_container.append(&new_button);
+        button_container.append(&up_button);
+        button_container.append(&down_button);
+        button_container.append(&merge_button);
+
+        self.outer_wrapper.append(&button_container);
     }
 
     pub fn widget(&self) -> impl gtk::prelude::IsA<gtk::Widget> {

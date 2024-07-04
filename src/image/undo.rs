@@ -246,7 +246,6 @@ impl ImageHistory {
     }
 
     pub fn remove_layer(&mut self, idx: LayerIndex) {
-        println!("remove layer at {idx:?}");
         if let LayerIndex::BaseLayer = self.now().active_layer_index() {
             self.commit_any_changes_on_active_layer();
         }
