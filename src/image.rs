@@ -797,20 +797,9 @@ impl LayeredImage {
     }
 
     fn swap_layers(&mut self, i1: LayerIndex, i2: LayerIndex) {
-        match (i1, i2) {
-            (LayerIndex::BaseLayer, LayerIndex::BaseLayer) => {
-                return;
-            },
-            (LayerIndex::BaseLayer, LayerIndex::Nth(n)) => {
-                std::mem::swap(&mut self.base_layer, &mut self.other_layers[n]);
-            },
-            (LayerIndex::Nth(n), LayerIndex::BaseLayer) => {
-                std::mem::swap(&mut self.other_layers[n], &mut self.base_layer);
-            },
-            (LayerIndex::Nth(n), LayerIndex::Nth(m)) => {
-                self.other_layers.swap(n, m);
-            },
-        };
+        if let Some((l1, l2)) = self.dual_layer_borrow_mut(i1, i2) {
+            std::mem::swap(l1, l2);
+        }
 
         self.re_compute_drawables();
     }

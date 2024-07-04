@@ -105,6 +105,7 @@ impl ImageDiff {
             ImageDiff::MergeLayers(save_top, top_index, save_bot, bot_index) => {
                 image.append_layer_with_image(save_top.clone(), *top_index);
                 *image.image_at_layer_mut(*bot_index) = save_bot.clone();
+                image.re_compute_drawables();
             },
             ImageDiff::Null => (),
         }
