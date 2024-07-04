@@ -762,12 +762,13 @@ impl Canvas {
         }
     }
 
-    pub fn append_layer(&mut self, fill_color: RGBA) {
+    pub fn append_layer(&mut self, fill_color: RGBA) -> LayerIndex {
         // insert at index above current layer
         let current_idx = self.image_hist.now().active_layer_index();
         let target_idx = LayerIndex::from_usize(current_idx.to_usize() + 1);
         self.image_hist.append_layer(fill_color, target_idx);
         self.update();
+        target_idx
     }
 
     /// Set the layer at the given index to active

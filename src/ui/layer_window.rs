@@ -191,9 +191,11 @@ impl LayerWindow {
             .build();
 
         new_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
-            canvas_p.borrow_mut().append_layer(
+            let new_layer_idx = canvas_p.borrow_mut().append_layer(
                 gtk::gdk::RGBA::new(0.0, 0.0, 0.0, 0.0),
             );
+
+            canvas_p.borrow_mut().focus_layer(new_layer_idx);
         }));
 
         let up_icon = gtk::Image::builder()
