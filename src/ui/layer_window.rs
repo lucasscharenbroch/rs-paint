@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-/// Wrapper for the box/frame that represents a layer in `LayersUi`:
+/// Wrapper for the box/frame that represents a layer in `LayerWindow`:
 /// this object has no direct ties to any specific image (it accesses
 /// its image by suppling an index to a `Rc<RefCell<Canvas>>`: both
 /// of which are stored in the draw-function closure of `thumbnail_widget`)
@@ -75,7 +75,7 @@ impl LayerTab {
 }
 
 /// Wrapper struct for the ui within the image layers dialog
-pub struct LayersUi {
+pub struct LayerWindow {
     tab_wrapper: gtk::Box,
     scrolled_window: gtk::ScrolledWindow,
     outer_wrapper: gtk::Box,
@@ -87,7 +87,7 @@ pub struct LayersUi {
     last_aspect_ratio: RefCell<f64>,
 }
 
-impl LayersUi {
+impl LayerWindow {
     pub fn new() -> Self {
         let tab_wrapper = gtk::Box::builder()
                 .orientation(gtk::Orientation::Vertical)
@@ -107,7 +107,7 @@ impl LayersUi {
 
         outer_wrapper.append(&scrolled_window);
 
-        LayersUi {
+        LayerWindow {
             tab_wrapper,
             scrolled_window,
             outer_wrapper,
