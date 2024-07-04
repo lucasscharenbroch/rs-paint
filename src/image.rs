@@ -473,7 +473,7 @@ pub struct LayeredImage {
     /// Non-base layers, increasing in height
     other_layers: Vec<FusedImage>,
 
-    active_layer: LayerIndex,
+    active_layer_index: LayerIndex,
 
     // Only one layer is active at a time:
     // the below keep track of changes made to
@@ -490,7 +490,7 @@ impl LayeredImage {
             drawable: DrawableImage::from_image(&image),
             base_layer: FusedImage::from_image(image),
             other_layers: Vec::new(),
-            active_layer: LayerIndex::BaseLayer,
+            active_layer_index: LayerIndex::BaseLayer,
             pix_modified_since_draw: HashMap::new(),
             pix_modified_since_save: HashMap::new(),
             save_image_before_overwritten: None,
@@ -499,7 +499,7 @@ impl LayeredImage {
 
     #[inline]
     fn active_image(&self) -> &FusedImage {
-        match self.active_layer {
+        match self.active_layer_index {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
         }
@@ -507,7 +507,7 @@ impl LayeredImage {
 
     #[inline]
     fn active_image_mut(&mut self) -> &mut FusedImage {
-        match self.active_layer {
+        match self.active_layer_index {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
         }
@@ -515,7 +515,7 @@ impl LayeredImage {
 
     #[inline]
     fn active_drawable_mut(&mut self) -> &mut DrawableImage {
-        match self.active_layer {
+        match self.active_layer_index {
             LayerIndex::BaseLayer => &mut self.base_layer.drawable,
             LayerIndex::Nth(n) => &mut self.other_layers[n].drawable,
         }
@@ -633,7 +633,7 @@ impl LayeredImage {
 
         for (i, p_before) in self.pix_modified_since_draw.iter() {
             self.drawable.pixels[*i] = self.get_blended_pixel_at(*i);
-            match self.active_layer {
+            match self.active_layer_index {
                 LayerIndex::BaseLayer => &mut self.base_layer,
                 LayerIndex::Nth(n) => &mut self.other_layers[n],
             }.drawable.pixels[*i] = self.active_image().image.pixels[*i].to_drawable();
@@ -656,7 +656,7 @@ impl LayeredImage {
         let mut mod_pix = HashMap::new();
         std::mem::swap(&mut mod_pix, &mut self.pix_modified_since_save);
 
-        (mod_pix, self.active_layer)
+        (mod_pix, self.active_layer_index)
     }
 
     /// Call this after manually editing a child
@@ -667,7 +667,7 @@ impl LayeredImage {
         self.drawable.pixels = (0..self.drawable.pixels.len())
             .map(|i| self.get_blended_pixel_at(i))
             .collect::<Vec<_>>();
-        self.active_drawable_mut().pixels = self.image_at_layer(self.active_layer)
+        self.active_drawable_mut().pixels = self.image_at_layer(self.active_layer_index)
             .pixels.iter()
             .map(|p| p.to_drawable())
             .collect::<Vec<_>>();
@@ -685,8 +685,8 @@ impl LayeredImage {
         self.other_layers.len() + 1
     }
 
-    pub fn active_layer(&self) -> &LayerIndex {
-        &self.active_layer
+    pub fn active_layer_index(&self) -> &LayerIndex {
+        &self.active_layer_index
     }
 
     pub fn next_unused_layer_idx(&self) -> LayerIndex {
@@ -699,7 +699,7 @@ impl LayeredImage {
         let pixels = vec![Pixel::from_rgba_struct(fill_color); width * height];
 
         let new_image = FusedImage::from_image(Image::new(pixels, width, height));
-        self.other_layers.push(new_image); // TODO actually use `idx` here
+        self.other_layers.insert(idx.to_usize(), new_image);
     }
 
     pub fn remove_layer(&mut self, idx: LayerIndex) {
@@ -708,16 +708,16 @@ impl LayeredImage {
                 assert!(self.other_layers.len() != 0);
                 let new_base = self.other_layers.remove(0);
                 self.base_layer = new_base;
-                self.active_layer = LayerIndex::BaseLayer;
+                self.active_layer_index = LayerIndex::BaseLayer;
             },
             LayerIndex::Nth(n) => {
                 self.other_layers.remove(n);
-                self.active_layer = LayerIndex::from_usize(idx.to_usize() - 1);
+                self.active_layer_index = LayerIndex::from_usize(idx.to_usize() - 1);
             }
         }
 
-        if self.active_layer.to_usize() >= self.num_layers() {
-            self.active_layer = LayerIndex::from_usize(self.num_layers());
+        if self.active_layer_index.to_usize() >= self.num_layers() {
+            self.active_layer_index = LayerIndex::from_usize(self.num_layers());
         }
 
         self.re_compute_drawables();

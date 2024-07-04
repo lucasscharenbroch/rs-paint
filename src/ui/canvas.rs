@@ -552,7 +552,7 @@ impl Canvas {
             self.image_height() as f64;
         self.layers_ui_p.borrow().update(
             self.image_hist.now().num_layers(),
-            *self.image_hist.now().active_layer(),
+            *self.image_hist.now().active_layer_index(),
             aspect_ratio,
         );
 
@@ -763,8 +763,8 @@ impl Canvas {
     }
 
     pub fn append_layer(&mut self, fill_color: RGBA) {
-        let idx = self.image_hist.now().next_unused_layer_idx();
-        self.image_hist.append_layer(fill_color, idx);
+        let idx = self.image_hist.now().active_layer_index();
+        self.image_hist.append_layer(fill_color, *idx);
         self.update();
     }
 

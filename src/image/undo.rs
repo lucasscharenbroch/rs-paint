@@ -232,6 +232,6 @@ impl ImageHistory {
             self.push_current_state(ActionName::Anonymous);
         }
 
-        self.now_mut().active_layer = idx;
+        self.now_mut().active_layer_index = idx;
     }
 }
