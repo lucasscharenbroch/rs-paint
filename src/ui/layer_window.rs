@@ -1,4 +1,4 @@
-use gtk::{prelude::*, Ordering};
+use gtk::{prelude::*, GestureClick, Ordering};
 
 use crate::image::{LayeredImage, LayerIndex};
 
@@ -79,7 +79,18 @@ impl LayerTab {
             canvas_p.borrow_mut().remove_layer(layer_index);
         }));
 
-        widget.add_controller(click_handler);
+        lock_button.connect_clicked(|_button| {
+            // TODO
+        });
+
+        visible_button.connect_clicked(|_button| {
+            // TODO
+        });
+
+        // attach the controller to inner_widget so clicks
+        // to the lock/visible buttons don't trigger the handler
+        // (there's probably a better way to do this)
+        inner_widget.add_controller(click_handler);
 
         Self {
             widget,
