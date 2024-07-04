@@ -76,7 +76,9 @@ impl LayerTab {
 
 /// Wrapper struct for the ui within the image layers dialog
 pub struct LayersUi {
-    widget: gtk::Box,
+    tab_wrapper: gtk::Box,
+    scrolled_window: gtk::ScrolledWindow,
+    outer_wrapper: gtk::Box,
     layer_tabs: RefCell<Vec<LayerTab>>,
     canvas_p: Option<Rc<RefCell<Canvas>>>,
     /// Which LayerTab has the "active" visual cue (if any)
@@ -87,10 +89,28 @@ pub struct LayersUi {
 
 impl LayersUi {
     pub fn new() -> Self {
-        LayersUi {
-            widget: gtk::Box::builder()
+        let tab_wrapper = gtk::Box::builder()
                 .orientation(gtk::Orientation::Vertical)
-                .build(),
+                .build();
+
+        let scrolled_window = gtk::ScrolledWindow::builder()
+            .min_content_height(400)
+            .min_content_width(250)
+            .overlay_scrolling(true)
+            .child(&tab_wrapper)
+            .build();
+
+        let outer_wrapper = gtk::Box::builder()
+                .orientation(gtk::Orientation::Vertical)
+                .spacing(4)
+                .build();
+
+        outer_wrapper.append(&scrolled_window);
+
+        LayersUi {
+            tab_wrapper,
+            scrolled_window,
+            outer_wrapper,
             layer_tabs: RefCell::new(Vec::new()),
             canvas_p: None,
             last_active_idx: RefCell::new(None),
@@ -105,13 +125,13 @@ impl LayersUi {
             layer_idx,
             aspect_ratio,
         );
-        self.widget.prepend(&new_tab.widget);
+        self.tab_wrapper.prepend(&new_tab.widget);
         self.layer_tabs.borrow_mut().push(new_tab);
     }
 
     fn pop_tab(&self) {
         let tab = self.layer_tabs.borrow_mut().pop().unwrap();
-        self.widget.remove(&tab.widget);
+        self.tab_wrapper.remove(&tab.widget);
     }
 
     /// Finishes initialization (populating the widget)
@@ -136,11 +156,11 @@ impl LayersUi {
             );
         });
 
-        self.widget.append(&new_button);
+        self.outer_wrapper.append(&new_button);
     }
 
     pub fn widget(&self) -> impl gtk::prelude::IsA<gtk::Widget> {
-        self.widget.clone()
+        self.outer_wrapper.clone()
     }
 
     /// Redraw, add/remove tabs if necessary
