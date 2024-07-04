@@ -36,13 +36,24 @@ impl LayerTab {
             .spacing(10)
             .build();
 
+        let close_button = gtk::Button::builder()
+            .label("x")
+            .valign(gtk::Align::Start)
+            .css_classes(["layer-tab-x-button"])
+            .build();
+
         widget.append(&thumbnail_widget);
         widget.append(&gtk::Label::new(Some(format!("{layer_index:?}").as_str())));
+        widget.append(&close_button);
 
         let click_handler = gtk::GestureClick::new();
 
         click_handler.connect_pressed(clone!(@strong canvas_p => move |_, _, _, _| {
             canvas_p.borrow_mut().focus_layer(layer_index);
+        }));
+
+        close_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
+            canvas_p.borrow_mut().remove_layer(layer_index);
         }));
 
         widget.add_controller(click_handler);

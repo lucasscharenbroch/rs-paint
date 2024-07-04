@@ -763,14 +763,21 @@ impl Canvas {
     }
 
     pub fn append_layer(&mut self, fill_color: RGBA) {
-        let idx = self.image_hist.now().active_layer_index();
-        self.image_hist.append_layer(fill_color, *idx);
+        // insert at index above current layer
+        let current_idx = self.image_hist.now().active_layer_index();
+        let target_idx = LayerIndex::from_usize(current_idx.to_usize() + 1);
+        self.image_hist.append_layer(fill_color, target_idx);
         self.update();
     }
 
     /// Set the layer at the given index to active
     pub fn focus_layer(&mut self, layer_index: LayerIndex) {
         self.image_hist.focus_layer(layer_index);
+        self.update();
+    }
+
+    pub fn remove_layer(&mut self, layer_index: LayerIndex) {
+        self.image_hist.remove_layer(layer_index);
         self.update();
     }
 }

@@ -16,6 +16,7 @@ enum ImageDiff {
     // FullCopy(Image, Image), // (before, after)
     ManualUndo(Box<dyn UndoableAction>, LayerIndex),
     AppendLayer(gtk::gdk::RGBA, LayerIndex),
+    RemoveLayer(Image, LayerIndex),
     Null,
 }
 
@@ -56,7 +57,10 @@ impl ImageDiff {
                 image.apply_action(action, *layer);
             },
             ImageDiff::AppendLayer(color, idx) => {
-                image.append_layer(*color, *idx);
+                image.append_new_layer(*color, *idx);
+            },
+            ImageDiff::RemoveLayer(_deleted_image, idx) => {
+                image.remove_layer(*idx);
             },
             ImageDiff::Null => (),
         }
@@ -82,6 +86,9 @@ impl ImageDiff {
             },
             ImageDiff::AppendLayer(_color, idx) => {
                 image.remove_layer(*idx);
+            },
+            ImageDiff::RemoveLayer(removed_layer_image, idx) => {
+                image.append_layer_with_image(removed_layer_image.clone(), *idx);
             },
             ImageDiff::Null => (),
         }
@@ -213,7 +220,7 @@ impl ImageHistory {
     }
 
     pub fn append_layer(&mut self, fill_color: gtk::gdk::RGBA, idx: LayerIndex) {
-        let image_diff = ImageDiff::AppendLayer(fill_color, self.now().next_unused_layer_idx());
+        let image_diff = ImageDiff::AppendLayer(fill_color, idx);
         let image_state_diff = ImageStateDiff::new(
             image_diff,
             self.now.id,
@@ -222,16 +229,41 @@ impl ImageHistory {
         );
 
         self.push_state_diff(image_state_diff);
-        self.now_mut().append_layer(fill_color, idx);
+        self.now_mut().append_new_layer(fill_color, idx);
     }
 
-    pub fn focus_layer(&mut self, idx: LayerIndex) {
+    fn commit_any_changes_on_active_layer(&mut self) {
         let (mod_pix, _layer) = self.now_mut().get_and_reset_modified();
         if !mod_pix.is_empty() {
             // if self is modified in any way, push the sate with Anon
             self.push_current_state(ActionName::Anonymous);
         }
+    }
 
+    pub fn focus_layer(&mut self, idx: LayerIndex) {
+        self.commit_any_changes_on_active_layer();
         self.now_mut().active_layer_index = idx;
+    }
+
+    pub fn remove_layer(&mut self, idx: LayerIndex) {
+        println!("remove layer at {idx:?}");
+        if let LayerIndex::BaseLayer = self.now().active_layer_index() {
+            self.commit_any_changes_on_active_layer();
+        }
+
+        let image_diff = ImageDiff::RemoveLayer(
+            self.now().image_at_layer(idx).clone(),
+            idx,
+        );
+
+        let image_state_diff = ImageStateDiff::new(
+            image_diff,
+            self.now.id,
+            self.id_counter,
+            ActionName::RemoveLayer,
+        );
+
+        self.push_state_diff(image_state_diff);
+        self.now_mut().remove_layer(idx);
     }
 }

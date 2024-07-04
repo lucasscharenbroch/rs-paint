@@ -17,6 +17,7 @@ pub enum ActionName {
     Crop,
     Expand,
     AppendLayer,
+    RemoveLayer,
 }
 
 pub trait DoableAction {
