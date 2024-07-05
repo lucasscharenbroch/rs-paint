@@ -552,6 +552,7 @@ impl Canvas {
             self.image_height() as f64;
         self.layer_window_p.borrow().update(
             self.image_hist.now().num_layers(),
+            self.image_hist.now().layer_names(),
             *self.image_hist.now().active_layer_index(),
             aspect_ratio,
         );

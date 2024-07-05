@@ -3,7 +3,7 @@ mod tree;
 
 use crate::{image::DrawableImage, ui::UiState};
 use self::action::UndoableAction;
-use super::{ImageLayer, Image, LayerIndex, LayeredImage, Pixel};
+use super::{ImageLayer, LayerIndex, LayeredImage, Pixel};
 use tree::UndoTree;
 use action::{ActionName};
 
@@ -16,10 +16,10 @@ enum ImageDiff {
     // FullCopy(Image, Image), // (before, after)
     ManualUndo(Box<dyn UndoableAction>, LayerIndex),
     AppendLayer(gtk::gdk::RGBA, LayerIndex),
-    RemoveLayer(Image, LayerIndex),
+    RemoveLayer(ImageLayer, LayerIndex),
     SwapLayers(LayerIndex, LayerIndex),
     /// MergeLayers(save_top_image, top_index, save_bottom_image, bottom_index)
-    MergeLayers(Image, LayerIndex, Image, LayerIndex),
+    MergeLayers(ImageLayer, LayerIndex, ImageLayer, LayerIndex),
     Null,
 }
 
@@ -104,7 +104,8 @@ impl ImageDiff {
             }
             ImageDiff::MergeLayers(save_top, top_index, save_bot, bot_index) => {
                 image.append_layer_with_image(save_top.clone(), *top_index);
-                *image.image_at_layer_mut(*bot_index) = save_bot.clone();
+                *image.image_at_layer_mut(*bot_index) = save_bot.image.clone();
+                image.fused_image_at_layer_mut(*bot_index).info = save_bot.info.clone();
                 image.re_compute_drawables();
             },
             ImageDiff::Null => (),
@@ -273,7 +274,7 @@ impl ImageHistory {
         }
 
         let image_diff = ImageDiff::RemoveLayer(
-            self.now().image_at_layer(idx).clone(),
+            self.now().fused_image_at_layer(idx).unfuse(),
             idx,
         );
 
@@ -296,9 +297,9 @@ impl ImageHistory {
         }
 
         let image_diff = ImageDiff::MergeLayers(
-            self.now().image_at_layer(top_index).clone(),
+            self.now().fused_image_at_layer(top_index).unfuse(),
             top_index,
-            self.now().image_at_layer(bottom_index).clone(),
+            self.now().fused_image_at_layer(bottom_index).unfuse(),
             bottom_index,
         );
 

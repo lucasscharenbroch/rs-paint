@@ -15,6 +15,7 @@ use glib_macros::clone;
 struct LayerTab {
     widget: gtk::CenterBox,
     thumbnail_widget: gtk::DrawingArea,
+    label: gtk::EditableLabel,
 }
 
 impl LayerTab {
@@ -60,9 +61,15 @@ impl LayerTab {
         }
 
         let label = gtk::EditableLabel::builder()
-            .text(format!("Layer {}", layer_index.to_usize()).as_str())
+            // text is populated by `LayerWindow::update`
             .valign(gtk::Align::Center)
             .build();
+
+        label.connect_text_notify(clone!(@strong canvas_p => move |label| {
+            if let Ok(mut canvas) = canvas_p.try_borrow_mut() {
+                canvas.image().set_layer_name(layer_index, &label.text());
+            }
+        }));
 
         // set to `true` by `right_click_handler` on right-click -
         // this ensures only the right click (and not the normal
@@ -124,6 +131,7 @@ impl LayerTab {
         Self {
             widget,
             thumbnail_widget,
+            label,
         }
     }
 
@@ -292,7 +300,13 @@ impl LayerWindow {
     }
 
     /// Redraw, add/remove tabs if necessary
-    pub fn update(&self, num_layers: usize, active_idx: LayerIndex, aspect_ratio: f64) {
+    pub fn update<'a>(
+        &self,
+        num_layers: usize,
+        layer_names: impl Iterator<Item = &'a str>,
+        active_idx: LayerIndex,
+        aspect_ratio: f64
+    ) {
         if let Some(i) = self.last_active_idx.borrow().as_ref() {
             self.layer_tabs.borrow()[*i].widget.remove_css_class("active-layer-tab")
         }
@@ -315,8 +329,11 @@ impl LayerWindow {
         *self.last_active_idx.borrow_mut() = Some(active_idx.to_usize());
         self.layer_tabs.borrow_mut()[active_idx.to_usize()].widget.add_css_class("active-layer-tab");
 
-        self.layer_tabs.borrow().iter().for_each(|tab| {
-            tab.thumbnail_widget.queue_draw()
+        self.layer_tabs.borrow().iter()
+        .zip(layer_names)
+        .for_each(|(tab, layer_name)| {
+            tab.thumbnail_widget.queue_draw();
+            tab.label.set_text(layer_name);
         });
     }
 }
