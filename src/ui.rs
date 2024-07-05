@@ -11,7 +11,7 @@ mod layer_window;
 use canvas::Canvas;
 use toolbar::Toolbar;
 use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, truncate_dialog, close_dialog, ok_dialog_str_, scale_dialog, CloseDialog};
-use crate::image::{generate::{generate, NewImageProps}, FusedImage, Image, LayeredImage};
+use crate::image::{generate::{generate, NewImageProps}, Image, LayeredImage};
 use crate::image::resize::Crop;
 use tab::{Tab, Tabbar};
 use toolbar::mode::{MouseMode, RectangleSelectState, RectangleSelectMode};

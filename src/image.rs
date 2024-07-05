@@ -306,146 +306,28 @@ impl DrawableImage {
     }
 }
 
-/// `FusedImage` = `Image` + `DrawableImage`
-/// `Image` has all the necessary information, but a `DrawableImage`
-/// is kept to avoid re-computation on each draw.
-/// All data is read from the Image, but writes are applied to both
+/// `Layer` = `Image` + `DrawableImage` + misc associated information
+/// This is effectively a data struct: no magic, just a container
 #[derive(Clone)]
-pub struct FusedImage {
+pub struct ImageLayer {
     image: Image,
     drawable: DrawableImage,
-    pix_modified_since_draw: HashMap<usize, Pixel>,
-    pix_modified_since_save: HashMap<usize, (Pixel, Pixel)>,
-    save_image_before_overwritten: Option<Image>,
 }
 
-impl FusedImage {
-    pub fn new(image: Image, drawable: DrawableImage) -> Self {
-        assert!(image.width == drawable.width);
-        assert!(image.height == drawable.height);
-
-        FusedImage {
-            image,
-            drawable,
-            pix_modified_since_draw: HashMap::new(),
-            pix_modified_since_save: HashMap::new(),
-            save_image_before_overwritten: None,
-        }
-    }
-
+impl ImageLayer {
     pub fn from_image(image: Image) -> Self {
-        FusedImage {
+        ImageLayer {
             drawable: DrawableImage::from_image(&image),
             image,
-            pix_modified_since_draw: HashMap::new(),
-            pix_modified_since_save: HashMap::new(),
-            save_image_before_overwritten: None,
         }
     }
 
-    /// Draws `other` onto self at (x, y)
-    pub fn sample(&mut self, other: &impl ImageLike, blending_mode: &BlendingMode, x: i32, y: i32) {
-        for i in 0..other.height() {
-            for j in 0..other.width() {
-                let ip = i as i32 + y;
-                let jp = j as i32 + x;
-
-                if let Some(p) = self.try_pix_at_mut(ip, jp) {
-                    if let Some(op) = other.try_pix_at(i as usize, j as usize) {
-                        *p = blending_mode.blend(op, &p);
-                    }
-                }
-            }
-        }
+    fn width(&self) -> usize {
+        self.image.width
     }
 
-    #[inline]
-    pub fn pix_at(&self, r: i32, c: i32) -> &Pixel {
-        let i = (r * self.width() + c) as usize;
-        &self.image.pixels[i]
-    }
-
-    #[inline]
-    pub fn pix_at_mut(&mut self, r: i32, c: i32) -> &mut Pixel {
-        let i = (r * self.width() + c) as usize;
-        // only bother recording modified pixel if image hasn't been overwritten
-        if let None = self.save_image_before_overwritten {
-            self.pix_modified_since_draw.entry(i).or_insert(self.image.pixels[i].clone());
-        }
-        &mut self.image.pixels[i]
-    }
-
-    #[inline]
-    pub fn try_pix_at(&mut self, r: i32, c: i32) -> Option<&Pixel> {
-        if r < 0 || c < 0 || r as usize >= self.image.height || c as usize >= self.image.width {
-            None
-        } else {
-            Some(self.pix_at(r, c))
-        }
-    }
-
-    #[inline]
-    pub fn try_pix_at_mut(&mut self, r: i32, c: i32) -> Option<&mut Pixel> {
-        if r < 0 || c < 0 || r as usize >= self.image.height || c as usize >= self.image.width {
-            None
-        } else {
-            Some(self.pix_at_mut(r, c))
-        }
-    }
-
-    pub fn width(&self) -> i32 {
-        self.image.width as i32
-    }
-
-    pub fn height(&self) -> i32 {
-        self.image.height as i32
-    }
-
-    pub fn image(&self) -> &Image {
-        &self.image
-    }
-
-    pub fn set_image(&mut self, image: Image)  {
-        self.drawable = DrawableImage::from_image(&image);
-
-        if let None = self.save_image_before_overwritten {
-            self.save_image_before_overwritten = Some(std::mem::replace(&mut self.image, image));
-        } else {
-            self.image = image;
-        }
-
-        self.pix_modified_since_save.clear();
-        self.pix_modified_since_draw.clear();
-    }
-
-    fn update_pix_modified_dict(dict: &mut HashMap<usize, (Pixel, Pixel)>, i: usize, before: &Pixel, after: &Pixel) {
-        let entry = dict.entry(i);
-        if let std::collections::hash_map::Entry::Occupied(mut oe) = entry {
-            oe.insert((oe.get().0.clone(), after.clone()));
-        } else {
-            dict.insert(i, (before.clone(), after.clone()));
-        }
-    }
-
-    pub fn drawable(&mut self) -> &mut DrawableImage {
-        for (i, p_before) in self.pix_modified_since_draw.iter() {
-            self.drawable.pixels[*i] = self.image.pixels[*i].to_drawable();
-            Self::update_pix_modified_dict(&mut self.pix_modified_since_save, *i, p_before, &self.image.pixels[*i]);
-        }
-
-        self.pix_modified_since_draw.clear();
-        &mut self.drawable
-    }
-
-    pub fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, Option<Image>) {
-        self.drawable(); // flush pix_modified_since_draw
-
-        let mut mod_pix = HashMap::new();
-        std::mem::swap(&mut mod_pix, &mut self.pix_modified_since_save);
-        let mut save_img = None;
-        std::mem::swap(&mut save_img, &mut self.save_image_before_overwritten);
-
-        (mod_pix, save_img)
+    fn height(&self) -> usize {
+        self.image.height
     }
 }
 
@@ -480,8 +362,8 @@ impl LayerIndex {
     }
 }
 
-/// `LayeredImage` = `Vec<FusedImage>` + `DrawableImage`
-/// A `FusedImage` must be kept for each layer to draw
+/// `LayeredImage` = `Vec<ImageLayer>` + `DrawableImage`
+/// A `ImageLayer` must be kept for each layer to draw
 /// the thumbnails. The extra `DrawableImage` is used to
 /// draw the entire thing: its pixels are blended downward
 /// upon construction, then lazily as the layers are updated.
@@ -493,9 +375,9 @@ pub struct LayeredImage {
     // and `f64`s (32x)
 
     drawable: DrawableImage,
-    base_layer: FusedImage,
+    base_layer: ImageLayer,
     /// Non-base layers, increasing in height
-    other_layers: Vec<FusedImage>,
+    other_layers: Vec<ImageLayer>,
 
     active_layer_index: LayerIndex,
 
@@ -512,7 +394,7 @@ impl LayeredImage {
     pub fn from_image(image: Image) -> Self {
         LayeredImage {
             drawable: DrawableImage::from_image(&image),
-            base_layer: FusedImage::from_image(image),
+            base_layer: ImageLayer::from_image(image),
             other_layers: Vec::new(),
             active_layer_index: LayerIndex::BaseLayer,
             pix_modified_since_draw: HashMap::new(),
@@ -522,7 +404,7 @@ impl LayeredImage {
     }
 
     #[inline]
-    fn active_image(&self) -> &FusedImage {
+    fn active_image(&self) -> &ImageLayer {
         match self.active_layer_index {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
@@ -530,7 +412,7 @@ impl LayeredImage {
     }
 
     #[inline]
-    fn active_image_mut(&mut self) -> &mut FusedImage {
+    fn active_image_mut(&mut self) -> &mut ImageLayer {
         match self.active_layer_index {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
@@ -546,7 +428,7 @@ impl LayeredImage {
     }
 
     #[inline]
-    fn fused_image_at_layer(&self, layer: LayerIndex) -> &FusedImage {
+    fn fused_image_at_layer(&self, layer: LayerIndex) -> &ImageLayer {
         match layer {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
@@ -559,7 +441,7 @@ impl LayeredImage {
     }
 
     #[inline]
-    fn fused_image_at_layer_mut(&mut self, layer: LayerIndex) -> &mut FusedImage {
+    fn fused_image_at_layer_mut(&mut self, layer: LayerIndex) -> &mut ImageLayer {
         match layer {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
@@ -576,7 +458,7 @@ impl LayeredImage {
     /// vector, so this function wraps it. `None` is returned
     /// if the two layers are the same.
     #[inline]
-    fn dual_layer_borrow_mut(&mut self, layer1: LayerIndex, layer2: LayerIndex) -> Option<(&mut FusedImage, &mut FusedImage)> {
+    fn dual_layer_borrow_mut(&mut self, layer1: LayerIndex, layer2: LayerIndex) -> Option<(&mut ImageLayer, &mut ImageLayer)> {
         match (layer1, layer2) {
             (LayerIndex::BaseLayer, LayerIndex::BaseLayer) => None,
             (LayerIndex::BaseLayer, LayerIndex::Nth(n)) => {
@@ -702,8 +584,7 @@ impl LayeredImage {
     }
 
     pub fn layer_drawable(&mut self, layer_index: LayerIndex) -> &mut DrawableImage {
-        // TODO: is this okay to do? how does the double-caching work?
-        self.fused_image_at_layer_mut(layer_index).drawable()
+        &mut self.fused_image_at_layer_mut(layer_index).drawable
     }
 
     fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerIndex) {
@@ -758,7 +639,7 @@ impl LayeredImage {
     }
 
     fn append_layer_with_image(&mut self, image: Image, idx: LayerIndex) {
-        let mut new_image = FusedImage::from_image(image);
+        let mut new_image = ImageLayer::from_image(image);
 
         match idx {
             LayerIndex::BaseLayer => {
