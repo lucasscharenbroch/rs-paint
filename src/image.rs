@@ -449,7 +449,7 @@ impl FusedImage {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum LayerIndex {
     /// The bottom layer
     BaseLayer,

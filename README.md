@@ -22,4 +22,5 @@ A lightweight image editor, written in Rust using GTK4.
       - Scaling
 - Import/Export (most common formats are supported)
 - Tabs
+- Layers
 - Multi-Level Undo

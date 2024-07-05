@@ -59,8 +59,37 @@ impl LayerTab {
             button_widget.set_start_widget(None::<&gtk::Box>);
         }
 
+        let label = gtk::EditableLabel::builder()
+            .text(format!("Layer {}", layer_index.to_usize()).as_str())
+            .valign(gtk::Align::Center)
+            .build();
+
+        // set to `true` by `right_click_handler` on right-click -
+        // this ensures only the right click (and not the normal
+        // left-click) will cause the label to be edited
+        let label_ok_to_edit = Rc::new(RefCell::new(false));
+
+        label.connect_editing_notify(clone!(@strong label_ok_to_edit => move |label| {
+            if !*label_ok_to_edit.borrow() {
+                label.stop_editing(false);
+            } else {
+                *label_ok_to_edit.borrow_mut() = false;
+            }
+        }));
+
+        let right_click_handler = GestureClick::builder()
+            .button(3) // right click
+            .build();
+
+        right_click_handler.connect_pressed(clone!(@strong label => move |_, _, _, _| {
+            *label_ok_to_edit.borrow_mut() = true;
+            label.start_editing();
+        }));
+
+        inner_widget.add_controller(right_click_handler);
+
         inner_widget.append(&thumbnail_widget);
-        inner_widget.append(&gtk::Label::new(Some(format!("{layer_index:?}").as_str())));
+        inner_widget.append(&label);
 
         let widget = gtk::CenterBox::builder()
             .orientation(gtk::Orientation::Horizontal)
@@ -80,11 +109,11 @@ impl LayerTab {
         }));
 
         lock_button.connect_clicked(|_button| {
-            // TODO
+            todo!() // TODO
         });
 
         visible_button.connect_clicked(|_button| {
-            // TODO
+            todo!() // TODO
         });
 
         // attach the controller to inner_widget so clicks
