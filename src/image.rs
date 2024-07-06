@@ -333,6 +333,21 @@ impl DrawableImage {
         }
     }
 
+    /// Update `self`'s dimensions to match `images`'s.
+    /// This invalidates `pixels`.
+    pub fn resize_to_match(&mut self, image: &Image) {
+        self.width = image.width;
+        self.height = image.height;
+
+        let target_length = self.width * self.height;
+
+        // Fill to `target_length` with garbage values
+        self.pixels.reserve(target_length);
+        unsafe {
+            self.pixels.set_len(target_length);
+        }
+    }
+
     pub fn to_surface_pattern(&mut self) -> cairo::SurfacePattern {
         unsafe {
             let (_, u8_slice, _) = self.pixels.align_to_mut::<u8>();
@@ -446,6 +461,20 @@ impl FusedImageLayer {
 
     fn height(&self) -> usize {
         self.image.height
+    }
+
+    /// Updates the size of `self.drawable` to match
+    /// that of `self.image`
+    fn update_drawable_size(&mut self) {
+        self.drawable.resize_to_match(&self.image);
+    }
+
+
+    fn re_compute_drawable(&mut self) {
+        self.drawable.pixels = self.image
+            .pixels.iter()
+            .map(|p| p.to_drawable())
+            .collect::<Vec<_>>();
     }
 }
 
@@ -631,6 +660,17 @@ impl LayeredImage {
         }.drawable.pixels[i] = self.image_at_layer(layer).pixels[i].to_drawable();
     }
 
+    /// Updates the size of every drawable to
+    /// match the image sizes (which should all match)
+    fn update_drawable_sizes(&mut self) {
+        self.base_layer.update_drawable_size();
+        for layer in self.other_layers.iter_mut() {
+            layer.update_drawable_size();
+        }
+
+        self.drawable.resize_to_match(&self.base_layer.image);
+    }
+
     pub fn drawable(&mut self) -> &mut DrawableImage {
         fn update_pix_modified_dict(dict: &mut HashMap<usize, (Pixel, Pixel)>, i: usize, before: &Pixel, after: &Pixel) {
             let entry = dict.entry(i);
@@ -672,18 +712,26 @@ impl LayeredImage {
         (mod_pix, self.active_layer_index)
     }
 
+    fn re_compute_main_drawable(&mut self) {
+        self.drawable.pixels = (0..self.drawable.pixels.len())
+            .map(|i| self.get_blended_pixel_at(i))
+            .collect::<Vec<_>>();
+    }
+
+    fn re_compute_all_drawables(&mut self) {
+        self.re_compute_main_drawable();
+        for layer_idx in self.layer_indices() {
+            self.fused_image_at_layer_mut(layer_idx).re_compute_drawable();
+        }
+    }
+
     /// Call this after manually editing a child
     /// (outside of the change-tracking API):
     /// `self.drawable` and the active layer's drawable
     /// will be re-computed by blending every pixel
-    fn re_compute_drawables(&mut self) {
-        self.drawable.pixels = (0..self.drawable.pixels.len())
-            .map(|i| self.get_blended_pixel_at(i))
-            .collect::<Vec<_>>();
-        self.active_drawable_mut().pixels = self.image_at_layer(self.active_layer_index)
-            .pixels.iter()
-            .map(|p| p.to_drawable())
-            .collect::<Vec<_>>();
+    fn re_compute_active_drawables(&mut self) {
+        self.re_compute_main_drawable();
+        self.fused_image_at_layer_mut(self.active_layer_index).re_compute_drawable();
     }
 
     pub fn layer_indices(&self) -> impl Iterator<Item = LayerIndex> {
@@ -731,7 +779,7 @@ impl LayeredImage {
             }
         }
 
-        self.re_compute_drawables();
+        self.re_compute_active_drawables();
     }
 
     fn remove_layer(&mut self, idx: LayerIndex) {
@@ -752,7 +800,7 @@ impl LayeredImage {
             self.active_layer_index = LayerIndex::from_usize(self.num_layers());
         }
 
-        self.re_compute_drawables();
+        self.re_compute_active_drawables();
     }
 
     fn swap_layers(&mut self, i1: LayerIndex, i2: LayerIndex) {
@@ -760,7 +808,7 @@ impl LayeredImage {
             std::mem::swap(l1, l2);
         }
 
-        self.re_compute_drawables();
+        self.re_compute_active_drawables();
     }
 
     fn merge_layers(&mut self, top_idx: LayerIndex, bot_idx: LayerIndex) {

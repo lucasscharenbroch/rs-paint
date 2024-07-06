@@ -142,6 +142,8 @@ impl MultiUndoableActionWrapper {
         for (i, ld) in layer_datas.iter_mut().enumerate() {
             self.action.exec(ld, image.image_at_layer_mut(LayerIndex::from_usize(i)));
         }
+
+        image.update_drawable_sizes();
     }
 
     pub fn undo(&mut self, image: &mut LayeredImage) {
@@ -151,6 +153,8 @@ impl MultiUndoableActionWrapper {
         for (i, ld) in layer_datas.iter_mut().enumerate() {
             self.action.undo(ld, image.image_at_layer_mut(LayerIndex::from_usize(i)));
         }
+
+        image.update_drawable_sizes();
     }
 }
 
@@ -198,21 +202,11 @@ impl ImageHistory {
 impl LayeredImage {
     pub fn apply_action(&mut self, action: &mut Box<dyn UndoableAction<Image>>, layer: LayerIndex) {
         action.exec(self.image_at_layer_mut(layer));
-        self.re_compute_drawables();
+        self.re_compute_active_drawables();
     }
 
     pub fn unapply_action(&mut self, action: &mut Box<dyn UndoableAction<Image>>, layer: LayerIndex) {
         action.undo(self.image_at_layer_mut(layer));
-        self.re_compute_drawables();
-    }
-
-    pub fn apply_multi_action<D: 'static>(&mut self, action: &mut MultiUndoableActionWrapper) {
-        action.exec(self);
-        self.re_compute_drawables();
-    }
-
-    pub fn unapply_multi_action<D: 'static>(&mut self, action: &mut MultiUndoableActionWrapper) {
-        action.undo(self);
-        self.re_compute_drawables();
+        self.re_compute_active_drawables();
     }
 }

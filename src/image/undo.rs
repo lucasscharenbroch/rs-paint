@@ -65,7 +65,7 @@ impl ImageDiff {
             },
             ImageDiff::MultiManualUndo(mmu_struct) => {
                 mmu_struct.exec(image);
-                image.re_compute_drawables();
+                image.re_compute_all_drawables();
             }
             ImageDiff::Null => (),
         }
@@ -95,11 +95,11 @@ impl ImageDiff {
                 image.append_layer_with_image(save_top.clone(), *top_index);
                 *image.image_at_layer_mut(*bot_index) = save_bot.image.clone();
                 image.fused_image_at_layer_mut(*bot_index).info = save_bot.info.clone();
-                image.re_compute_drawables();
+                image.re_compute_active_drawables();
             },
             ImageDiff::MultiManualUndo(mmu_struct) => {
                 mmu_struct.undo(image);
-                image.re_compute_drawables();
+                image.re_compute_all_drawables();
             }
             ImageDiff::Null => (),
         }
