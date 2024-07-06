@@ -1,7 +1,7 @@
 use super::undo::action::{ActionName, DoableAction, StaticDoableAction, UndoableAction, StaticUndoableAction};
 use super::{FusedImageLayer, Image, ImageLike, LayeredImage, Pixel};
 
-use gtk::gdk::{Toplevel, RGBA};
+use gtk::gdk::RGBA;
 use itertools::{Itertools, Either};
 
 #[derive(Clone)]

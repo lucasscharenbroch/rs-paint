@@ -1,10 +1,8 @@
 use super::MouseModeVariant;
-use super::{CursorState, MagicWandState, PencilState, EyedropperState, RectangleSelectState};
 use crate::image::blend::BlendingMode;
-use crate::image::brush::{Brush, BrushType};
+use crate::image::brush::BrushType;
 use crate::ui::form::gadget::NumberedSliderGadget;
-use crate::ui::form::{DropdownField, Form, FormBuilderIsh, NaturalField, SliderField};
-use crate::vertical_composite_field;
+use crate::ui::form::{DropdownField, Form, FormBuilderIsh, NaturalField};
 
 use gtk::prelude::*;
 

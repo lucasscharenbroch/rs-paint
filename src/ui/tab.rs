@@ -3,35 +3,34 @@ use super::UiState;
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use gtk::{Align, DrawingArea, GestureClick};
 use glib_macros::clone;
-use gtk::{prelude::*, Box as GBox, Orientation, Label, Button};
+use gtk::prelude::*;
 
 pub struct Tab {
     pub canvas_p: Rc<RefCell<Canvas>>,
     name: String,
     last_export_id: usize,
-    drawing_area: Rc<RefCell<DrawingArea>>,
+    drawing_area: Rc<RefCell<gtk::DrawingArea>>,
     widget: gtk::Box,
     container: gtk::Box,
     x_button: gtk::Button,
     x_button_signal_handler_id: Option<gtk::glib::SignalHandlerId>,
-    click_handler: GestureClick,
+    click_handler: gtk::GestureClick,
 }
 
 impl Tab {
     pub fn new(canvas_p: &Rc<RefCell<Canvas>>, name: &str) -> Self {
-        let widget = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let widget = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .css_classes(["tab"])
             .build();
 
-        let text_label = Label::builder()
+        let text_label = gtk::Label::builder()
             .label(name)
             .build();
 
-        let container = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let container = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .spacing(6)
             .build();
 
@@ -47,12 +46,12 @@ impl Tab {
             ((MAX_DIMENSION as f64 * aspect_ratio).ceil() as i32, MAX_DIMENSION)
         };
 
-        let thumbnail_area = DrawingArea::builder()
+        let thumbnail_area = gtk::DrawingArea::builder()
             .content_width(w)
             .content_height(h)
             .margin_start(3)
-            .halign(Align::Center)
-            .valign(Align::Center)
+            .halign(gtk::Align::Center)
+            .valign(gtk::Align::Center)
             .build();
 
         thumbnail_area.set_draw_func(clone!(@strong canvas_p => move |area, cr, width, height| {
@@ -69,7 +68,7 @@ impl Tab {
             thumbnail_area
         ));
 
-        let x_button = Button::builder()
+        let x_button = gtk::Button::builder()
             .label("x")
             .css_classes(["tab-x-button"])
             .build();
@@ -146,8 +145,8 @@ pub struct Tabbar {
 
 impl Tabbar {
     pub fn new() -> Self {
-        let widget = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let widget = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .build();
 
         Tabbar {

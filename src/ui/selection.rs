@@ -1,7 +1,7 @@
 use crate::image::bitmask::ImageBitmask;
 use super::canvas::Canvas;
 
-use gtk::cairo::{Context, Rectangle};
+use gtk::cairo;
 use itertools::Itertools;
 
 pub enum Selection {
@@ -22,7 +22,7 @@ macro_rules! set_selection_outline_color {
     };
 }
 
-fn draw_rect_sel(zoom: f64, x: usize, y: usize, w: usize, h: usize, cr: &Context) {
+fn draw_rect_sel(zoom: f64, x: usize, y: usize, w: usize, h: usize, cr: &cairo::Context) {
     const BORDER_WIDTH: f64 = 3.0;
 
     cr.set_line_width(BORDER_WIDTH / zoom);
@@ -36,7 +36,7 @@ fn draw_rect_sel(zoom: f64, x: usize, y: usize, w: usize, h: usize, cr: &Context
     let _ = cr.stroke();
 }
 
-fn draw_sel_mask(zoom: f64, image_height: usize, image_width: usize, selection_mask: &mut ImageBitmask, cr: &Context) {
+fn draw_sel_mask(zoom: f64, image_height: usize, image_width: usize, selection_mask: &mut ImageBitmask, cr: &cairo::Context) {
     assert!(image_width == selection_mask.width());
     assert!(image_height == selection_mask.height());
 
@@ -56,7 +56,7 @@ fn draw_sel_mask(zoom: f64, image_height: usize, image_width: usize, selection_m
 }
 
 impl Canvas {
-    pub fn draw_selection_outline(&mut self, cr: &Context) {
+    pub fn draw_selection_outline(&mut self, cr: &cairo::Context) {
         let image_height = self.image_height() as usize;
         let image_width = self.image_width() as usize;
         let zoom = *self.zoom();

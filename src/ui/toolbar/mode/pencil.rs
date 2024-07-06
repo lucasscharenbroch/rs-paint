@@ -1,13 +1,11 @@
 mod spline;
 
-use super::{cursor, Canvas, MouseModeVariant, Toolbar};
+use super::{Canvas, Toolbar};
 use crate::image::{brush::Brush, ImageLike};
 use crate::image::undo::action::ActionName;
-use crate::ui::form::Form;
-use spline::{IncrementalSplineSnapshot, SplineSegment3, SplineSegment4, SplineSegment};
+use spline::{IncrementalSplineSnapshot, SplineSegment3, SplineSegment};
 
-use std::collections::HashMap;
-use gtk::gdk::{ModifierType, RGBA};
+use gtk::gdk::ModifierType;
 use gtk::cairo::{Context, LineCap};
 
 /// Used to specify which click was handled

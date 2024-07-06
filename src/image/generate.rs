@@ -1,7 +1,7 @@
 use crate::image::Pixel;
 
-use super::{Image};
-use gtk::gdk::{RGBA};
+use super::Image;
+use gtk::gdk::RGBA;
 
 pub struct NewImageProps {
     pub width: usize,

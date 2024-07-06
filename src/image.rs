@@ -14,7 +14,6 @@ use std::mem;
 use std::path::Path;
 use std::collections::HashMap;
 
-use gtk::cairo::{ImageSurface, SurfacePattern, Format, Filter};
 use gtk::cairo;
 use gtk::gdk::RGBA;
 
@@ -280,24 +279,26 @@ impl DrawableImage {
         }
     }
 
-    pub fn to_surface_pattern(&mut self) -> SurfacePattern {
+    pub fn to_surface_pattern(&mut self) -> cairo::SurfacePattern {
         unsafe {
             let (_, u8_slice, _) = self.pixels.align_to_mut::<u8>();
 
-            let image_surface = ImageSurface::create_for_data_unsafe(u8_slice.as_mut_ptr(),
-                                                                            Format::ARgb32,
-                                                                            self.width as i32,
-                                                                            self.height as i32,
-                                                                            4 * self.width as i32).unwrap();
+            let image_surface = cairo::ImageSurface::create_for_data_unsafe(
+                u8_slice.as_mut_ptr(),
+                cairo::Format::ARgb32,
+                self.width as i32,
+                self.height as i32,
+                4 * self.width as i32
+                ).unwrap();
 
-            let surface_pattern = SurfacePattern::create(image_surface);
-            surface_pattern.set_filter(Filter::Fast);
+            let surface_pattern = cairo::SurfacePattern::create(image_surface);
+            surface_pattern.set_filter(cairo::Filter::Fast);
 
             surface_pattern
         }
     }
 
-    pub fn to_repeated_surface_pattern(&mut self) -> SurfacePattern {
+    pub fn to_repeated_surface_pattern(&mut self) -> cairo::SurfacePattern {
         let res = self.to_surface_pattern();
         res.set_extend(cairo::Extend::Repeat);
         res

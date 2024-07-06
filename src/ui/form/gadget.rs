@@ -120,7 +120,7 @@ pub struct NumberedSliderGadget {
 impl NumberedSliderGadget {
     pub fn new_p(
         label: Option<&str>,
-        orientation: Orientation,
+        orientation: gtk::Orientation,
         use_vertical_layout: bool,
         min: usize,
         max: usize,

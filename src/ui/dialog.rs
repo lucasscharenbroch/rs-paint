@@ -10,8 +10,7 @@ use super::form::DropdownField;
 use super::form::{Form, FormBuilderIsh, gadget::AspectRatioGadget};
 use crate::image::resize::{Scale, ScaleMethod, Expand, ExpandJustification, Crop};
 
-use gtk::{prelude::*, FileDialog, Window};
-use gtk::ColorDialog;
+use gtk::prelude::*;
 use gtk::glib::{object::IsA, error::Error as GError};
 use gtk::gio::{File, Cancellable};
 use gtk::gdk::RGBA;
@@ -22,13 +21,13 @@ pub enum CloseDialog {
 }
 
 pub fn choose_file_dialog<P: FnOnce(Result<File, GError>) + 'static>(
-    parent: &impl IsA<Window>,
+    parent: &impl IsA<gtk::Window>,
     title: &str, accept_label: &str,
     valid_filetypes: &impl IsA<gtk::gio::ListModel>,
     make_target_file: bool,
     callback: P
 ) {
-    let dialog = FileDialog::builder()
+    let dialog = gtk::FileDialog::builder()
         .title(title)
         .accept_label(accept_label)
         .filters(valid_filetypes)
@@ -42,10 +41,10 @@ pub fn choose_file_dialog<P: FnOnce(Result<File, GError>) + 'static>(
 }
 
 pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(
-    parent: Option<&impl IsA<Window>>,
+    parent: Option<&impl IsA<gtk::Window>>,
     callback: P
 ) {
-    let dialog = ColorDialog::builder()
+    let dialog = gtk::ColorDialog::builder()
         .with_alpha(true)
         .build();
 
@@ -56,7 +55,7 @@ pub fn choose_color_dialog<P: FnOnce(Result<RGBA, GError>) + 'static>(
 }
 
 pub fn new_image_dialog<P: Fn(NewImageProps) + 'static>(
-    parent: &impl IsA<Window>,
+    parent: &impl IsA<gtk::Window>,
     callback: P
 ) {
     const DEFAULT_IMAGE_WIDTH: usize = 512;
@@ -94,7 +93,7 @@ pub fn new_image_dialog<P: Fn(NewImageProps) + 'static>(
 }
 
 pub fn scale_dialog<P: Fn(Scale) + 'static>(
-    parent: &impl IsA<Window>,
+    parent: &impl IsA<gtk::Window>,
     default_w: usize,
     default_h: usize,
     callback: P
@@ -131,7 +130,7 @@ pub fn scale_dialog<P: Fn(Scale) + 'static>(
 }
 
 pub fn expand_dialog<P: Fn(Expand) + 'static>(
-    parent: &impl IsA<Window>,
+    parent: &impl IsA<gtk::Window>,
     callback: P
 ) {
     const DEFAULT_EXPANSION_WIDTH: usize = 10;
@@ -174,7 +173,7 @@ pub fn expand_dialog<P: Fn(Expand) + 'static>(
 }
 
 pub fn truncate_dialog<P: Fn((i32, i32, i32, i32)) + 'static>(
-    parent: &impl IsA<Window>,
+    parent: &impl IsA<gtk::Window>,
     width: usize,
     height: usize,
     callback: P

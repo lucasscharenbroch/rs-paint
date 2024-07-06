@@ -1,5 +1,4 @@
-use super::{Canvas, Toolbar, MouseModeVariant};
-use crate::ui::form::Form;
+use super::{Canvas, Toolbar};
 use crate::image::ImageLike;
 
 use gtk::gdk::ModifierType;

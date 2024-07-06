@@ -12,11 +12,8 @@ use super::toolbar::mode::MouseMode;
 use crate::image::{ImageLike, blend::BlendingMode};
 use super::layer_window::LayerWindow;
 
-use gtk::{prelude::*, Widget};
-use gtk::{Grid, Scrollbar, Orientation, Adjustment};
+use gtk::prelude::*;
 use gtk::gdk::{ModifierType, RGBA};
-use gtk::{DrawingArea, EventControllerScroll, EventControllerScrollFlags, GestureDrag, EventControllerMotion};
-use gtk::cairo::Context;
 use gtk::cairo;
 use gtk::glib::signal::Propagation;
 use std::rc::Rc;
@@ -32,14 +29,14 @@ pub struct Canvas {
     /// The cursor's position, in terms of the ui,
     /// NOT THE IMAGE (use `*_pos_pix` for pixel-relative coords)
     cursor_pos: (f64, f64),
-    drawing_area: DrawingArea,
-    grid: Grid,
+    drawing_area: gtk::DrawingArea,
+    grid: gtk::Grid,
     pub selection: Selection,
-    v_scrollbar: Scrollbar,
-    h_scrollbar: Scrollbar,
+    v_scrollbar: gtk::Scrollbar,
+    h_scrollbar: gtk::Scrollbar,
     scrollbar_update_handlers: Option<(SignalHandlerId, SignalHandlerId)>,
-    single_shot_draw_hooks: Vec<Box<dyn Fn(&Context)>>,
-    draw_hook: Option<Box<dyn Fn(&Context)>>,
+    single_shot_draw_hooks: Vec<Box<dyn Fn(&cairo::Context)>>,
+    draw_hook: Option<Box<dyn Fn(&cairo::Context)>>,
     transparent_checkerboard: Rc<RefCell<DrawableImage>>,
     ui_p: Rc<RefCell<UiState>>,
     /// Mapping from state ids to the cursor positions
@@ -57,17 +54,17 @@ pub struct Canvas {
 
 impl Canvas {
     pub fn new_p(ui_p: &Rc<RefCell<UiState>>, image: LayeredImage) -> Rc<RefCell<Canvas>> {
-        let grid = Grid::new();
+        let grid = gtk::Grid::new();
 
-        let drawing_area =  DrawingArea::builder()
+        let drawing_area =  gtk::DrawingArea::builder()
             .vexpand(true)
             .hexpand(true)
             .build();
 
         grid.attach(&drawing_area, 0, 0, 1, 1);
 
-        let v_scrollbar = Scrollbar::new(Orientation::Vertical, Adjustment::NONE);
-        let h_scrollbar = Scrollbar::new(Orientation::Horizontal, Adjustment::NONE);
+        let v_scrollbar = gtk::Scrollbar::new(gtk::Orientation::Vertical, gtk::Adjustment::NONE);
+        let h_scrollbar = gtk::Scrollbar::new(gtk::Orientation::Horizontal, gtk::Adjustment::NONE);
 
         grid.attach(&v_scrollbar, 1, 0, 1, 1);
         grid.attach(&h_scrollbar, 0, 1, 1, 1);
@@ -130,7 +127,7 @@ impl Canvas {
 
         // scroll
 
-        let scroll_controller = EventControllerScroll::new(EventControllerScrollFlags::BOTH_AXES);
+        let scroll_controller = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::BOTH_AXES);
         scroll_controller.connect_scroll(clone!(@strong canvas_p => move |ecs, dx, dy| {
             canvas_p.borrow_mut().handle_scroll(ecs, dx, dy)
         }));
@@ -159,7 +156,7 @@ impl Canvas {
     fn init_ui_state_connections(canvas_p: &Rc<RefCell<Self>>, ui_p: &Rc<RefCell<UiState>>) {
         // left click drag
 
-        let left_drag_controller = GestureDrag::builder()
+        let left_drag_controller = gtk::GestureDrag::builder()
             .button(1) // left click
             .build();
         left_drag_controller.connect_begin(clone!(@strong ui_p, @strong canvas_p => move |dc, _| {
@@ -190,7 +187,7 @@ impl Canvas {
 
         // right click drag
 
-        let right_drag_controller = GestureDrag::builder()
+        let right_drag_controller = gtk::GestureDrag::builder()
             .button(3) // right click
             .build();
         right_drag_controller.connect_begin(clone!(@strong ui_p, @strong canvas_p => move |dc, _| {
@@ -221,7 +218,7 @@ impl Canvas {
 
         // mouse movement
 
-        let motion_controller = EventControllerMotion::new();
+        let motion_controller = gtk::EventControllerMotion::new();
 
         motion_controller.connect_motion(clone!(@strong ui_p, @strong canvas_p => move |ecm, x, y| {
             canvas_p.borrow_mut().update_cursor_pos(x, y);
@@ -250,11 +247,11 @@ impl Canvas {
         })));
     }
 
-    pub fn widget(&self) -> &Grid {
+    pub fn widget(&self) -> &gtk::Grid {
         &self.grid
     }
 
-    pub fn drawing_area(&self) -> &DrawingArea {
+    pub fn drawing_area(&self) -> &gtk::DrawingArea {
         &self.drawing_area
     }
 
@@ -393,11 +390,11 @@ impl Canvas {
         (x_slack.max(0.0) / 2.0 / self.zoom, y_slack.max(0.0) / 2.0 / self.zoom)
     }
 
-    pub fn transparent_checkerboard_pattern(&self) -> gtk::cairo::SurfacePattern {
+    pub fn transparent_checkerboard_pattern(&self) -> cairo::SurfacePattern {
         self.transparent_checkerboard.borrow_mut().to_repeated_surface_pattern()
     }
 
-    fn draw(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, area_height: i32) {
+    fn draw(&mut self, _drawing_area: &gtk::DrawingArea, cr: &cairo::Context, area_width: i32, area_height: i32) {
         let img_width = self.image_width() as f64;
         let img_height = self.image_height() as f64;
         let x_offset = (area_width as f64 - img_width * self.zoom) / 2.0;
@@ -442,7 +439,7 @@ impl Canvas {
     fn draw_thumbnail_helper(
         &mut self,
         scale: f64,
-        cr: &Context,
+        cr: &cairo::Context,
         img_width: f64,
         img_height: f64,
         image_surface_pattern: gtk::cairo::SurfacePattern,
@@ -472,7 +469,7 @@ impl Canvas {
         let _ = cr.stroke();
     }
 
-    pub fn draw_thumbnail(&mut self, _drawing_area: &DrawingArea, cr: &Context, area_width: i32, _area_height: i32) {
+    pub fn draw_thumbnail(&mut self, _drawing_area: &gtk::DrawingArea, cr: &cairo::Context, area_width: i32, _area_height: i32) {
         let img_width = self.image_width() as f64;
         let img_height = self.image_height() as f64;
         let scale = (area_width as f64 - 0.1) / img_width as f64;
@@ -483,8 +480,8 @@ impl Canvas {
 
     pub fn draw_layer_thumbnail(
         &mut self,
-        _drawing_area: &DrawingArea,
-        cr: &Context,
+        _drawing_area: &gtk::DrawingArea,
+        cr: &cairo::Context,
         area_width: i32,
         _area_height: i32,
         layer_index: LayerIndex,
@@ -564,16 +561,16 @@ impl Canvas {
         }
     }
 
-    pub fn update_with(&mut self, draw_hook: Box<dyn Fn(&Context)>) {
+    pub fn update_with(&mut self, draw_hook: Box<dyn Fn(&cairo::Context)>) {
         self.single_shot_draw_hooks.push(draw_hook);
         self.update();
     }
 
-    pub fn set_draw_hook(&mut self, draw_hook: Box<dyn Fn(&Context)>) {
+    pub fn set_draw_hook(&mut self, draw_hook: Box<dyn Fn(&cairo::Context)>) {
         self.draw_hook = Some(draw_hook);
     }
 
-    fn handle_scroll(&mut self, event_controller: &EventControllerScroll, dx: f64, dy: f64) -> Propagation {
+    fn handle_scroll(&mut self, event_controller: &gtk::EventControllerScroll, dx: f64, dy: f64) -> Propagation {
         match event_controller.current_event_state() {
             ModifierType::CONTROL_MASK => self.inc_zoom_around_cursor(-dy),
             ModifierType::SHIFT_MASK => self.inc_pan(-dy, -dx),
@@ -647,11 +644,11 @@ impl Canvas {
         self.update();
     }
 
-    pub fn history_widget(&self) -> &impl IsA<Widget> {
+    pub fn history_widget(&self) -> &impl IsA<gtk::Widget> {
         self.image_hist.widget_scrolled_to_active_commit()
     }
 
-    pub fn layers_widget(&self) -> impl IsA<Widget> {
+    pub fn layers_widget(&self) -> impl IsA<gtk::Widget> {
         let x = self.layer_window_p.borrow();
         x.widget()
     }

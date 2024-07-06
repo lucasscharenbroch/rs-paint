@@ -4,21 +4,21 @@ use crate::image::transform::*;
 use super::dialog::{about_dialog, keyboard_shortcuts_dialog};
 use super::UiState;
 
-use gtk::gio::{Menu, MenuItem, SimpleAction};
+use gtk::gio;
 use gtk::glib::Variant;
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
 struct MenuBuilder {
-    menu: Menu,
-    actions: Vec<SimpleAction>,
+    menu: gio::Menu,
+    actions: Vec<gio::SimpleAction>,
 }
 
 impl MenuBuilder {
     fn new() -> Self {
         MenuBuilder {
-            menu: Menu::new(),
+            menu: gio::Menu::new(),
             actions: vec![],
         }
     }
@@ -32,28 +32,28 @@ impl MenuBuilder {
 
     fn item(mut self, label: &str, action_name: &str, action_fn: Box<dyn Fn()>) -> MenuBuilder {
         self.menu.append(Some(label), Some(("app.".to_string() + action_name).as_str()));
-        let action = SimpleAction::new(action_name, None);
+        let action = gio::SimpleAction::new(action_name, None);
         action.connect_activate(move |_, _| action_fn());
         self.actions.push(action);
         self
     }
 
     fn item_with_keybind(mut self, keybind: &str, label: &str, action_name: &str, action_fn: Box<dyn Fn()>) -> MenuBuilder {
-        let menu_item = MenuItem::new(Some(label), Some(("app.".to_string() + action_name).as_str()));
+        let menu_item = gio::MenuItem::new(Some(label), Some(("app.".to_string() + action_name).as_str()));
         menu_item.set_attribute_value("accel", Some(&Variant::from(keybind)));
         self.menu.append_item(&menu_item);
-        let action = SimpleAction::new(action_name, None);
+        let action = gio::SimpleAction::new(action_name, None);
         action.connect_activate(move |_, _| action_fn());
         self.actions.push(action);
         self
     }
 
-    fn build(self) -> (Menu, Vec<SimpleAction>) {
+    fn build(self) -> (gio::Menu, Vec<gio::SimpleAction>) {
         (self.menu, self.actions)
     }
 }
 
-pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (Menu, Vec<SimpleAction>) {
+pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (gio::Menu, Vec<gio::SimpleAction>) {
     let file_menu = MenuBuilder::new()
         .item_with_keybind("<Ctrl>n", "New", "new", Box::new(clone!(@strong ui_state => move || UiState::new(ui_state.clone()))))
         .item_with_keybind("<Ctrl>i", "Import", "import", Box::new(clone!(@strong ui_state => move || UiState::import(ui_state.clone()))))

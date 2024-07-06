@@ -1,11 +1,10 @@
 pub mod action;
 mod tree;
 
-use crate::{image::DrawableImage, ui::UiState};
 use self::action::UndoableAction;
 use super::{ImageLayer, LayerIndex, LayeredImage, Pixel};
 use tree::UndoTree;
-use action::{ActionName};
+use action::ActionName;
 
 use std::{cell::RefCell, collections::HashMap};
 use std::rc::Rc;

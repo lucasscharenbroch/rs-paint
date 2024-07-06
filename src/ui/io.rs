@@ -1,5 +1,4 @@
 use gtk::prelude::*;
-use gtk::FileFilter;
 use gtk::gio::ListStore;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -10,14 +9,14 @@ use super::{dialog::{choose_file_dialog, ok_dialog_str_}, UiState};
 use crate::image::{Image, generate::generate};
 
 fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
-    let list = ListStore::new::<FileFilter>();
+    let list = ListStore::new::<gtk::FileFilter>();
 
-    let supported = FileFilter::new();
+    let supported = gtk::FileFilter::new();
     supported.set_name(Some("Supported Files"));
     list.append(&supported);
 
     extss.iter().for_each(|exts| {
-        let ff = FileFilter::new();
+        let ff = gtk::FileFilter::new();
         exts.iter().for_each(|ext| {
             ff.add_suffix(ext);
             supported.add_suffix(ext)
@@ -26,7 +25,7 @@ fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
         list.append(&ff);
     });
 
-    let all = FileFilter::new();
+    let all = gtk::FileFilter::new();
     all.set_name(Some("All Files"));
     all.add_pattern("*");
     list.append(&all);

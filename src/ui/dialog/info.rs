@@ -1,9 +1,9 @@
 use super::super::super::icon_file;
 
-use gtk::{prelude::*, ShortcutsGroup, Window};
+use gtk::prelude::*;
 use gtk::glib::object::IsA;
 
-pub fn about_dialog(parent: &impl IsA<Window>) {
+pub fn about_dialog(parent: &impl IsA<gtk::Window>) {
     let icon_texture = gtk::gdk::Texture::from_filename(&icon_file!("logo"));
 
     let dialog = gtk::AboutDialog::builder()
@@ -24,7 +24,7 @@ pub fn about_dialog(parent: &impl IsA<Window>) {
     dialog.present();
 }
 
-pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
+pub fn keyboard_shortcuts_dialog(parent: &impl IsA<gtk::Window>) {
     fn shortcut_from_specs((name, keys): &(&str, &str)) -> gtk::ShortcutsShortcut {
         gtk::ShortcutsShortcut::builder()
             .title(*name)
@@ -33,7 +33,7 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<Window>) {
             .build()
     }
 
-    fn group_from_specs(title: &str, specs: &[(&str, &str)]) -> ShortcutsGroup {
+    fn group_from_specs(title: &str, specs: &[(&str, &str)]) -> gtk::ShortcutsGroup {
         let res = gtk::ShortcutsGroup::builder()
             .title(title)
             .build();

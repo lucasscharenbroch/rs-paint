@@ -1,5 +1,5 @@
 use super::undo::action::{UndoableAction, StaticUndoableAction, ActionName};
-use super::{Image, ImageLike, Pixel};
+use super::Image;
 
 #[derive(Clone)]
 pub enum Flip {

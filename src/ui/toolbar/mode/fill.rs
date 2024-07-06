@@ -1,5 +1,5 @@
-use crate::{image::{bitmask::ImageBitmask, Pixel}, ui::selection::Selection};
-use super::{Canvas, MouseModeVariant, Toolbar};
+use crate::image::{bitmask::ImageBitmask, Pixel};
+use super::{Canvas, Toolbar};
 use crate::image::undo::action::ActionName;
 
 use gtk::gdk::{RGBA, ModifierType};

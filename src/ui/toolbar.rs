@@ -12,14 +12,13 @@ use super::toolbar::mode::ModeToolbar;
 use super::super::icon_file;
 
 use gtk::prelude::*;
-use gtk::{Box as GBox, Orientation, ToggleButton};
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
 pub struct Toolbar {
-    widget: GBox,
-    mode_button_box: GBox,
+    widget: gtk::Box,
+    mode_button_box: gtk::Box,
     palette_p: Rc<RefCell<Palette>>,
     mouse_mode: MouseMode,
     mouse_mode_buttons: Vec<MouseModeButton>,
@@ -34,7 +33,7 @@ pub struct Toolbar {
 
 struct MouseModeButton {
     mode: MouseMode,
-    widget: ToggleButton,
+    widget: gtk::ToggleButton,
 }
 
 const INITIAL_MODE: MouseMode = MouseMode::cursor_default();
@@ -54,12 +53,12 @@ impl Toolbar {
             vec![None, None, None, None, None],
         ];
 
-        let widget =  GBox::new(Orientation::Horizontal, 10);
-        let mode_button_box =  GBox::new(Orientation::Horizontal, 10);
+        let widget =  gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        let mode_button_box =  gtk::Box::new(gtk::Orientation::Horizontal, 10);
         let palette_p = Palette::new_p(
             default_primary_color, default_secondary_color, default_palette_colors
         );
-        let mode_toolbar_wrapper = GBox::builder()
+        let mode_toolbar_wrapper = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
             .hexpand(true)
             .vexpand(false)
@@ -110,7 +109,7 @@ impl Toolbar {
                     .file(icon_file!(name))
                     .build();
 
-                let button = ToggleButton::builder()
+                let button = gtk::ToggleButton::builder()
                     .child(&icon_widget)
                     .width_request(75)
                     .height_request(75)
@@ -191,7 +190,7 @@ impl Toolbar {
         self.palette_p.borrow_mut().add_color(color)
     }
 
-    pub fn widget(&self) -> &GBox {
+    pub fn widget(&self) -> &gtk::Box {
         &self.widget
     }
 

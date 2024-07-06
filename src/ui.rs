@@ -14,11 +14,10 @@ use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, truncate_di
 use crate::image::{generate::{generate, NewImageProps}, Image, LayeredImage};
 use crate::image::resize::Crop;
 use tab::{Tab, Tabbar};
-use toolbar::mode::{MouseMode, RectangleSelectState, RectangleSelectMode};
+use toolbar::mode::{MouseMode, RectangleSelectMode};
 
 use gtk::{gdk::RGBA, prelude::*};
-use gtk::gdk::{Key, ModifierType};
-use gtk::{Application, ApplicationWindow, EventControllerKey, Grid, Separator, Box as GBox, Window, Widget};
+use gtk::gdk;
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
@@ -31,7 +30,7 @@ macro_rules! icon_file {
     };
 }
 
-fn get_parent_window(widget: &impl IsA<Widget>) -> Option<Window> {
+fn get_parent_window(widget: &impl IsA<gtk::Widget>) -> Option<gtk::Window> {
     let parent = widget.parent()?;
 
     if let Ok(window) = parent.clone().downcast::<gtk::Window>() {
@@ -44,14 +43,14 @@ fn get_parent_window(widget: &impl IsA<Widget>) -> Option<Window> {
 pub struct UiState {
     tabbar: Tabbar,
     toolbar_p: Rc<RefCell<Toolbar>>,
-    grid: Grid,
-    window: ApplicationWindow,
-    application: Application,
+    grid: gtk::Grid,
+    window: gtk::ApplicationWindow,
+    application: gtk::Application,
 }
 
 impl UiState {
     pub fn run_main_ui() -> gtk::glib::ExitCode {
-        let app = Application::builder()
+        let app = gtk::Application::builder()
             .build();
         let ui_p = Self::new_p(app.clone());
         Self::setup_default_image(&ui_p);
@@ -189,12 +188,12 @@ impl UiState {
         new_idx
     }
 
-    fn new_p(application: Application) -> Rc<RefCell<UiState>> {
+    fn new_p(application: gtk::Application) -> Rc<RefCell<UiState>> {
         let ui_p = Rc::new(RefCell::new(UiState {
             toolbar_p: Toolbar::new_p(),
             tabbar: Tabbar::new(),
-            grid: Grid::new(),
-            window: ApplicationWindow::builder()
+            grid: gtk::Grid::new(),
+            window: gtk::ApplicationWindow::builder()
                 .show_menubar(true)
                 .title("RS-Paint")
                 .build(),
@@ -205,7 +204,7 @@ impl UiState {
 
         ui_p.borrow().grid.attach(ui_p.borrow().tabbar.widget(), 0, 0, 1, 1);
         ui_p.borrow().grid.attach(ui_p.borrow().toolbar_p.borrow().widget(), 0, 1, 1, 1);
-        ui_p.borrow().grid.attach(&Separator::new(gtk::Orientation::Horizontal), 0, 2, 1, 1);
+        ui_p.borrow().grid.attach(&gtk::Separator::new(gtk::Orientation::Horizontal), 0, 2, 1, 1);
 
         ui_p.borrow().window.set_child(Some(&ui_p.borrow().grid));
 
@@ -217,7 +216,7 @@ impl UiState {
     fn init_internal_connections(ui_p: &Rc<RefCell<Self>>) {
         // keypresses
 
-        let key_controller = EventControllerKey::new();
+        let key_controller = gtk::EventControllerKey::new();
 
         key_controller.connect_key_pressed(clone!(@strong ui_p => move |_, key, _, mod_keys| {
             Self::handle_keypress(&ui_p, key, mod_keys);
@@ -240,7 +239,7 @@ impl UiState {
     // hack a mod-key-update handler:
     // (.connect_modifier reports the updated mod keys one event late)
     // this is called by handle_keypress and handle_keyrelease
-    fn handle_mod_keys_update(&mut self, mod_keys: ModifierType) {
+    fn handle_mod_keys_update(&mut self, mod_keys: gdk::ModifierType) {
         if let Some(canvas_p) = self.active_canvas_p() {
             let mut toolbar = self.toolbar_p.borrow_mut();
             let mut mouse_mode = toolbar.mouse_mode().clone();
@@ -250,42 +249,42 @@ impl UiState {
     }
 
     // apply `key` to `mod_keys`, if it's a mod key
-    fn try_update_mod_keys(key: Key, mod_keys: ModifierType, is_down: bool) -> Option<ModifierType> {
-        let join = |m: ModifierType, b: ModifierType| Some(if is_down {
+    fn try_update_mod_keys(key: gdk::Key, mod_keys: gdk::ModifierType, is_down: bool) -> Option<gdk::ModifierType> {
+        let join = |m: gdk::ModifierType, b: gdk::ModifierType| Some(if is_down {
             m.union(b)
         } else {
             m.difference(b)
         });
 
         match key {
-            Key::Shift_L | Key::Shift_R => join(mod_keys, ModifierType::SHIFT_MASK),
-            Key::Control_L | Key::Control_R => join(mod_keys, ModifierType::CONTROL_MASK),
-            Key::Alt_L | Key::Alt_R => join(mod_keys, ModifierType::ALT_MASK),
+            gdk::Key::Shift_L | gdk::Key::Shift_R => join(mod_keys, gdk::ModifierType::SHIFT_MASK),
+            gdk::Key::Control_L | gdk::Key::Control_R => join(mod_keys, gdk::ModifierType::CONTROL_MASK),
+            gdk::Key::Alt_L | gdk::Key::Alt_R => join(mod_keys, gdk::ModifierType::ALT_MASK),
             _ => None,
         }
     }
 
-    fn handle_keypress(ui_p: &Rc<RefCell<Self>>, key: Key, mod_keys: ModifierType) {
+    fn handle_keypress(ui_p: &Rc<RefCell<Self>>, key: gdk::Key, mod_keys: gdk::ModifierType) {
         // control-key bindings
-        if mod_keys == ModifierType::CONTROL_MASK {
+        if mod_keys == gdk::ModifierType::CONTROL_MASK {
             match key {
-                Key::equal => Self::zoom_in(ui_p.clone()),
-                Key::minus => Self::zoom_out(ui_p.clone()),
-                Key::z => Self::undo(ui_p.clone()),
-                Key::y => Self::redo(ui_p.clone()),
-                Key::h => Self::undo_history_dialog(ui_p.clone()),
-                Key::l => Self::layers_dialog(ui_p.clone()),
-                Key::a => about_dialog(&ui_p.borrow().window),
-                Key::n => Self::new(ui_p.clone()),
-                Key::i => Self::import(ui_p.clone()),
-                Key::e => Self::export(ui_p.clone()),
-                Key::q => Self::quit(ui_p.clone()),
+                gdk::Key::equal => Self::zoom_in(ui_p.clone()),
+                gdk::Key::minus => Self::zoom_out(ui_p.clone()),
+                gdk::Key::z => Self::undo(ui_p.clone()),
+                gdk::Key::y => Self::redo(ui_p.clone()),
+                gdk::Key::h => Self::undo_history_dialog(ui_p.clone()),
+                gdk::Key::l => Self::layers_dialog(ui_p.clone()),
+                gdk::Key::a => about_dialog(&ui_p.borrow().window),
+                gdk::Key::n => Self::new(ui_p.clone()),
+                gdk::Key::i => Self::import(ui_p.clone()),
+                gdk::Key::e => Self::export(ui_p.clone()),
+                gdk::Key::q => Self::quit(ui_p.clone()),
                 // Remember to add any new shortcuts to `dialog::info::keyboard_shortcuts_dialog`
                 _ => (),
             }
         }
 
-        if let Key::Delete = key {
+        if let gdk::Key::Delete = key {
             Self::delete_selection(ui_p.clone());
         }
 
@@ -295,13 +294,13 @@ impl UiState {
 
     }
 
-    fn handle_keyrelease(&mut self, key: Key, mod_keys: ModifierType) {
+    fn handle_keyrelease(&mut self, key: gdk::Key, mod_keys: gdk::ModifierType) {
         if let Some(mod_keys) = Self::try_update_mod_keys(key, mod_keys, false) {
             self.handle_mod_keys_update(mod_keys);
         }
     }
 
-    pub fn window(&self) -> &ApplicationWindow {
+    pub fn window(&self) -> &gtk::ApplicationWindow {
         &self.window
     }
 

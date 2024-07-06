@@ -1,5 +1,5 @@
 use crate::{image::bitmask::ImageBitmask, ui::selection::Selection};
-use super::{Canvas, MouseModeVariant, Toolbar};
+use super::{Canvas, Toolbar};
 
 use gtk::gdk::ModifierType;
 

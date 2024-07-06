@@ -1,7 +1,7 @@
 use crate::image::{DrawableImage, mk_transparent_checkerboard};
 use crate::ui::{dialog::choose_color_dialog, get_parent_window};
 
-use gtk::{prelude::*, Orientation, DrawingArea, Box as GBox, GestureClick};
+use gtk::prelude::*;
 use std::rc::Rc;
 use std::cell::RefCell;
 use gtk::gdk::RGBA;
@@ -9,7 +9,7 @@ use glib_macros::clone;
 
 struct PaletteColorButton {
     widget: gtk::Button,
-    drawing_area: DrawingArea,
+    drawing_area: gtk::DrawingArea,
     checkerboard: DrawableImage,
     color: Option<RGBA>,
 }
@@ -26,7 +26,7 @@ impl PaletteColorButton {
             .halign(gtk::Align::Center)
             .build();
 
-        let drawing_area =  DrawingArea::builder()
+        let drawing_area =  gtk::DrawingArea::builder()
             .content_height(SIZE)
             .content_width(SIZE)
             .build();
@@ -67,7 +67,7 @@ impl PaletteColorButton {
             }
         }));
 
-        let click_controller = GestureClick::builder()
+        let click_controller = gtk::GestureClick::builder()
             .button(0)
             .build();
 
@@ -117,7 +117,7 @@ impl PaletteColorButton {
 /// both the primary and secondary color buttons
 struct PrimarySecondaryButton {
     widget: gtk::ToggleButton,
-    drawing_area: DrawingArea,
+    drawing_area: gtk::DrawingArea,
     checkerboard: DrawableImage,
     color: RGBA,
     kind: PrimaryOrSecondary,
@@ -139,7 +139,7 @@ impl PrimarySecondaryButton {
             .halign(gtk::Align::Center)
             .build();
 
-        let drawing_area =  DrawingArea::builder()
+        let drawing_area =  gtk::DrawingArea::builder()
             .content_height(size)
             .content_width(size)
             .build();
@@ -170,7 +170,7 @@ impl PrimarySecondaryButton {
             let _ = cr.fill();
         }));
 
-        let click_controller = GestureClick::builder()
+        let click_controller = gtk::GestureClick::builder()
             .button(0)
             .build();
 
@@ -228,7 +228,7 @@ enum PrimaryOrSecondary {
 impl Palette {
     pub fn new_p(default_primary: RGBA, default_secondary: RGBA, colors: Vec<Vec<Option<RGBA>>>) -> Rc<RefCell<Self>> {
         let widget = gtk::Box::builder()
-            .orientation(Orientation::Horizontal)
+            .orientation(gtk::Orientation::Horizontal)
             .spacing(10)
             .build();
 

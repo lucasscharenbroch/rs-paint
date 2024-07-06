@@ -1,6 +1,6 @@
 use super::CloseDialog;
 
-use gtk::{prelude::*, Align, Box as GBox, Button, Label, Orientation, Widget, Window};
+use gtk::{prelude::*};
 use gtk::glib::object::IsA;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -15,9 +15,9 @@ macro_rules! first_ident {
 macro_rules! nary_dialog {
     ( $name:ident, $( $variant:ident ),+ ) => { paste::item! {
         pub fn [< $name _dialog >]<$([< F $variant>]),*>(
-            parent: &impl IsA<Window>,
+            parent: &impl IsA<gtk::Window>,
             title: &str,
-            inner_content: &impl IsA<Widget>,
+            inner_content: &impl IsA<gtk::Widget>,
             $(
             [< on_ $variant >]: [< F $variant >],
             )*
@@ -39,15 +39,15 @@ macro_rules! nary_dialog {
                     }
                 };
 
-                let [< $variant _button >] = Button::builder()
+                let [< $variant _button >] = gtk::Button::builder()
                 .label([< $variant _str >])
                 .margin_end(2)
                 .build();
             )*
 
-            let button_wrapper = GBox::builder()
-                .orientation(Orientation::Horizontal)
-                .halign(Align::Center)
+            let button_wrapper = gtk::Box::builder()
+                .orientation(gtk::Orientation::Horizontal)
+                .halign(gtk::Align::Center)
                 .build();
 
             $(
@@ -55,8 +55,8 @@ macro_rules! nary_dialog {
             )*
             button_wrapper.set_focus_child(Some(&first_ident!($([< $variant _button >]),*)));
 
-            let content = GBox::builder()
-                .orientation(Orientation::Vertical)
+            let content = gtk::Box::builder()
+                .orientation(gtk::Orientation::Vertical)
                 .margin_top(12)
                 .margin_bottom(12)
                 .margin_start(12)
@@ -70,7 +70,7 @@ macro_rules! nary_dialog {
             content.append(&button_wrapper);
             content.set_focus_child(Some(&button_wrapper));
 
-            let dialog_window = Window::builder()
+            let dialog_window = gtk::Window::builder()
                 .transient_for(parent)
                 .title(title)
                 .child(&content)
@@ -96,7 +96,7 @@ macro_rules! nary_dialog {
         }
 
         pub fn [< $name _dialog_str >]<$([< F $variant>]),*>(
-            parent: &impl IsA<Window>,
+            parent: &impl IsA<gtk::Window>,
             title: &str,
             prompt: &str,
             $(
@@ -109,7 +109,7 @@ macro_rules! nary_dialog {
             ),*
         {
 
-            let text_label = Label::builder()
+            let text_label = gtk::Label::builder()
                 .label(prompt)
                 .selectable(true)
                 .build();
@@ -126,15 +126,15 @@ nary_dialog!(ok_cancel, ok, cancel);
 nary_dialog!(cancel_discard, cancel, discard);
 
 pub fn ok_dialog_(
-    parent: &impl IsA<Window>,
+    parent: &impl IsA<gtk::Window>,
     title: &str,
-    inner_content: &impl IsA<Widget>,
+    inner_content: &impl IsA<gtk::Widget>,
 ) {
     ok_dialog(parent, title, inner_content, || CloseDialog::Yes);
 }
 
 pub fn ok_dialog_str_(
-    parent: &impl IsA<Window>,
+    parent: &impl IsA<gtk::Window>,
     title: &str,
     prompt: &str,
 ) {

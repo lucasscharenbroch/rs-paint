@@ -6,7 +6,6 @@ mod eyedropper;
 mod magic_wand;
 mod fill;
 
-use crate::ui::form::Form;
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};
 pub use mode_toolbar::ModeToolbar;
 

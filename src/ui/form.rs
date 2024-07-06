@@ -2,39 +2,39 @@ pub mod gadget;
 
 use crate::image::resize::ExpandJustification;
 
-use gtk::{prelude::*, Box as GBox, CheckButton, ColorDialog, ColorDialogButton, Entry, Label, Orientation, SpinButton, Widget};
+use gtk::prelude::*;
 use gtk::gdk::RGBA;
 use gtk::glib::object::IsA;
-use gtk::{glib, gio};
+use gtk::gio;
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
 
-fn new_label(text: &str) -> Label {
-    Label::builder()
+fn new_label(text: &str) -> gtk::Label {
+    gtk::Label::builder()
         .label(text)
         .valign(gtk::Align::Center)
         .build()
 }
 
 pub trait FormField {
-    fn outer_widget(&self) -> &impl IsA<Widget>;
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget>;
 }
 
 pub struct TextField {
-    text_box: Entry,
-    wrapper: GBox,
+    text_box: gtk::Entry,
+    wrapper: gtk::Box,
 }
 
 impl TextField {
     pub fn new(label: Option<&str>, default_text: &str, phantom_text: &str) -> Self {
-        let text_box = Entry::builder()
+        let text_box = gtk::Entry::builder()
             .placeholder_text(phantom_text)
             .text(default_text)
             .build();
 
-        let wrapper = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .spacing(4)
             .build();
 
@@ -53,24 +53,24 @@ impl TextField {
 }
 
 impl FormField for TextField {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.wrapper
     }
 }
 
 pub struct NaturalField {
-    num_entry: SpinButton,
-    wrapper: GBox,
+    num_entry: gtk::SpinButton,
+    wrapper: gtk::Box,
 }
 
 impl NaturalField {
     pub fn new(label: Option<&str>, min: usize, max: usize, step: usize, default_value: usize) -> Self {
-        let num_entry = SpinButton::with_range(min as f64, max as f64, step as f64);
+        let num_entry = gtk::SpinButton::with_range(min as f64, max as f64, step as f64);
         num_entry.set_valign(gtk::Align::Center);
         num_entry.set_value(default_value as f64);
 
-        let wrapper = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .spacing(4)
             .build();
 
@@ -104,29 +104,29 @@ impl NaturalField {
 }
 
 impl FormField for NaturalField {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.wrapper
     }
 }
 
 pub struct ColorField {
-    button: ColorDialogButton,
-    wrapper: GBox,
+    button: gtk::ColorDialogButton,
+    wrapper: gtk::Box,
 }
 
 impl ColorField {
     pub fn new(label: Option<&str>, default_color: RGBA) -> Self {
-        let dialog_props = ColorDialog::builder()
+        let dialog_props = gtk::ColorDialog::builder()
             .with_alpha(true)
             .build();
 
-        let button = ColorDialogButton::builder()
+        let button = gtk::ColorDialogButton::builder()
             .dialog(&dialog_props)
             .rgba(&default_color)
             .build();
 
-        let wrapper = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .spacing(4)
             .build();
 
@@ -145,18 +145,18 @@ impl ColorField {
 }
 
 impl FormField for ColorField {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.wrapper
     }
 }
 
 pub struct CheckboxField {
-    button: CheckButton,
+    button: gtk::CheckButton,
 }
 
 impl CheckboxField {
     pub fn new(label: Option<&str>, is_checked: bool) -> Self {
-        let button = CheckButton::builder()
+        let button = gtk::CheckButton::builder()
             .active(is_checked)
             .build();
 
@@ -180,14 +180,14 @@ impl CheckboxField {
 }
 
 impl FormField for CheckboxField {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.button
     }
 }
 
 pub struct RadioField<T> {
-    buttons: Vec<CheckButton>,
-    wrapper: GBox,
+    buttons: Vec<gtk::CheckButton>,
+    wrapper: gtk::Box,
     variants: Vec<T>,
 }
 
@@ -195,7 +195,7 @@ impl<T> RadioField<T> {
     pub fn new(label: Option<&str>, variants: Vec<(&str, T)>, default: usize) -> Self {
         let buttons = variants.iter().enumerate()
             .map(|(idx, (label_text, _x))| {
-            CheckButton::builder()
+            gtk::CheckButton::builder()
                 .label(*label_text)
                 .active(idx == default)
                 .build()
@@ -210,8 +210,8 @@ impl<T> RadioField<T> {
             .map(|(_, x)| x)
             .collect::<Vec<_>>();
 
-        let wrapper = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .spacing(4)
             .build();
 
@@ -238,14 +238,14 @@ impl<T> RadioField<T> {
 }
 
 impl<T> FormField for RadioField<T> {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.wrapper
     }
 }
 
 pub struct DropdownField<T> {
     dropdown: gtk::DropDown,
-    wrapper: GBox,
+    wrapper: gtk::Box,
     variants: Vec<T>,
 }
 
@@ -266,8 +266,8 @@ impl<T> DropdownField<T> {
             .map(|(_, x)| x)
             .collect::<Vec<_>>();
 
-        let wrapper = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .spacing(4)
             .build();
 
@@ -292,20 +292,20 @@ impl<T> DropdownField<T> {
 }
 
 impl<T> FormField for DropdownField<T> {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.wrapper
     }
 }
 
 pub struct SliderField {
     scale: gtk::Scale,
-    wrapper: GBox,
+    wrapper: gtk::Box,
 }
 
 impl SliderField {
     pub fn new(
         label: Option<&str>,
-        orientation: Orientation,
+        orientation: gtk::Orientation,
         min: usize,
         max: usize,
         step: usize,
@@ -315,8 +315,8 @@ impl SliderField {
         scale.set_value(default_value as f64);
         scale.set_width_request(100);
 
-        let wrapper = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .spacing(4)
             .build();
 
@@ -350,7 +350,7 @@ impl SliderField {
 }
 
 impl FormField for SliderField {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.wrapper
     }
 }
@@ -373,14 +373,14 @@ impl LabelField {
 }
 
 impl FormField for LabelField {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.label
     }
 }
 
 pub struct ExpandJustificationField {
     buttons: Rc<RefCell<Vec<gtk::ToggleButton>>>,
-    wrapper: GBox,
+    wrapper: gtk::Box,
 }
 
 impl ExpandJustificationField {
@@ -397,13 +397,13 @@ impl ExpandJustificationField {
     ];
 
     pub fn new(initial_value: ExpandJustification) -> Self {
-        let wrapper = GBox::builder()
-            .orientation(Orientation::Horizontal)
+        let wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
             .spacing(4)
             .build();
 
-        let inner_wrapper = GBox::builder()
-            .orientation(Orientation::Vertical)
+        let inner_wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
             .spacing(4)
             .build();
 
@@ -413,8 +413,8 @@ impl ExpandJustificationField {
         let mut buttons: Rc<RefCell<Vec<gtk::ToggleButton>>> = Rc::new(RefCell::new(vec![]));
 
         for r in 0..3 {
-            let row_widget = GBox::builder()
-                .orientation(Orientation::Horizontal)
+            let row_widget = gtk::Box::builder()
+                .orientation(gtk::Orientation::Horizontal)
                 .spacing(4)
                 .build();
 
@@ -458,7 +458,7 @@ impl ExpandJustificationField {
 }
 
 impl FormField for ExpandJustificationField {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.wrapper
     }
 }
@@ -480,7 +480,7 @@ impl CompositeField {
         R: FormField,
     {
         let widget = gtk::Box::builder()
-            .orientation(Orientation::Horizontal)
+            .orientation(gtk::Orientation::Horizontal)
             .build();
 
         widget.append(left.outer_widget());
@@ -501,13 +501,13 @@ impl CompositeField {
     }
 
     pub fn made_vertical(self) -> Self {
-        self.widget.set_orientation(Orientation::Vertical);
+        self.widget.set_orientation(gtk::Orientation::Vertical);
         self
     }
 }
 
 impl FormField for CompositeField {
-    fn outer_widget(&self) -> &impl IsA<Widget> {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
         &self.widget
     }
 }
@@ -542,7 +542,7 @@ impl Form {
         FormBuilder::new()
     }
 
-    pub fn widget(&self) -> &impl IsA<Widget> {
+    pub fn widget(&self) -> &impl IsA<gtk::Widget> {
         &self.widget
     }
 }
@@ -567,7 +567,7 @@ impl FormBuilderIsh for FormBuilder {
 impl FormBuilder {
     fn new() -> Self {
         let widget = gtk::Box::builder()
-            .orientation(Orientation::Vertical)
+            .orientation(gtk::Orientation::Vertical)
             .spacing(4)
             .build();
 
@@ -579,7 +579,7 @@ impl FormBuilder {
 
     pub fn build(self) -> Form {
         if let Some(title_str) = self.title {
-            let title_label = Label::builder()
+            let title_label = gtk::Label::builder()
                 .label(title_str)
                 .build();
 
@@ -616,7 +616,7 @@ impl FlowForm {
         FlowFormBuilder::new()
     }
 
-    pub fn widget(&self) -> &impl IsA<Widget> {
+    pub fn widget(&self) -> &impl IsA<gtk::Widget> {
         &self.widget
     }
 }
@@ -637,7 +637,7 @@ impl FormBuilderIsh for FlowFormBuilder {
 impl FlowFormBuilder {
     fn new() -> Self {
         let widget = gtk::FlowBox::builder()
-            .orientation(Orientation::Vertical)
+            .orientation(gtk::Orientation::Vertical)
             .row_spacing(4)
             .column_spacing(4)
             .selection_mode(gtk::SelectionMode::None)
@@ -651,7 +651,7 @@ impl FlowFormBuilder {
 
     pub fn build(self) -> FlowForm {
         if let Some(title_str) = self.title {
-            let title_label = Label::builder()
+            let title_label = gtk::Label::builder()
                 .label(title_str)
                 .build();
 
