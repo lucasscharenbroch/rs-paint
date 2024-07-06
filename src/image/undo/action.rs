@@ -1,4 +1,4 @@
-use crate::image::{DrawableImage, Image, LayerIndex, LayeredImage};
+use crate::image::{Image, LayerIndex, TrackedLayeredImage, LayeredImage};
 use super::{ImageDiff, ImageHistory, ImageStateDiff};
 
 #[derive(Debug)] // TODO remove/change
@@ -24,12 +24,8 @@ pub enum ActionName {
 
 pub trait DoableAction {
     fn name(&self) -> ActionName;
-    fn exec(self, image: &mut LayeredImage);
+    fn exec(self, image: &mut impl TrackedLayeredImage);
     // undo is imlpicit: it will be done by diffing the image
-}
-
-pub trait StaticDoableAction: DoableAction {
-    fn dyn_clone(&self) -> Box<dyn DoableAction>;
 }
 
 pub trait UndoableAction {

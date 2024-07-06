@@ -1,5 +1,6 @@
 use crate::ui::selection::Selection;
 use super::{Canvas, Toolbar};
+use crate::image::TrackedLayeredImage;
 
 use gtk::gdk::ModifierType;
 use gtk::cairo::Context;

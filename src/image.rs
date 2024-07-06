@@ -582,52 +582,6 @@ impl LayeredImage {
     }
 
     #[inline]
-    pub fn pix_at(&self, r: i32, c: i32) -> &Pixel {
-        let i = (r * self.width() + c) as usize;
-        &self.active_image().image.pixels[i]
-    }
-
-    #[inline]
-    pub fn pix_at_mut(&mut self, r: i32, c: i32) -> &mut Pixel {
-        let i = (r * self.width() + c) as usize;
-
-        let current_value = self.active_image().image.pixels[i].clone();
-        self.pix_modified_since_draw.entry(i).or_insert(current_value);
-
-        &mut self.active_image_mut().image.pixels[i]
-    }
-
-    #[inline]
-    pub fn try_pix_at(&mut self, r: i32, c: i32) -> Option<&Pixel> {
-        let image = &self.active_image().image;
-        if r < 0 || c < 0 || r as usize >= image.height || c as usize >= image.width {
-            None
-        } else {
-            Some(self.pix_at(r, c))
-        }
-    }
-
-    #[inline]
-    pub fn try_pix_at_mut(&mut self, r: i32, c: i32) -> Option<&mut Pixel> {
-        let image = &self.active_image().image;
-        if r < 0 || c < 0 || r as usize >= image.height || c as usize >= image.width {
-            None
-        } else {
-            Some(self.pix_at_mut(r, c))
-        }
-    }
-
-    #[inline]
-    pub fn width(&self) -> i32 {
-        self.active_image().image.width as i32
-    }
-
-    #[inline]
-    pub fn height(&self) -> i32 {
-        self.active_image().image.height as i32
-    }
-
-    #[inline]
     pub fn image(&self) -> &Image {
         &self.active_image().image
     }
@@ -798,5 +752,65 @@ impl LayeredImage {
     pub fn layer_names(&self) -> impl Iterator<Item = &str> + '_ {
         std::iter::once(self.base_layer.info.layer_name.as_str())
         .chain(self.other_layers.iter().map(|layer| layer.info.layer_name.as_str()))
+    }
+}
+
+/// An interface of `LayeredImage` that only exposes
+/// undoable operations (used by `DoableAction`)
+pub trait TrackedLayeredImage {
+    fn pix_at(&self, r: i32, c: i32) -> &Pixel;
+    fn pix_at_mut(&mut self, r: i32, c: i32) -> &mut Pixel;
+    fn try_pix_at(&self, r: i32, c: i32) -> Option<&Pixel>;
+    fn try_pix_at_mut(&mut self, r: i32, c: i32) -> Option<&mut Pixel>;
+    fn width(&self) -> i32;
+    fn height(&self) -> i32;
+}
+
+
+impl TrackedLayeredImage for LayeredImage {
+    #[inline]
+    fn pix_at(&self, r: i32, c: i32) -> &Pixel {
+        let i = (r * self.width() + c) as usize;
+        &self.active_image().image.pixels[i]
+    }
+
+    #[inline]
+    fn pix_at_mut(&mut self, r: i32, c: i32) -> &mut Pixel {
+        let i = (r * self.width() + c) as usize;
+
+        let current_value = self.active_image().image.pixels[i].clone();
+        self.pix_modified_since_draw.entry(i).or_insert(current_value);
+
+        &mut self.active_image_mut().image.pixels[i]
+    }
+
+    #[inline]
+    fn try_pix_at(&self, r: i32, c: i32) -> Option<&Pixel> {
+        let image = &self.active_image().image;
+        if r < 0 || c < 0 || r as usize >= image.height || c as usize >= image.width {
+            None
+        } else {
+            Some(self.pix_at(r, c))
+        }
+    }
+
+    #[inline]
+    fn try_pix_at_mut(&mut self, r: i32, c: i32) -> Option<&mut Pixel> {
+        let image = &self.active_image().image;
+        if r < 0 || c < 0 || r as usize >= image.height || c as usize >= image.width {
+            None
+        } else {
+            Some(self.pix_at_mut(r, c))
+        }
+    }
+
+    #[inline]
+    fn width(&self) -> i32 {
+        self.active_image().image.width as i32
+    }
+
+    #[inline]
+    fn height(&self) -> i32 {
+        self.active_image().image.height as i32
     }
 }

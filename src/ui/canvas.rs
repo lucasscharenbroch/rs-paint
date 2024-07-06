@@ -1,7 +1,7 @@
 use crate::image::undo::action::{DoableAction, UndoableAction};
 use crate::image::LayerIndex;
 
-use super::super::image::{Image, LayeredImage, DrawableImage, mk_transparent_checkerboard};
+use super::super::image::{Image, LayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::bitmask::DeletePix;
 use super::super::image::undo::{ImageHistory, action::ActionName};
 use super::super::image::resize::Crop;

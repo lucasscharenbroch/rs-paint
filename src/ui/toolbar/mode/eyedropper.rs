@@ -1,5 +1,6 @@
 use super::{Canvas, Toolbar};
 use crate::image::ImageLike;
+use crate::image::TrackedLayeredImage;
 
 use gtk::gdk::ModifierType;
 use gtk::cairo::Context;

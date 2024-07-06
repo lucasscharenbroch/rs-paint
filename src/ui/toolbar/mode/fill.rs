@@ -1,6 +1,7 @@
 use crate::image::{bitmask::ImageBitmask, Pixel};
 use super::{Canvas, Toolbar};
 use crate::image::undo::action::ActionName;
+use crate::image::TrackedLayeredImage;
 
 use gtk::gdk::{RGBA, ModifierType};
 

@@ -349,7 +349,7 @@ impl<I> DoableAction for DeletePix<I>
 where
     I: Iterator<Item = (usize, usize)>
 {
-    fn exec(self, image: &mut crate::image::LayeredImage) {
+    fn exec(self, image: &mut impl crate::image::TrackedLayeredImage) {
         for (r, c) in self.pix_iter {
             *image.pix_at_mut(r as i32, c as i32) = Pixel::from_rgba(0, 0, 0, 0);
         }

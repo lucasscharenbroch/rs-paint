@@ -1,5 +1,5 @@
-use super::undo::action::{ActionName, DoableAction, StaticDoableAction, UndoableAction, StaticUndoableAction};
-use super::{FusedImageLayer, Image, ImageLike, ImageLikeUnchecked, LayeredImage, Pixel,};
+use super::undo::action::{ActionName, DoableAction, UndoableAction, StaticUndoableAction};
+use super::{FusedImageLayer, Image, ImageLike, ImageLikeUnchecked, TrackedLayeredImage, Pixel,};
 
 use gtk::gdk::RGBA;
 use itertools::{Itertools, Either};
@@ -24,12 +24,6 @@ impl Scale {
             h,
             method
         }
-    }
-}
-
-impl StaticDoableAction for Scale {
-    fn dyn_clone(&self) -> Box<dyn DoableAction> {
-        Box::new(self.clone())
     }
 }
 
@@ -59,7 +53,7 @@ impl DoableAction for Scale {
         ActionName::Scale
     }
 
-    fn exec(self, image: &mut LayeredImage) {
+    fn exec(self, image: &mut impl TrackedLayeredImage) {
         todo!()
         /* TODO implement size modification for `LayeredImages`s
         match self.method {
