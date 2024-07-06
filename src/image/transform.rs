@@ -1,4 +1,4 @@
-use super::undo::action::{UndoableAction, StaticUndoableAction, ActionName};
+use super::undo::action::{MultiUndoableAction, ActionName};
 use super::Image;
 
 #[derive(Clone)]
@@ -8,18 +8,18 @@ pub enum Flip {
     Transpose,
 }
 
-impl StaticUndoableAction for Flip {
-    fn dyn_clone(&self) -> Box<dyn UndoableAction> {
-        Box::new(self.clone())
-    }
-}
+impl MultiUndoableAction for Flip {
+    type LayerData = ();
 
-impl UndoableAction for Flip {
+    fn new_layer_data(&self, _image: &mut Image) -> Self::LayerData {
+        ()
+    }
+
     fn name(&self) -> ActionName {
         ActionName::Flip
     }
 
-    fn exec(&mut self, image: &mut Image) {
+    fn exec(&mut self, _layer_data: &mut (), image: &mut Image) {
         let height = image.height;
         let width = image.width;
 
@@ -58,12 +58,11 @@ impl UndoableAction for Flip {
         }
     }
 
-    fn undo(&mut self, image: &mut Image) {
+    fn undo(&mut self, _layer_data: &mut (), image: &mut Image) {
         // flips are their own inverse
-        self.exec(image)
+        self.exec(&mut(), image);
     }
 }
-
 
 #[derive(Clone)]
 pub enum Rotate {
@@ -83,35 +82,35 @@ impl Rotate {
     }
 }
 
-impl UndoableAction for Rotate {
+impl MultiUndoableAction for Rotate {
+    type LayerData = ();
+
+    fn new_layer_data(&self, _image: &mut Image) -> Self::LayerData {
+        ()
+    }
+
     fn name(&self) -> ActionName {
         ActionName::Rotate
     }
 
-    fn exec(&mut self, image: &mut Image) {
+    fn exec(&mut self, _layer_data: &mut (), image: &mut Image) {
         match self {
             Self::OneEighty => {
                 // dimensions remain the same, flat pixel vector is reversed
                 image.pixels.reverse()
             }
             Self::Clockwise => {
-                Flip::Transpose.exec(image);
-                Flip::Horizontal.exec(image);
+                Flip::Transpose.exec(&mut (), image);
+                Flip::Horizontal.exec(&mut (), image);
             },
             Self::CounterClockwise => {
-                Flip::Transpose.exec(image);
-                Flip::Vertical.exec(image);
+                Flip::Transpose.exec(&mut(), image);
+                Flip::Vertical.exec(&mut(), image);
             },
         }
     }
 
-    fn undo(&mut self, image: &mut Image) {
-        self.invert().exec(image)
-    }
-}
-
-impl StaticUndoableAction for Rotate {
-    fn dyn_clone(&self) -> Box<dyn UndoableAction> {
-        Box::new(self.clone())
+    fn undo(&mut self, _layer_data: &mut (), image: &mut Image) {
+        self.invert().exec(&mut(), image)
     }
 }

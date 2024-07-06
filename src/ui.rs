@@ -466,7 +466,7 @@ impl UiState {
         if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
             expand_dialog(&ui_p.borrow().window, clone!(@strong ui_p => move |action| {
                 if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-                    canvas_p.borrow_mut().exec_undoable_action(Box::new(action));
+                    canvas_p.borrow_mut().exec_multi_undoable_action(Box::new(action));
                 }
             }));
         }
@@ -501,7 +501,7 @@ impl UiState {
                                 )
                             } else {
                                 let (x, y, w, h) = (x as usize, y as usize, w as usize, h as usize);
-                                canvas_p.borrow_mut().exec_undoable_action(Box::new(Crop::new(x, y, w, h)));
+                                canvas_p.borrow_mut().exec_multi_undoable_action(Box::new(Crop::new(x, y, w, h)));
                             }
                         }
                     }

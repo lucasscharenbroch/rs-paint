@@ -1,4 +1,4 @@
-use super::undo::action::{ActionName, DoableAction, UndoableAction, StaticUndoableAction};
+use super::undo::action::{ActionName, DoableAction, MultiUndoableAction, StaticMultiUndoableAction};
 use super::{FusedImageLayer, Image, ImageLike, ImageLikeUnchecked, TrackedLayeredImage, Pixel,};
 
 use gtk::gdk::RGBA;
@@ -55,7 +55,7 @@ impl DoableAction for Scale {
 
     fn exec(self, image: &mut impl TrackedLayeredImage) {
         todo!()
-        /* TODO implement size modification for `LayeredImages`s
+        /* TODO add full-image back-up mechanism to TrackedLayeredImage
         match self.method {
             ScaleMethod::NearestNeighbor => self.exec_scale_with_fn(image, nearest_neighbor),
             ScaleMethod::Bilinear => self.exec_scale_with_fn(image, bilinear),
@@ -253,7 +253,7 @@ impl ExpandJustification {
 }
 
 #[derive(Clone)]
-struct ExpandUndoInfo {
+pub struct ExpandUndoInfo {
     old_w: usize,
     old_h: usize,
 }
@@ -264,7 +264,6 @@ pub struct Expand {
     added_h: usize,
     justification: ExpandJustification,
     new_pix_color: RGBA,
-    undo_info: Option<ExpandUndoInfo>,
 }
 
 impl Expand {
@@ -279,22 +278,27 @@ impl Expand {
             added_w,
             justification,
             new_pix_color,
-            undo_info: None,
         }
     }
 }
 
-impl UndoableAction for Expand {
+impl MultiUndoableAction for Expand {
+    type LayerData = Option<ExpandUndoInfo>;
+
+    fn new_layer_data(&self, image: &mut Image) -> Self::LayerData {
+        None
+    }
+
     fn name(&self) -> ActionName {
         ActionName::Expand
     }
 
-    fn exec(&mut self, image: &mut Image) {
+    fn exec(&mut self, undo_info: &mut Option<ExpandUndoInfo>, image: &mut Image) {
         let old_w = image.width;
         let old_h = image.height;
 
-        if let None = self.undo_info {
-            self.undo_info = Some(ExpandUndoInfo {
+        if let None = undo_info {
+            *undo_info = Some(ExpandUndoInfo {
                 old_h,
                 old_w,
             });
@@ -322,8 +326,8 @@ impl UndoableAction for Expand {
         image.height = new_h;
     }
 
-    fn undo(&mut self, image: &mut Image) {
-        let undo_info = self.undo_info.as_ref().unwrap();
+    fn undo(&mut self, undo_info: &mut Option<ExpandUndoInfo>, image: &mut Image) {
+        let undo_info = undo_info.as_ref().unwrap();
         let old_w = undo_info.old_w;
         let old_h = undo_info.old_h;
         let old_sz = old_w * old_h;
@@ -342,12 +346,7 @@ impl UndoableAction for Expand {
     }
 }
 
-impl StaticUndoableAction for Expand {
-    fn dyn_clone(&self) -> Box<dyn UndoableAction> {
-        Box::new(self.clone())
-    }
-}
-struct CropUndoInfo {
+pub struct CropUndoInfo {
     old_w: usize,
     old_h: usize,
     scrapped_pixels: Vec<Pixel>,
@@ -358,14 +357,12 @@ pub struct Crop {
     y: usize,
     w: usize,
     h: usize,
-    undo_info: Option<CropUndoInfo>,
 }
 
 impl Crop {
     pub fn new(x: usize, y: usize, w: usize, h: usize) -> Self {
         Crop {
             x, y, w, h,
-            undo_info: None,
         }
     }
 
@@ -377,13 +374,19 @@ impl Crop {
     }
 }
 
-impl UndoableAction for Crop {
+impl MultiUndoableAction for Crop {
+    type LayerData = Option<CropUndoInfo>;
+
+    fn new_layer_data(&self, image: &mut Image) -> Self::LayerData {
+        None
+    }
+
     fn name(&self) -> ActionName {
         ActionName::Crop
     }
 
-    fn exec(&mut self, image: &mut Image) {
-        let kept_pixels = if let None = self.undo_info {
+    fn exec(&mut self, undo_info: &mut Option<CropUndoInfo>, image: &mut Image) {
+        let kept_pixels = if let None = undo_info {
             // only record undo_info on the first execution
 
             let old_h = image.height;
@@ -398,7 +401,7 @@ impl UndoableAction for Crop {
                     }
                 });
 
-            self.undo_info = Some(CropUndoInfo {
+            *undo_info = Some(CropUndoInfo {
                 old_h,
                 old_w,
                 scrapped_pixels,
@@ -406,7 +409,7 @@ impl UndoableAction for Crop {
 
             kept_pixels
         } else {
-            let old_w = self.undo_info.as_ref().unwrap().old_w;
+            let old_w = undo_info.as_ref().unwrap().old_w;
 
             image.pixels.iter()
                 .enumerate()
@@ -425,8 +428,8 @@ impl UndoableAction for Crop {
         image.pixels = kept_pixels;
     }
 
-    fn undo(&mut self, image: &mut Image) {
-        let undo_info = self.undo_info.as_ref().unwrap();
+    fn undo(&mut self, undo_info: &mut Option<CropUndoInfo>, image: &mut Image) {
+        let undo_info = undo_info.as_ref().unwrap();
         let old_sz = undo_info.old_h * undo_info.old_w;
 
         let mut old_pix = Vec::with_capacity(old_sz);

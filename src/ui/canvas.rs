@@ -1,4 +1,4 @@
-use crate::image::undo::action::{DoableAction, UndoableAction};
+use crate::image::undo::action::{DoableAction, MultiUndoableAction, UndoableAction};
 use crate::image::LayerIndex;
 
 use super::super::image::{Image, LayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
@@ -638,11 +638,18 @@ impl Canvas {
         self.update();
     }
 
-    pub fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction>) {
+    pub fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction<Image>>) {
         self.image_hist.exec_undoable_action(action);
         self.save_cursor_pos_after_history_commit();
         self.update();
     }
+
+    pub fn exec_multi_undoable_action<D: 'static>(&mut self, action: Box<dyn MultiUndoableAction<LayerData = D>>) {
+        self.image_hist.exec_multi_undoable_action(action);
+        self.save_cursor_pos_after_history_commit();
+        self.update();
+    }
+
 
     pub fn history_widget(&self) -> &impl IsA<gtk::Widget> {
         self.image_hist.widget_scrolled_to_active_commit()
@@ -662,7 +669,7 @@ impl Canvas {
         }
 
         let crop = Crop::new(x, y, w, h);
-        self.exec_undoable_action(Box::new(crop));
+        self.exec_multi_undoable_action(Box::new(crop));
     }
 
     pub fn delete_selection(&mut self) {

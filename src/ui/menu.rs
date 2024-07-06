@@ -1,4 +1,4 @@
-use crate::image::undo::action::{StaticUndoableAction, UndoableAction};
+use crate::image::undo::action::StaticMultiUndoableAction;
 use crate::image::transform::*;
 
 use super::dialog::{about_dialog, keyboard_shortcuts_dialog};
@@ -68,10 +68,10 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (gio::Menu, Vec<gio::SimpleAct
 
     // image menu helpers
 
-    let mk_do_uaction = clone!(@strong ui_state => move |uaction: Box<dyn StaticUndoableAction>| {
+    let mk_do_uaction = clone!(@strong ui_state => move |uaction: Box<dyn StaticMultiUndoableAction<_, LayerData = _>>| {
         clone!(@strong ui_state => move || {
             if let Some(canvas_p) = ui_state.borrow().active_canvas_p() {
-                canvas_p.borrow_mut().exec_undoable_action(uaction.dyn_clone());
+                canvas_p.borrow_mut().exec_multi_undoable_action(uaction.dyn_clone());
             }
         })
     });

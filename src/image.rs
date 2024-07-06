@@ -130,6 +130,45 @@ pub trait ImageLike {
     fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel>;
 }
 
+/// An extension of `ImageLike` that provides `pix_at`,
+/// which foregoes a bounds-check (solely for efficiency).
+/// Minimal implementation: `pix_at` OR `pix_at_flat`
+/// (implementing `pix_at_flat` is more efficient)
+pub trait ImageLikeUnchecked: ImageLike + {
+    #[inline]
+    fn pix_at(&self, r: usize, c: usize) -> &Pixel {
+        self.pix_at_flat(r * self.width() + c)
+    }
+
+    #[inline]
+    fn pix_at_flat(&self, i:usize) -> &Pixel {
+        self.pix_at(i / self.width(), i % self.width())
+    }
+}
+
+/// An unresizable image interface that allows modification of pixels
+pub trait ImageLikeMut: ImageLike + {
+    fn try_pix_at_mut(&mut self, r: usize, c: usize) -> Option<&mut Pixel>;
+}
+
+/// An extension of `ImageLikeMut` that provides `pix_at_mut`,
+/// which foregoes a bounds-check (solely for efficiency).
+/// Minimal implementation: `pix_at_mut` OR `pix_at_mut_flat`
+/// (implementing `pix_at_flat` is more efficient)
+trait ImageLikeUncheckedMut: ImageLikeUnchecked + ImageLikeMut + {
+    #[inline]
+    fn pix_at_mut(&mut self, r: usize, c: usize) -> &mut Pixel {
+        self.pix_at_mut_flat(r * self.width() + c)
+    }
+
+    #[inline]
+    fn pix_at_mut_flat(&mut self, i:usize) -> &mut Pixel {
+        self.pix_at_mut(i / self.width(), i % self.width())
+    }
+}
+
+// Trait implementations for `Image`
+
 impl ImageLike for Image {
     #[inline]
     fn width(&self) -> usize {
@@ -151,26 +190,13 @@ impl ImageLike for Image {
     }
 }
 
-/// An extension of `ImageLike` that provides `pix_at`,
-/// which foregoes a bounds-check (solely for efficiency)
-pub trait ImageLikeUnchecked: ImageLike + {
-    fn pix_at(&self, r: usize, c: usize) -> &Pixel;
-}
-
 impl ImageLikeUnchecked for Image {
     #[inline]
-    fn pix_at(&self, r: usize, c: usize) -> &Pixel {
-        &self.pixels[r * self.width + c]
+    fn pix_at_flat(&self, i: usize) -> &Pixel {
+        &self.pixels[i]
     }
 }
 
-/// An unresizable image interface that allows modification of pixels
-pub trait ImageLikeMut: ImageLike + {
-    fn try_pix_at_mut(&mut self, r: usize, c: usize) -> Option<&mut Pixel>;
-}
-
-/// An extension of `ImageLikeMut` that provides `pix_at_mut`,
-/// which foregoes a bounds-check (solely for efficiency)
 impl ImageLikeMut for Image {
     #[inline]
     fn try_pix_at_mut(&mut self, r: usize, c: usize) -> Option<&mut Pixel> {
@@ -182,14 +208,10 @@ impl ImageLikeMut for Image {
     }
 }
 
-trait ImageLikeUncheckedMut: ImageLikeUnchecked + ImageLikeMut + {
-    fn pix_at_mut(&mut self, r: usize, c: usize) -> &mut Pixel;
-}
-
 impl ImageLikeUncheckedMut for Image {
     #[inline]
-    fn pix_at_mut(&mut self, r: usize, c: usize) -> &mut Pixel {
-        &mut self.pixels[r * self.width + c]
+    fn pix_at_mut_flat(&mut self, i: usize) -> &mut Pixel {
+        &mut self.pixels[i]
     }
 }
 
