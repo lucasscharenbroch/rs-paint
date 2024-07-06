@@ -1,5 +1,5 @@
 use super::undo::action::{ActionName, DoableAction, StaticDoableAction, UndoableAction, StaticUndoableAction};
-use super::{FusedImageLayer, Image, ImageLike, LayeredImage, Pixel};
+use super::{FusedImageLayer, Image, ImageLike, ImageLikeUnchecked, LayeredImage, Pixel,};
 
 use gtk::gdk::RGBA;
 use itertools::{Itertools, Either};

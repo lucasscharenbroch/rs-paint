@@ -6,7 +6,7 @@ use super::{ImageLayer, LayerIndex, LayeredImage, Pixel};
 use tree::UndoTree;
 use action::ActionName;
 
-use std::{cell::RefCell, collections::HashMap};
+use std::collections::HashMap;
 use std::rc::Rc;
 use gtk::{prelude::*, Widget};
 
@@ -17,8 +17,7 @@ enum ImageDiff {
     AppendLayer(gtk::gdk::RGBA, LayerIndex),
     RemoveLayer(ImageLayer, LayerIndex),
     SwapLayers(LayerIndex, LayerIndex),
-    /// MergeLayers(save_top_image, top_index, save_bottom_image, bottom_index)
-    MergeLayers(ImageLayer, LayerIndex, ImageLayer, LayerIndex),
+    MergeLayers(ImageLayer, LayerIndex, ImageLayer, LayerIndex), /// (save_top_image, top_index, save_bottom_image, bottom_index)
     Null,
 }
 
