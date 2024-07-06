@@ -1,4 +1,4 @@
-use super::undo::action::{ActionName, DoableAction, MultiUndoableAction, StaticMultiUndoableAction};
+use super::undo::action::{ActionName, AutoDiffAction, MultiLayerAction};
 use super::{FusedImageLayer, Image, ImageLike, ImageLikeUnchecked, TrackedLayeredImage, Pixel,};
 
 use gtk::gdk::RGBA;
@@ -48,7 +48,7 @@ impl Scale {
     }
 }
 
-impl DoableAction for Scale {
+impl AutoDiffAction for Scale {
     fn name(&self) -> ActionName {
         ActionName::Scale
     }
@@ -282,7 +282,7 @@ impl Expand {
     }
 }
 
-impl MultiUndoableAction for Expand {
+impl MultiLayerAction for Expand {
     type LayerData = Option<ExpandUndoInfo>;
 
     fn new_layer_data(&self, image: &mut Image) -> Self::LayerData {
@@ -374,7 +374,7 @@ impl Crop {
     }
 }
 
-impl MultiUndoableAction for Crop {
+impl MultiLayerAction for Crop {
     type LayerData = Option<CropUndoInfo>;
 
     fn new_layer_data(&self, image: &mut Image) -> Self::LayerData {

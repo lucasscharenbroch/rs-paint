@@ -1,4 +1,4 @@
-use crate::image::undo::action::{DoableAction, MultiUndoableAction, UndoableAction};
+use crate::image::undo::action::{AutoDiffAction, MultiLayerAction, SingleLayerAction};
 use crate::image::LayerIndex;
 
 use super::super::image::{Image, LayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
@@ -624,27 +624,27 @@ impl Canvas {
         );
     }
 
-    pub fn save_state_for_undo(&mut self, culprit: ActionName) {
+    pub fn commit_changes(&mut self, culprit: ActionName) {
         self.image_hist.push_current_state(culprit);
         self.save_cursor_pos_after_history_commit();
     }
 
     pub fn exec_doable_action<A>(&mut self, action: A)
     where
-        A: DoableAction,
+        A: AutoDiffAction,
     {
         self.image_hist.exec_doable_action(action);
         self.save_cursor_pos_after_history_commit();
         self.update();
     }
 
-    pub fn exec_undoable_action(&mut self, action: Box<dyn UndoableAction<Image>>) {
+    pub fn exec_undoable_action(&mut self, action: Box<dyn SingleLayerAction<Image>>) {
         self.image_hist.exec_undoable_action(action);
         self.save_cursor_pos_after_history_commit();
         self.update();
     }
 
-    pub fn exec_multi_undoable_action<D: 'static>(&mut self, action: Box<dyn MultiUndoableAction<LayerData = D>>) {
+    pub fn exec_multi_undoable_action<D: 'static>(&mut self, action: Box<dyn MultiLayerAction<LayerData = D>>) {
         self.image_hist.exec_multi_undoable_action(action);
         self.save_cursor_pos_after_history_commit();
         self.update();

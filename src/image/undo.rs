@@ -1,10 +1,10 @@
 pub mod action;
 mod tree;
 
-use self::action::UndoableAction;
+use self::action::SingleLayerAction;
 use super::{Image, ImageLayer, LayerIndex, LayeredImage, Pixel};
 use tree::UndoTree;
-use action::{ActionName, MultiUndoableActionWrapper};
+use action::{ActionName, MultiLayerActionWrapper};
 
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -13,12 +13,12 @@ use gtk::{prelude::*, Widget};
 enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>, LayerIndex), // [(pos, old_pix, new_pix)], layer#
     // FullCopy(Image, Image), // (before, after)
-    SingleManualUndo(Box<dyn UndoableAction<Image>>, LayerIndex),
+    SingleLayerManualUndo(Box<dyn SingleLayerAction<Image>>, LayerIndex),
     AppendLayer(gtk::gdk::RGBA, LayerIndex),
     RemoveLayer(ImageLayer, LayerIndex),
     SwapLayers(LayerIndex, LayerIndex),
     MergeLayers(ImageLayer, LayerIndex, ImageLayer, LayerIndex), /// (save_top_image, top_index, save_bottom_image, bottom_index)
-    MultiManualUndo(MultiUndoableActionWrapper),
+    MultiLayerManualUndo(MultiLayerActionWrapper),
     Null,
 }
 
@@ -48,7 +48,7 @@ impl ImageDiff {
                     image.update_drawable_and_layer_at(*i, *layer);
                 }
             },
-            ImageDiff::SingleManualUndo(action, layer) => {
+            ImageDiff::SingleLayerManualUndo(action, layer) => {
                 image.apply_action(action, *layer);
             },
             ImageDiff::AppendLayer(color, idx) => {
@@ -63,8 +63,8 @@ impl ImageDiff {
             ImageDiff::MergeLayers(_save_top, top_idx, _save_bot, bot_idx) => {
                 image.merge_layers(*top_idx, *bot_idx);
             },
-            ImageDiff::MultiManualUndo(mmu_struct) => {
-                mmu_struct.exec(image);
+            ImageDiff::MultiLayerManualUndo(action_struct) => {
+                action_struct.exec(image);
                 image.re_compute_all_drawables();
             }
             ImageDiff::Null => (),
@@ -79,7 +79,7 @@ impl ImageDiff {
                     image.update_drawable_and_layer_at(*i, *layer);
                 }
             },
-            ImageDiff::SingleManualUndo(action, layer) => {
+            ImageDiff::SingleLayerManualUndo(action, layer) => {
                 image.unapply_action(action, *layer);
             },
             ImageDiff::AppendLayer(_color, idx) => {
@@ -97,8 +97,8 @@ impl ImageDiff {
                 image.fused_image_at_layer_mut(*bot_index).info = save_bot.info.clone();
                 image.re_compute_active_drawables();
             },
-            ImageDiff::MultiManualUndo(mmu_struct) => {
-                mmu_struct.undo(image);
+            ImageDiff::MultiLayerManualUndo(action_struct) => {
+                action_struct.undo(image);
                 image.re_compute_all_drawables();
             }
             ImageDiff::Null => (),

@@ -29,7 +29,7 @@ impl FillState {
             *image.pix_at_mut(r as i32, c as i32) = p.clone();
         }
 
-        canvas.save_state_for_undo(ActionName::Fill);
+        canvas.commit_changes(ActionName::Fill);
         canvas.update()
     }
 }

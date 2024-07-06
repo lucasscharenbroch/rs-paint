@@ -287,7 +287,7 @@ impl PencilState {
             PencilMode::PencilUp => (),
         }
 
-        canvas.save_state_for_undo(ActionName::Pencil);
+        canvas.commit_changes(ActionName::Pencil);
         canvas.clear_pencil_mask();
     }
 }

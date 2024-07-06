@@ -1,4 +1,4 @@
-use super::undo::action::{MultiUndoableAction, ActionName};
+use super::undo::action::{MultiLayerAction, ActionName};
 use super::Image;
 
 #[derive(Clone)]
@@ -8,7 +8,7 @@ pub enum Flip {
     Transpose,
 }
 
-impl MultiUndoableAction for Flip {
+impl MultiLayerAction for Flip {
     type LayerData = ();
 
     fn new_layer_data(&self, _image: &mut Image) -> Self::LayerData {
@@ -82,7 +82,7 @@ impl Rotate {
     }
 }
 
-impl MultiUndoableAction for Rotate {
+impl MultiLayerAction for Rotate {
     type LayerData = ();
 
     fn new_layer_data(&self, _image: &mut Image) -> Self::LayerData {

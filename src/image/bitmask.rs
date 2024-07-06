@@ -2,7 +2,7 @@ use std::collections::{VecDeque, HashMap};
 use gtk::cairo;
 
 use super::{Image, ImageLike, Pixel};
-use super::undo::action::{DoableAction, ActionName};
+use super::undo::action::{AutoDiffAction, ActionName};
 
 /// Wrapper for flattened Vec<bool>; instances should
 /// be viewed as immutable, else the cached `outline_path`
@@ -345,7 +345,7 @@ where
     }
 }
 
-impl<I> DoableAction for DeletePix<I>
+impl<I> AutoDiffAction for DeletePix<I>
 where
     I: Iterator<Item = (usize, usize)>
 {
