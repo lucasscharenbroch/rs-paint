@@ -297,7 +297,7 @@ impl UiState {
         // ctrl + shift + ...
         if mod_keys == gdk::ModifierType::CONTROL_MASK.union(gdk::ModifierType::SHIFT_MASK) {
             match key {
-                gdk::Key::P => Self::import_project(ui_p.clone()),
+                gdk::Key::L => Self::load_project(ui_p.clone()),
                 gdk::Key::S => Self::save_project_as(ui_p.clone()),
                 _ => (),
             }

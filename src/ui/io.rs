@@ -129,11 +129,11 @@ impl UiState {
         }))
     }
 
-    pub fn import_project(ui_p: Rc<RefCell<UiState>>) {
+    pub fn load_project(ui_p: Rc<RefCell<UiState>>) {
         let valid_filetypes = mk_file_filter_list(image_project_formats());
 
-        choose_file_dialog(&ui_p.borrow().window, "Choose a project to import",
-                    "Import", &valid_filetypes, false,
+        choose_file_dialog(&ui_p.borrow().window, "Choose a project to load",
+                    "Load", &valid_filetypes, false,
                     clone!(@strong ui_p => move |res| {
             if let Ok(res) = res {
                 let path = res.path().unwrap();
@@ -147,8 +147,8 @@ impl UiState {
                     Err(mesg) => {
                         ok_dialog_str_(
                             ui_p.borrow().window(),
-                            "Import Error",
-                            format!("Error while importing project: {}", mesg).as_str()
+                            "Load Error",
+                            format!("Error while loading project: {}", mesg).as_str()
                         );
                     }
                 }
