@@ -63,7 +63,7 @@ impl UndoNode {
     fn new(parent_p: &Rc<UndoNode>, diff: ImageStateDiff) -> Self {
         let parent = Some(Rc::downgrade(parent_p));
 
-        let label = Label::new(Some(format!("{:?}", diff.culprit).as_str()));
+        let label = Label::new(Some(diff.culprit.to_str()));
         let button = Self::new_button(&label);
         let widget = Self::new_widget(&button);
 

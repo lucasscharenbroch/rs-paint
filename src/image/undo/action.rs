@@ -3,7 +3,6 @@ use super::{ImageDiff, ImageHistory, ImageStateDiff};
 
 use std::any::Any;
 
-#[derive(Debug)] // TODO remove/change
 // The algorithm that causes an undo commit:
 // solely used for display
 pub enum ActionName {
@@ -22,6 +21,27 @@ pub enum ActionName {
     RemoveLayer,
     RearrangeLayers,
     MergeLayers,
+}
+
+impl ActionName {
+    pub fn to_str(&self) -> &str {
+        match self {
+            Self::Anonymous => "Anonyous",
+            Self::Pencil => "Pencil",
+            Self::Fill => "Fill",
+            Self::Delete => "Delete",
+            Self::Rotate => "Rotate",
+            Self::Flip => "Flip",
+            Self::Scale => "Scale",
+            Self::LevelShift => "Level Shift",
+            Self::Crop => "Crop",
+            Self::Expand => "Expand",
+            Self::AppendLayer => "Append Layer",
+            Self::RemoveLayer => "Remove Layer",
+            Self::RearrangeLayers => "Rearrange Layers",
+            Self::MergeLayers => "Merge Layers",
+        }
+    }
 }
 
 /// An action that uses the automatic undo/redo in `LayeredImage`
