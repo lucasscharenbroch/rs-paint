@@ -267,7 +267,7 @@ impl ImageHistory {
         }
 
         let image_diff = ImageDiff::RemoveLayer(
-            self.now().fused_image_at_layer(idx).unfuse(),
+            self.now().fused_image_at_layer(idx).unfused(),
             idx,
         );
 
@@ -290,9 +290,9 @@ impl ImageHistory {
         }
 
         let image_diff = ImageDiff::MergeLayers(
-            self.now().fused_image_at_layer(top_index).unfuse(),
+            self.now().fused_image_at_layer(top_index).unfused(),
             top_index,
-            self.now().fused_image_at_layer(bottom_index).unfuse(),
+            self.now().fused_image_at_layer(bottom_index).unfused(),
             bottom_index,
         );
 

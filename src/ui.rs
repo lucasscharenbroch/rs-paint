@@ -11,7 +11,7 @@ mod layer_window;
 use canvas::Canvas;
 use toolbar::Toolbar;
 use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, truncate_dialog, close_dialog, ok_dialog_str_, scale_dialog, CloseDialog};
-use crate::image::{generate::{generate, NewImageProps}, Image, FusedLayeredImage};
+use crate::image::{generate::{generate, NewImageProps}, Image, FusedLayeredImage, io::LayeredImage};
 use crate::image::resize::Crop;
 use tab::{Tab, Tabbar};
 use toolbar::mode::{MouseMode, RectangleSelectMode};
@@ -180,6 +180,16 @@ impl UiState {
 
     fn new_tab(ui_p: &Rc<RefCell<UiState>>, image: Image, name: &str) -> usize {
         let canvas_p = Canvas::new_p(&ui_p, FusedLayeredImage::from_image(image));
+        let new_tab = Tab::new(&canvas_p, name);
+        let new_idx = ui_p.borrow().tabbar.tabs.len();
+        ui_p.borrow_mut().tabbar.tabs.push(new_tab);
+        ui_p.borrow_mut().set_tab(new_idx);
+        Self::update_tabbar_widget(ui_p);
+        new_idx
+    }
+
+    fn new_tab_from_layered_image(ui_p: &Rc<RefCell<UiState>>, layered_image: LayeredImage, name: &str) -> usize {
+        let canvas_p = Canvas::new_p(&ui_p, FusedLayeredImage::from_layered_image(layered_image));
         let new_tab = Tab::new(&canvas_p, name);
         let new_idx = ui_p.borrow().tabbar.tabs.len();
         ui_p.borrow_mut().tabbar.tabs.push(new_tab);

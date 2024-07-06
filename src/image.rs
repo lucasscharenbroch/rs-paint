@@ -12,10 +12,12 @@ use std::collections::HashMap;
 use gtk::cairo;
 use gtk::gdk::RGBA;
 
+use serde_derive::{Serialize, Deserialize};
+
 /// The ambivalent (r, g, b, a) pixel type, used for
 /// importing and drawing (it cannot be directly displayed to cairo,
 /// though: use `DrawablePixel` (and `DrawableImage`) instead)
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Pixel {
     // the order of the fields is in the unsafe cast in Image::to_file
     r: u8,
@@ -70,7 +72,7 @@ impl Pixel {
 const GRAY: Pixel = Pixel::from_rgb(211, 211, 211);
 const DARK_GRAY: Pixel = Pixel::from_rgb(229, 229, 229);
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Image {
     pixels: Vec<Pixel>,
     width: usize,
@@ -309,7 +311,7 @@ impl DrawableImage {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct LayerProps {
     /// Name showed in the LayerWindow: purely visual,
     /// not tied to undo
@@ -331,7 +333,7 @@ impl LayerProps {
 }
 
 /// `Layer` = `Image` + `LayerProps`
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Layer {
     image: Image,
     info: LayerProps,
@@ -373,17 +375,17 @@ impl FusedLayer {
         }
     }
 
-    pub fn from_image_layer(image_layer: Layer) -> Self {
+    pub fn from_layer(layer: Layer) -> Self {
         FusedLayer {
-            drawable: DrawableImage::from_image(&image_layer.image),
-            image: image_layer.image,
-            info: image_layer.info,
+            drawable: DrawableImage::from_image(&layer.image),
+            image: layer.image,
+            info: layer.info,
         }
     }
 
     /// Return an `ImageLayer` which has the same data as `self`,
     /// except the `DrawableImage`
-    pub fn unfuse(&self) -> Layer {
+    pub fn unfused(&self) -> Layer {
         Layer {
             image: self.image.clone(),
             info: self.info.clone(),
@@ -695,8 +697,8 @@ impl FusedLayeredImage {
         self.append_layer_with_image(Layer::new(Image::new(pixels, width, height)), idx);
     }
 
-    fn append_layer_with_image(&mut self, image: Layer, idx: LayerIndex) {
-        let mut new_image = FusedLayer::from_image_layer(image);
+    fn append_layer_with_image(&mut self, layer: Layer, idx: LayerIndex) {
+        let mut new_image = FusedLayer::from_layer(layer);
 
         match idx {
             LayerIndex::BaseLayer => {
