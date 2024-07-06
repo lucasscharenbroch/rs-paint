@@ -94,17 +94,17 @@ impl Toolbar {
     pub fn init_ui_hooks(ui_p: &Rc<RefCell<UiState>>) {
         let toolbar_p = ui_p.borrow().toolbar_p.clone();
 
-        let button_info: Vec<(&str, fn(&Canvas) -> MouseMode, fn() -> MouseMode)> = vec![
-            ("cursor", MouseMode::cursor, MouseMode::cursor_default),
-            ("pencil", MouseMode::pencil, MouseMode::pencil_default),
-            ("eyedropper", MouseMode::eyedropper, MouseMode::eyedropper_default),
-            ("rectangle-select", MouseMode::rectangle_select, MouseMode::rectangle_select_default),
-            ("magic-wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
-            ("fill", MouseMode::fill, MouseMode::fill_default),
+        let button_info: Vec<(&str, &str, fn(&Canvas) -> MouseMode, fn() -> MouseMode)> = vec![
+            ("cursor", "Cursor", MouseMode::cursor, MouseMode::cursor_default),
+            ("pencil", "Pencil", MouseMode::pencil, MouseMode::pencil_default),
+            ("eyedropper", "Eyedropper", MouseMode::eyedropper, MouseMode::eyedropper_default),
+            ("rectangle-select", "Rectangle Select", MouseMode::rectangle_select, MouseMode::rectangle_select_default),
+            ("magic-wand", "Magic Wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
+            ("fill", "Fill", MouseMode::fill, MouseMode::fill_default),
         ];
 
         toolbar_p.borrow_mut().mouse_mode_buttons = button_info.into_iter()
-            .map(|(name, mode_constructor, mode_constructor_default)| {
+            .map(|(name, tooltip, mode_constructor, mode_constructor_default)| {
                 let icon_widget = gtk::Image::builder()
                     .file(icon_file!(name))
                     .build();
@@ -113,6 +113,7 @@ impl Toolbar {
                     .child(&icon_widget)
                     .width_request(75)
                     .height_request(75)
+                    .tooltip_text(tooltip)
                     .build();
 
                 button.connect_clicked(clone!(@strong toolbar_p, @strong ui_p => move |b| {

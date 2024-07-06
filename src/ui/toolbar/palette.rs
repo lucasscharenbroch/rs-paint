@@ -328,16 +328,19 @@ impl Palette {
         let primary_to_palette = gtk::Button::builder()
             .child(&arrow_icon1)
             .css_classes(["no-padding"])
+            .tooltip_text("Copy Primary Color To Palette")
             .build();
 
         let swap_primary_and_secondary = gtk::Button::builder()
             .child(&swap_icon)
             .css_classes(["no-padding"])
+            .tooltip_text("Swap Primary And Secondary")
             .build();
 
         let secondary_to_palette = gtk::Button::builder()
             .child(&arrow_icon2)
             .css_classes(["no-padding"])
+            .tooltip_text("Copy Secondary Color To Palette")
             .build();
 
         primary_to_palette.connect_clicked(clone!(@strong palette_p => move |_| {

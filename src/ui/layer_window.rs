@@ -38,14 +38,17 @@ impl LayerTab {
 
         let close_button = gtk::Button::builder()
             .child(&gtk::Image::from_file(crate::icon_file!("x")))
+            .tooltip_text("Close Layer")
             .build();
 
         let lock_button = gtk::Button::builder()
             .child(&gtk::Image::from_file(crate::icon_file!("lock")))
+            .tooltip_text("Lock Layer (Disable Changes)")
             .build();
 
         let visible_button = gtk::Button::builder()
             .child(&gtk::Image::from_file(crate::icon_file!("eyeball")))
+            .tooltip_text("Toggle Visibility")
             .build();
 
         let button_widget = gtk::CenterBox::builder()
@@ -236,6 +239,7 @@ impl LayerWindow {
 
         let new_button = gtk::Button::builder()
             .label("New")
+            .tooltip_text("Create New Layer")
             .build();
 
         new_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
@@ -252,10 +256,12 @@ impl LayerWindow {
 
         let down_icon = gtk::Image::builder()
             .file(crate::icon_file!("down-arrow"))
+            .tooltip_text("Move Active Layer Down")
             .build();
 
         let up_button = gtk::Button::builder()
             .child(&up_icon)
+            .tooltip_text("Move Active Layer Up")
             .build();
 
         up_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
@@ -278,6 +284,7 @@ impl LayerWindow {
 
         let merge_button = gtk::Button::builder()
             .label("Merge Down")
+            .tooltip_text("Merge Active Layer Down")
             .build();
 
         merge_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
