@@ -606,6 +606,10 @@ impl Canvas {
         self.image_hist.now().width()
     }
 
+    pub fn get_blended_image(&self) -> Image {
+        self.image_hist.now().gen_entire_blended_image()
+    }
+
     pub fn undo(&mut self) {
         self.image_hist.undo();
         self.update_after_undo_or_redo();

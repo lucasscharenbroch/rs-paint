@@ -821,6 +821,15 @@ impl FusedLayeredImage {
         std::iter::once(self.base_layer.info.layer_name.as_str())
         .chain(self.other_layers.iter().map(|layer| layer.info.layer_name.as_str()))
     }
+
+    pub fn gen_entire_blended_image(&self) -> Image {
+        let mut res = self.base_layer.image.clone();
+        for layer in self.other_layers.iter() {
+            res.blend_under(&layer.image)
+        }
+
+        res
+    }
 }
 
 /// An interface of `FusedLayeredImage` that only exposes
@@ -833,7 +842,6 @@ pub trait TrackedLayeredImage {
     fn width(&self) -> i32;
     fn height(&self) -> i32;
 }
-
 
 impl TrackedLayeredImage for FusedLayeredImage {
     #[inline]
