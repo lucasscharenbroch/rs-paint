@@ -1,7 +1,7 @@
 use crate::image::undo::action::{AutoDiffAction, MultiLayerAction, SingleLayerAction};
 use crate::image::LayerIndex;
 
-use super::super::image::{Image, LayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
+use super::super::image::{Image, FusedLayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::bitmask::DeletePix;
 use super::super::image::undo::{ImageHistory, action::ActionName};
 use super::super::image::resize::Crop;
@@ -53,7 +53,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn new_p(ui_p: &Rc<RefCell<UiState>>, image: LayeredImage) -> Rc<RefCell<Canvas>> {
+    pub fn new_p(ui_p: &Rc<RefCell<UiState>>, image: FusedLayeredImage) -> Rc<RefCell<Canvas>> {
         let grid = gtk::Grid::new();
 
         let drawing_area =  gtk::DrawingArea::builder()
@@ -582,7 +582,7 @@ impl Canvas {
         Propagation::Stop
     }
 
-    pub fn image(&mut self) -> &mut LayeredImage {
+    pub fn image(&mut self) -> &mut FusedLayeredImage {
         self.image_hist.now_mut()
     }
 
@@ -590,7 +590,7 @@ impl Canvas {
         self.image_hist.now_id()
     }
 
-    pub fn image_ref(&self) -> &LayeredImage {
+    pub fn image_ref(&self) -> &FusedLayeredImage {
         self.image_hist.now()
     }
 

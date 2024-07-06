@@ -2,7 +2,7 @@ pub mod action;
 mod tree;
 
 use self::action::SingleLayerAction;
-use super::{Image, ImageLayer, LayerIndex, LayeredImage, Pixel};
+use super::{Image, Layer, LayerIndex, FusedLayeredImage, Pixel};
 use tree::UndoTree;
 use action::{ActionName, MultiLayerActionWrapper};
 
@@ -15,16 +15,16 @@ enum ImageDiff {
     // FullCopy(Image, Image), // (before, after)
     SingleLayerManualUndo(Box<dyn SingleLayerAction<Image>>, LayerIndex),
     AppendLayer(gtk::gdk::RGBA, LayerIndex),
-    RemoveLayer(ImageLayer, LayerIndex),
+    RemoveLayer(Layer, LayerIndex),
     SwapLayers(LayerIndex, LayerIndex),
-    MergeLayers(ImageLayer, LayerIndex, ImageLayer, LayerIndex), /// (save_top_image, top_index, save_bottom_image, bottom_index)
+    MergeLayers(Layer, LayerIndex, Layer, LayerIndex), /// (save_top_image, top_index, save_bottom_image, bottom_index)
     MultiLayerManualUndo(MultiLayerActionWrapper),
     Null,
 }
 
 impl ImageDiff {
     pub fn new(
-        to: &LayeredImage,
+        to: &FusedLayeredImage,
         (mod_pix, layer): (HashMap<usize, (Pixel, Pixel)>, LayerIndex)
     ) -> ImageDiff {
         /* TODO
@@ -40,7 +40,7 @@ impl ImageDiff {
         // }
     }
 
-    pub fn apply_to(&mut self, image: &mut LayeredImage) {
+    pub fn apply_to(&mut self, image: &mut FusedLayeredImage) {
         match self {
             ImageDiff::Diff(ref pixs, layer) => {
                 for (i, _before, after) in pixs.iter() {
@@ -71,7 +71,7 @@ impl ImageDiff {
         }
     }
 
-    pub fn unapply_to(&mut self, image: &mut LayeredImage) {
+    pub fn unapply_to(&mut self, image: &mut FusedLayeredImage) {
         match self {
             ImageDiff::Diff(ref pixs, layer) => {
                 for (i, before, _after) in pixs.iter() {
@@ -107,7 +107,7 @@ impl ImageDiff {
 }
 
 pub struct ImageState {
-    img: LayeredImage,
+    img: FusedLayeredImage,
     id: usize,
 }
 
@@ -148,7 +148,7 @@ pub struct ImageHistory {
 }
 
 impl ImageHistory {
-    pub fn new(initial_image: LayeredImage) -> ImageHistory {
+    pub fn new(initial_image: FusedLayeredImage) -> ImageHistory {
         let initial_state = ImageState {
             img: initial_image,
             id: 0,
@@ -161,7 +161,7 @@ impl ImageHistory {
         }
     }
 
-    pub fn now(&self) -> &LayeredImage {
+    pub fn now(&self) -> &FusedLayeredImage {
         &self.now.img
     }
 
@@ -169,7 +169,7 @@ impl ImageHistory {
         self.now.id
     }
 
-    pub fn now_mut(&mut self) -> &mut LayeredImage {
+    pub fn now_mut(&mut self) -> &mut FusedLayeredImage {
         &mut self.now.img
     }
 

@@ -1,5 +1,5 @@
 use super::undo::action::{ActionName, AutoDiffAction, MultiLayerAction};
-use super::{FusedImageLayer, Image, ImageLike, ImageLikeUnchecked, TrackedLayeredImage, Pixel,};
+use super::{FusedLayer, Image, ImageLike, ImageLikeUnchecked, TrackedLayeredImage, Pixel,};
 
 use gtk::gdk::RGBA;
 use itertools::{Itertools, Either};
@@ -28,7 +28,7 @@ impl Scale {
 }
 
 impl Scale {
-    fn exec_scale_with_fn(&self, image: &mut FusedImageLayer, interpolation_fn: fn(&Image, f32, f32) -> Pixel) {
+    fn exec_scale_with_fn(&self, image: &mut FusedLayer, interpolation_fn: fn(&Image, f32, f32) -> Pixel) {
         let new_sz = self.w * self.h;
         let mut new_pix = Vec::with_capacity(new_sz);
 

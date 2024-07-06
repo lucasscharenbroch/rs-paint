@@ -1,4 +1,4 @@
-use crate::image::{Image, ImageLikeUncheckedMut, LayerIndex, TrackedLayeredImage, LayeredImage};
+use crate::image::{Image, ImageLikeUncheckedMut, LayerIndex, TrackedLayeredImage, FusedLayeredImage};
 use super::{ImageDiff, ImageHistory, ImageStateDiff};
 
 use std::any::Any;
@@ -143,7 +143,7 @@ impl MultiLayerActionWrapper {
     }
 
     // Idempotent.
-    fn init_layer_datas(&mut self, image: &mut LayeredImage) {
+    fn init_layer_datas(&mut self, image: &mut FusedLayeredImage) {
         if let None = self.layer_datas {
             let mut layer_datas = Vec::new();
 
@@ -155,7 +155,7 @@ impl MultiLayerActionWrapper {
         }
     }
 
-    pub fn exec(&mut self, image: &mut LayeredImage) {
+    pub fn exec(&mut self, image: &mut FusedLayeredImage) {
         self.init_layer_datas(image);
         let layer_datas = self.layer_datas.as_mut().unwrap();
 
@@ -166,7 +166,7 @@ impl MultiLayerActionWrapper {
         image.update_drawable_sizes();
     }
 
-    pub fn undo(&mut self, image: &mut LayeredImage) {
+    pub fn undo(&mut self, image: &mut FusedLayeredImage) {
         self.init_layer_datas(image);
         let layer_datas = self.layer_datas.as_mut().unwrap();
 
@@ -219,7 +219,7 @@ impl ImageHistory {
     }
 }
 
-impl LayeredImage {
+impl FusedLayeredImage {
     pub fn apply_action(&mut self, action: &mut Box<dyn SingleLayerAction<Image>>, layer: LayerIndex) {
         action.exec(self.image_at_layer_mut(layer));
         self.re_compute_active_drawables();

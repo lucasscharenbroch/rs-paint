@@ -1,6 +1,6 @@
 use gtk::{prelude::*, GestureClick, Ordering};
 
-use crate::image::{LayeredImage, LayerIndex};
+use crate::image::LayerIndex;
 
 use super::canvas::Canvas;
 use std::rc::Rc;

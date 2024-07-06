@@ -375,15 +375,15 @@ impl DrawableImage {
 }
 
 #[derive(Clone)]
-struct LayerInfo {
+struct LayerProps {
     /// Name showed in the LayerWindow: purely visual,
     /// not tied to undo
     layer_name: String,
 }
 
-impl LayerInfo {
+impl LayerProps {
     fn new(layer_name: &str) -> Self {
-        LayerInfo {
+        LayerProps {
             layer_name: String::from(layer_name),
         }
     }
@@ -395,51 +395,51 @@ impl LayerInfo {
     }
 }
 
-/// `ImageLayer` = `Image` + `LayerInfo`
+/// `Layer` = `Image` + `LayerProps`
 #[derive(Clone)]
-struct ImageLayer {
+struct Layer {
     image: Image,
-    info: LayerInfo,
+    info: LayerProps,
 }
 
-impl ImageLayer {
+impl Layer {
     fn new(image: Image) ->  Self {
         Self {
             image,
-            info: LayerInfo::default(),
+            info: LayerProps::default(),
         }
     }
 }
 
-/// `FusedImageLayer` = `Image` + `DrawableImage` + `LayerInfo`
+/// `FusedLayer` = `Image` + `DrawableImage` + `LayerInfo`
 /// This is effectively a data struct: no magic, just a container;
 /// any updates to `drawable` must be done by the user.
 #[derive(Clone)]
-pub struct FusedImageLayer {
+pub struct FusedLayer {
     image: Image,
     drawable: DrawableImage,
-    info: LayerInfo,
+    info: LayerProps,
 }
 
-impl FusedImageLayer {
+impl FusedLayer {
     pub fn from_image(image: Image) -> Self {
-        FusedImageLayer {
+        FusedLayer {
             drawable: DrawableImage::from_image(&image),
             image,
-            info: LayerInfo::default(),
+            info: LayerProps::default(),
         }
     }
 
     pub fn from_image_with_name(image: Image, layer_name: &str) -> Self {
-        FusedImageLayer {
+        FusedLayer {
             drawable: DrawableImage::from_image(&image),
             image,
-            info: LayerInfo::new(layer_name),
+            info: LayerProps::new(layer_name),
         }
     }
 
-    pub fn from_image_layer(image_layer: ImageLayer) -> Self {
-        FusedImageLayer {
+    pub fn from_image_layer(image_layer: Layer) -> Self {
+        FusedLayer {
             drawable: DrawableImage::from_image(&image_layer.image),
             image: image_layer.image,
             info: image_layer.info,
@@ -448,8 +448,8 @@ impl FusedImageLayer {
 
     /// Return an `ImageLayer` which has the same data as `self`,
     /// except the `DrawableImage`
-    pub fn unfuse(&self) -> ImageLayer {
-        ImageLayer {
+    pub fn unfuse(&self) -> Layer {
+        Layer {
             image: self.image.clone(),
             info: self.info.clone(),
         }
@@ -509,12 +509,12 @@ impl LayerIndex {
     }
 }
 
-/// `LayeredImage` = `Vec<FusedImageLayer>` + `DrawableImage`
-/// A `FusedImageLayer` must be kept for each layer to draw
+/// `FusedLayeredImage` = `Vec<FusedLayer>` + `DrawableImage`
+/// A `FusedLayer` must be kept for each layer to draw
 /// the thumbnails. The extra `DrawableImage` is used to
 /// draw the entire thing: its pixels are blended downward
 /// upon construction, then lazily as the layers are updated.
-pub struct LayeredImage {
+pub struct FusedLayeredImage {
     // Yes, it's inefficient to have so many `DrawableImages`,
     // but hey, at least we're using `u8`s: that makes the whole thing
     // (8x + 1) byes per pixel (where x is the number of layers).
@@ -522,9 +522,9 @@ pub struct LayeredImage {
     // and `f64`s (32x)
 
     drawable: DrawableImage,
-    base_layer: FusedImageLayer,
+    base_layer: FusedLayer,
     /// Non-base layers, increasing in height
-    other_layers: Vec<FusedImageLayer>,
+    other_layers: Vec<FusedLayer>,
 
     active_layer_index: LayerIndex,
 
@@ -534,24 +534,22 @@ pub struct LayeredImage {
 
     pix_modified_since_draw: HashMap<usize, Pixel>,
     pix_modified_since_save: HashMap<usize, (Pixel, Pixel)>,
-    save_image_before_overwritten: Option<Image>,
 }
 
-impl LayeredImage {
+impl FusedLayeredImage {
     pub fn from_image(image: Image) -> Self {
-        LayeredImage {
+        FusedLayeredImage {
             drawable: DrawableImage::from_image(&image),
-            base_layer: FusedImageLayer::from_image_with_name(image, "Base Layer"),
+            base_layer: FusedLayer::from_image_with_name(image, "Base Layer"),
             other_layers: Vec::new(),
             active_layer_index: LayerIndex::BaseLayer,
             pix_modified_since_draw: HashMap::new(),
             pix_modified_since_save: HashMap::new(),
-            save_image_before_overwritten: None,
         }
     }
 
     #[inline]
-    fn active_image(&self) -> &FusedImageLayer {
+    fn active_image(&self) -> &FusedLayer {
         match self.active_layer_index {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
@@ -559,7 +557,7 @@ impl LayeredImage {
     }
 
     #[inline]
-    fn active_image_mut(&mut self) -> &mut FusedImageLayer {
+    fn active_image_mut(&mut self) -> &mut FusedLayer {
         match self.active_layer_index {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
@@ -575,7 +573,7 @@ impl LayeredImage {
     }
 
     #[inline]
-    fn fused_image_at_layer(&self, layer: LayerIndex) -> &FusedImageLayer {
+    fn fused_image_at_layer(&self, layer: LayerIndex) -> &FusedLayer {
         match layer {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
@@ -588,7 +586,7 @@ impl LayeredImage {
     }
 
     #[inline]
-    fn fused_image_at_layer_mut(&mut self, layer: LayerIndex) -> &mut FusedImageLayer {
+    fn fused_image_at_layer_mut(&mut self, layer: LayerIndex) -> &mut FusedLayer {
         match layer {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
@@ -605,7 +603,7 @@ impl LayeredImage {
     /// vector, so this function wraps it. `None` is returned
     /// if the two layers are the same.
     #[inline]
-    fn dual_layer_borrow_mut(&mut self, layer1: LayerIndex, layer2: LayerIndex) -> Option<(&mut FusedImageLayer, &mut FusedImageLayer)> {
+    fn dual_layer_borrow_mut(&mut self, layer1: LayerIndex, layer2: LayerIndex) -> Option<(&mut FusedLayer, &mut FusedLayer)> {
         match (layer1, layer2) {
             (LayerIndex::BaseLayer, LayerIndex::BaseLayer) => None,
             (LayerIndex::BaseLayer, LayerIndex::Nth(n)) => {
@@ -759,11 +757,11 @@ impl LayeredImage {
         let height = self.height() as usize;
         let pixels = vec![Pixel::from_rgba_struct(fill_color); width * height];
 
-        self.append_layer_with_image(ImageLayer::new(Image::new(pixels, width, height)), idx);
+        self.append_layer_with_image(Layer::new(Image::new(pixels, width, height)), idx);
     }
 
-    fn append_layer_with_image(&mut self, image: ImageLayer, idx: LayerIndex) {
-        let mut new_image = FusedImageLayer::from_image_layer(image);
+    fn append_layer_with_image(&mut self, image: Layer, idx: LayerIndex) {
+        let mut new_image = FusedLayer::from_image_layer(image);
 
         match idx {
             LayerIndex::BaseLayer => {
@@ -779,7 +777,7 @@ impl LayeredImage {
             }
         }
 
-        self.re_compute_active_drawables();
+        self.re_compute_main_drawable();
     }
 
     fn remove_layer(&mut self, idx: LayerIndex) {
@@ -800,7 +798,7 @@ impl LayeredImage {
             self.active_layer_index = LayerIndex::from_usize(self.num_layers());
         }
 
-        self.re_compute_active_drawables();
+        self.re_compute_main_drawable();
     }
 
     fn swap_layers(&mut self, i1: LayerIndex, i2: LayerIndex) {
@@ -808,7 +806,7 @@ impl LayeredImage {
             std::mem::swap(l1, l2);
         }
 
-        self.re_compute_active_drawables();
+        self.re_compute_main_drawable();
     }
 
     fn merge_layers(&mut self, top_idx: LayerIndex, bot_idx: LayerIndex) {
@@ -825,7 +823,7 @@ impl LayeredImage {
     }
 }
 
-/// An interface of `LayeredImage` that only exposes
+/// An interface of `FusedLayeredImage` that only exposes
 /// undoable operations (used by `DoableAction`)
 pub trait TrackedLayeredImage {
     fn pix_at(&self, r: i32, c: i32) -> &Pixel;
@@ -837,7 +835,7 @@ pub trait TrackedLayeredImage {
 }
 
 
-impl TrackedLayeredImage for LayeredImage {
+impl TrackedLayeredImage for FusedLayeredImage {
     #[inline]
     fn pix_at(&self, r: i32, c: i32) -> &Pixel {
         let i = (r * self.width() + c) as usize;
