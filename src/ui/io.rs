@@ -1,12 +1,12 @@
+use super::dialog::new_image_dialog;
+use super::{dialog::{choose_file_dialog, ok_dialog_str_}, UiState};
+use crate::image::{Pixel, Image, generate::generate};
+
 use gtk::prelude::*;
 use gtk::gio::ListStore;
 use std::rc::Rc;
 use std::cell::RefCell;
 use glib_macros::clone;
-
-use super::dialog::new_image_dialog;
-use super::{dialog::{choose_file_dialog, ok_dialog_str_}, UiState};
-use crate::image::{Image, generate::generate};
 
 fn mk_file_filter_list(extss: Vec<Vec<&str>>) -> ListStore {
     let list = ListStore::new::<gtk::FileFilter>();
