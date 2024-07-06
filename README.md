@@ -13,6 +13,13 @@ A lightweight image editor, written in Rust using GTK4.
     - Rectangle Select
     - Magic Wand
     - Fill
+    - [ ] Shapes
+    - [ ] Free Transform
+    - [ ] Lasso Select
+    - [ ] Text
+- Color Palette
+    - Primary and Secondary Colors
+    - [ ] Import/Export Palette
 - Image Transformations
   - Flips
   - Rotations
@@ -20,7 +27,16 @@ A lightweight image editor, written in Rust using GTK4.
       - Cropping
       - Expansion
       - Scaling
-- Import/Export (most common formats are supported)
-- Tabs
-- Layers
-- Multi-Level Undo
+- I/O
+    - Import/Export (most common formats are supported)
+    - Save/Load (project files)
+- Complexity Management
+    - Tabs
+    - Layers
+        - Merging and Rearranging
+        - [ ] Visibility toggle
+        - [ ] Modification locking
+    - Multi-Level Undo
+- Misc.
+    - [ ] Copy/Paste (internal selections and external clipboard)
+    - Keybinds (see Help/Keyboard-Shortcuts)
