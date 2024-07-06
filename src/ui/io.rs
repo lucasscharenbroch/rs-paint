@@ -159,7 +159,7 @@ impl UiState {
     pub fn save_project_as(ui_p: Rc<RefCell<UiState>>) {
         let valid_filetypes = mk_file_filter_list(image_project_formats());
 
-        choose_file_dialog(&ui_p.borrow().window, "Save image project",
+        choose_file_dialog(&ui_p.borrow().window, "Save project as",
                     "Save", &valid_filetypes, true,
                     clone!(@strong ui_p => move |res| {
             if let Ok(res) = res {

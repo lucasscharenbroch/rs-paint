@@ -89,6 +89,8 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<gtk::Window>) {
         ("New Image", "<Ctrl>n"),
         ("Import Image", "<Ctrl>i"),
         ("Export Image", "<Ctrl>e"),
+        ("Import Project File", "<Ctrl><Shift>p"),
+        ("Save Project As", "<Ctrl><Shift>s"),
     ]);
 
     let main_section = gtk::ShortcutsSection::builder()

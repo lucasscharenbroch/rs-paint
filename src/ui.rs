@@ -275,7 +275,7 @@ impl UiState {
     }
 
     fn handle_keypress(ui_p: &Rc<RefCell<Self>>, key: gdk::Key, mod_keys: gdk::ModifierType) {
-        // control-key bindings
+        // ctrl + ....
         if mod_keys == gdk::ModifierType::CONTROL_MASK {
             match key {
                 gdk::Key::equal => Self::zoom_in(ui_p.clone()),
@@ -290,6 +290,15 @@ impl UiState {
                 gdk::Key::e => Self::export(ui_p.clone()),
                 gdk::Key::q => Self::quit(ui_p.clone()),
                 // Remember to add any new shortcuts to `dialog::info::keyboard_shortcuts_dialog`
+                _ => (),
+            }
+        }
+
+        // ctrl + shift + ...
+        if mod_keys == gdk::ModifierType::CONTROL_MASK.union(gdk::ModifierType::SHIFT_MASK) {
+            match key {
+                gdk::Key::P => Self::import_project(ui_p.clone()),
+                gdk::Key::S => Self::save_project_as(ui_p.clone()),
                 _ => (),
             }
         }
