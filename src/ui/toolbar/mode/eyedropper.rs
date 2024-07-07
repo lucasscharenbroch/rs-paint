@@ -23,7 +23,7 @@ impl EyedropperState {
 impl super::MouseModeState for EyedropperState {
     fn handle_drag_start(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let (x, y) = canvas.cursor_pos_pix_u();
-        if let Some(pix) = canvas.image().try_pix_at(y as i32, x as i32) {
+        if let Some(pix) = canvas.layered_image().try_pix_at(y as i32, x as i32) {
             if mod_keys.contains(ModifierType::CONTROL_MASK) {
                 let _ = toolbar.add_color_to_palette(pix.to_rgba_struct());
             } else {
@@ -34,7 +34,7 @@ impl super::MouseModeState for EyedropperState {
 
     fn handle_right_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let (x, y) = canvas.cursor_pos_pix_u();
-        if let Some(pix) = canvas.image().try_pix_at(y as i32, x as i32) {
+        if let Some(pix) = canvas.layered_image().try_pix_at(y as i32, x as i32) {
            toolbar.set_secondary_color(pix.to_rgba_struct());
         }
     }
@@ -49,8 +49,8 @@ impl super::MouseModeState for EyedropperState {
         let cursor_pos = (cursor_pos_f.0.floor(), cursor_pos_f.1.floor());
 
         let brush = toolbar.get_eyedropper_brush_mut();
-        let x_offset = (brush.image.width() as i32 - 1) / 2;
-        let y_offset = (brush.image.height() as i32 - 1) / 2;
+        let x_offset = (brush.brush_image.width() as i32 - 1) / 2;
+        let y_offset = (brush.brush_image.height() as i32 - 1) / 2;
         let path = brush.outline_path(cr);
         let _ = cr.save();
         {
@@ -69,7 +69,7 @@ impl super::MouseModeState for EyedropperState {
             cr.translate(cursor_pos_f.0 - x_offset as f64, cursor_pos_f.1 - y_offset as f64);
             cr.scale(1.0 / canvas.zoom(), 1.0 / canvas.zoom());
             let (x, y) = canvas.cursor_pos_pix_u();
-            if let Some(pix) = canvas.image_image_ref().try_pix_at(y, x) {
+            if let Some(pix) = canvas.active_image().try_pix_at(y, x) {
                 let rgba = pix.to_rgba_struct();
                 cr.rectangle(20.0, 30.0, 30.0, 30.0);
 

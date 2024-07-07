@@ -231,7 +231,7 @@ impl LayerWindow {
                                 canvas_p.borrow().image_height() as f64;
         *self.last_aspect_ratio.borrow_mut() = aspect_ratio;
 
-        for _ in 0..canvas_p.borrow().image().num_layers() {
+        for _ in 0..canvas_p.borrow().layered_image().num_layers() {
             self.new_tab(aspect_ratio);
         }
 

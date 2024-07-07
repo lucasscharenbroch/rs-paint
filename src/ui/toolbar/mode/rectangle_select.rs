@@ -150,8 +150,8 @@ impl super::MouseModeState for RectangleSelectState {
     fn draw(&self, canvas: &Canvas, cr: &Context, _toolbar: &mut Toolbar) {
         if let RectangleSelectMode::Selected(x, y, w, h) = self.mode {
             if self.crop_visual_enabled {
-                let image = canvas.image();
-                crop_visual(x, y, w, h, image.width(), image.height(), cr);
+                let fused_layered_image = canvas.layered_image();
+                crop_visual(x, y, w, h, fused_layered_image.width(), fused_layered_image.height(), cr);
             }
 
             Self::visual_box_around(x, y, w, h, *canvas.zoom())(cr);

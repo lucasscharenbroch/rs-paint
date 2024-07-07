@@ -106,10 +106,10 @@ impl PencilState {
         let target_pixels = pixels_along_segment(line_pt0, line_pt1, num_points);
 
         target_pixels.iter().for_each(|&(x, y)| {
-            let x_offset = (brush.image.width() as i32 - 1) / 2;
-            let y_offset = (brush.image.height() as i32 - 1) / 2;
+            let x_offset = (brush.brush_image.width() as i32 - 1) / 2;
+            let y_offset = (brush.brush_image.height() as i32 - 1) / 2;
             canvas.sample_image_respecting_pencil_mask(
-                &brush.image,
+                &brush.brush_image,
                 &blending_mode,
                 x - x_offset,
                 y - y_offset
@@ -144,10 +144,10 @@ impl PencilState {
         let target_pixels = segment.sample_n_pixels(num_points);
 
         target_pixels.iter().for_each(|&(x, y)| {
-            let x_offset = (brush.image.width() as i32 - 1) / 2;
-            let y_offset = (brush.image.height() as i32 - 1) / 2;
+            let x_offset = (brush.brush_image.width() as i32 - 1) / 2;
+            let y_offset = (brush.brush_image.height() as i32 - 1) / 2;
             canvas.sample_image_respecting_pencil_mask(
-                &brush.image,
+                &brush.brush_image,
                 &blending_mode,
                 x as i32 - x_offset,
                 y as i32 - y_offset
@@ -168,10 +168,10 @@ impl PencilState {
             let brush = toolbar.get_brush_from_click_type(click_type);
 
             target_pixels.iter().for_each(|&(x, y)| {
-                let x_offset = (brush.image.width() as i32 - 1) / 2;
-                let y_offset = (brush.image.height() as i32 - 1) / 2;
+                let x_offset = (brush.brush_image.width() as i32 - 1) / 2;
+                let y_offset = (brush.brush_image.height() as i32 - 1) / 2;
                 canvas.sample_image_respecting_pencil_mask(
-                    &brush.image,
+                    &brush.brush_image,
                     &blending_mode,
                     x as i32 - x_offset,
                     y as i32 - y_offset
@@ -334,8 +334,8 @@ impl super::MouseModeState for PencilState {
         let cursor_pos = (cursor_pos.0.floor(), cursor_pos.1.floor());
 
         let brush = toolbar.get_primary_brush_mut();
-        let x_offset = (brush.image.width() as i32 - 1) / 2;
-        let y_offset = (brush.image.height() as i32 - 1) / 2;
+        let x_offset = (brush.brush_image.width() as i32 - 1) / 2;
+        let y_offset = (brush.brush_image.height() as i32 - 1) / 2;
         let path = brush.outline_path(cr);
         let _ = cr.save();
         {

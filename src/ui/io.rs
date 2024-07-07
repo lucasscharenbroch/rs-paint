@@ -106,7 +106,7 @@ impl UiState {
                 let path = res.path().unwrap();
                 let path = path.as_path();
                 if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-                    if let Err(mesg) = canvas_p.borrow().image().gen_entire_blended_image().to_file(path) {
+                    if let Err(mesg) = canvas_p.borrow().layered_image().gen_entire_blended_image().to_file(path) {
                         ok_dialog_str_(
                             ui_p.borrow().window(),
                             "Export Error",
@@ -166,7 +166,7 @@ impl UiState {
                 let path = res.path().unwrap();
                 let path = path.as_path();
                 if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-                    if let Err(mesg) = canvas_p.borrow().image().unfused().to_file(path) {
+                    if let Err(mesg) = canvas_p.borrow().layered_image().unfused().to_file(path) {
                         ok_dialog_str_(
                             ui_p.borrow().window(),
                             "Save Error",

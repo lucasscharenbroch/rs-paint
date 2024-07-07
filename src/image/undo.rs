@@ -118,18 +118,18 @@ impl DrawablesToUpdate {
         self.pixels_in_layers.swap(idx1.to_usize(), idx2.to_usize());
     }
 
-    fn do_update(self, image: &mut FusedLayeredImage) {
+    fn do_update(self, layered_image: &mut FusedLayeredImage) {
         let update_main = self.definitely_main || self.full_layers.len() != 0;
 
         if update_main {
-            image.re_compute_main_drawable();
+            layered_image.re_compute_main_drawable();
         }
 
-        let num_layers = image.num_layers();
+        let num_layers = layered_image.num_layers();
 
         self.full_layers.iter()
             .filter(|idx| idx.to_usize() < num_layers)
-            .for_each(|idx| image.re_compute_drawable_at_index(*idx));
+            .for_each(|idx| layered_image.re_compute_drawable_at_index(*idx));
 
         for (idx_usize, pix) in self.pixels_in_layers.iter().enumerate() {
             if idx_usize >= num_layers || self.full_layers.contains(&LayerIndex::from_usize(idx_usize)) {
@@ -138,7 +138,7 @@ impl DrawablesToUpdate {
 
             let idx = LayerIndex::from_usize(idx_usize);
             for i in pix.iter() {
-                image.re_compute_layer_drawable_pixel(*i, idx);
+                layered_image.re_compute_layer_drawable_pixel(*i, idx);
             }
         }
 
@@ -154,7 +154,7 @@ impl DrawablesToUpdate {
             }
 
             for i in main_pix.iter() {
-                image.re_compute_main_drawable_pixel(*i);
+                layered_image.re_compute_main_drawable_pixel(*i);
             }
         }
     }
@@ -162,19 +162,18 @@ impl DrawablesToUpdate {
 
 enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>, LayerIndex), // [(pos, old_pix, new_pix)], layer#
-    // FullCopy(Image, Image), // (before, after)
     SingleLayerManualUndo(Box<dyn SingleLayerAction<Image>>, LayerIndex),
     AppendLayer(gtk::gdk::RGBA, LayerIndex),
     RemoveLayer(Layer, LayerIndex),
     SwapLayers(LayerIndex, LayerIndex),
-    MergeLayers(Layer, LayerIndex, Layer, LayerIndex), /// (save_top_image, top_index, save_bottom_image, bottom_index)
+    MergeLayers(Layer, LayerIndex, Layer, LayerIndex), /// (save_top_layer, top_index, save_bottom_layer, bottom_index)
     MultiLayerManualUndo(MultiLayerActionWrapper),
     Null,
 }
 
 impl ImageDiff {
     pub fn new(
-        _to: &FusedLayeredImage,
+        _target_layered_image: &FusedLayeredImage,
         (mod_pix, layer): (HashMap<usize, (Pixel, Pixel)>, LayerIndex)
     ) -> ImageDiff {
         let diff_vec = mod_pix.into_iter()
@@ -189,7 +188,7 @@ impl ImageDiff {
             ImageDiff::Diff(ref pixs, layer) => {
                 let mut pix_mod = HashSet::new();
                 for (i, _before, after) in pixs.iter() {
-                    image.image_at_layer_mut(*layer).pixels[*i] = after.clone();
+                    image.image_at_layer_index_mut(*layer).pixels[*i] = after.clone();
                     pix_mod.insert(*i);
                 }
                 drawables_to_update.add_pixels(&pix_mod, *layer)
@@ -230,7 +229,7 @@ impl ImageDiff {
             ImageDiff::Diff(ref pixs, layer) => {
                 let mut pix_mod = HashSet::new();
                 for (i, before, _after) in pixs.iter() {
-                    image.image_at_layer_mut(*layer).pixels[*i] = before.clone();
+                    image.image_at_layer_index_mut(*layer).pixels[*i] = before.clone();
                     pix_mod.insert(*i);
                 }
                 drawables_to_update.add_pixels(&pix_mod, *layer)
@@ -255,8 +254,8 @@ impl ImageDiff {
             }
             ImageDiff::MergeLayers(save_top, top_index, save_bot, bot_index) => {
                 image.append_layer_with_image(save_top.clone(), *top_index);
-                *image.image_at_layer_mut(*bot_index) = save_bot.image.clone();
-                image.fused_image_at_layer_mut(*bot_index).props = save_bot.props.clone();
+                *image.image_at_layer_index_mut(*bot_index) = save_bot.image.clone();
+                image.fused_layer_at_index_mut(*bot_index).props = save_bot.props.clone();
                 drawables_to_update.add_layer(*bot_index);
                 drawables_to_update.append_layer(*top_index);
             },
@@ -440,7 +439,7 @@ impl ImageHistory {
         }
 
         let image_diff = ImageDiff::RemoveLayer(
-            self.now().fused_image_at_layer(idx).unfused(),
+            self.now().fused_layer_at_index(idx).unfused(),
             idx,
         );
 
@@ -463,9 +462,9 @@ impl ImageHistory {
         }
 
         let image_diff = ImageDiff::MergeLayers(
-            self.now().fused_image_at_layer(top_index).unfused(),
+            self.now().fused_layer_at_index(top_index).unfused(),
             top_index,
-            self.now().fused_image_at_layer(bottom_index).unfused(),
+            self.now().fused_layer_at_index(bottom_index).unfused(),
             bottom_index,
         );
 

@@ -1,6 +1,5 @@
 use super::bitmask::ImageBitmask;
-use super::{Image, ImageLike, Pixel};
-use super::blend::BlendingMode;
+use super::{ImageLike, Pixel};
 
 use gtk::gdk::RGBA;
 use gtk::prelude::*;
@@ -62,7 +61,7 @@ impl ImageLike for BrushImage {
 
 pub struct Brush {
     props: BrushProperties,
-    pub image: BrushImage,
+    pub brush_image: BrushImage,
     bitmask: ImageBitmask,
 }
 
@@ -136,7 +135,7 @@ fn mk_caligraphy_brush_image(n: u8, primary_color: RGBA, _secondary_color: RGBA)
 }
 
 impl Brush {
-    fn image_from_props(props: &BrushProperties) -> BrushImage {
+    fn brush_image_from_props(props: &BrushProperties) -> BrushImage {
         let r = props.radius;
         match props.brush_type {
             BrushType::Square => mk_square_brush_image(r, props.primary_color, props.secondary_color),
@@ -175,18 +174,18 @@ impl Brush {
     }
 
     fn from_props(props: BrushProperties) -> Self {
-        let image = Self::image_from_props(&props);
+        let brush_image = Self::brush_image_from_props(&props);
         let bitmask = ImageBitmask::from_flat_bits(
             props.radius as usize,
             props.radius as usize,
-            image.pixel_options.iter()
+            brush_image.pixel_options.iter()
                 .map(|opt| opt.is_some())
                 .collect::<Vec<_>>()
         );
 
         Brush {
             props,
-            image,
+            brush_image,
             bitmask,
         }
     }

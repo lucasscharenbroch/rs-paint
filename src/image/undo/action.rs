@@ -148,7 +148,7 @@ impl MultiLayerActionWrapper {
             let mut layer_datas = Vec::new();
 
             for idx in image.layer_indices() {
-                layer_datas.push(self.action.new_layer_data(image.image_at_layer_mut(idx)))
+                layer_datas.push(self.action.new_layer_data(image.image_at_layer_index_mut(idx)))
             }
 
             self.layer_datas = Some(layer_datas);
@@ -160,7 +160,7 @@ impl MultiLayerActionWrapper {
         let layer_datas = self.layer_datas.as_mut().unwrap();
 
         for (i, ld) in layer_datas.iter_mut().enumerate() {
-            self.action.exec(ld, image.image_at_layer_mut(LayerIndex::from_usize(i)));
+            self.action.exec(ld, image.image_at_layer_index_mut(LayerIndex::from_usize(i)));
         }
 
         image.update_drawable_sizes();
@@ -171,7 +171,7 @@ impl MultiLayerActionWrapper {
         let layer_datas = self.layer_datas.as_mut().unwrap();
 
         for (i, ld) in layer_datas.iter_mut().enumerate() {
-            self.action.undo(ld, image.image_at_layer_mut(LayerIndex::from_usize(i)));
+            self.action.undo(ld, image.image_at_layer_index_mut(LayerIndex::from_usize(i)));
         }
 
         image.update_drawable_sizes();
@@ -221,10 +221,10 @@ impl ImageHistory {
 
 impl FusedLayeredImage {
     pub fn apply_action(&mut self, action: &mut Box<dyn SingleLayerAction<Image>>, layer: LayerIndex) {
-        action.exec(self.image_at_layer_mut(layer));
+        action.exec(self.image_at_layer_index_mut(layer));
     }
 
     pub fn unapply_action(&mut self, action: &mut Box<dyn SingleLayerAction<Image>>, layer: LayerIndex) {
-        action.undo(self.image_at_layer_mut(layer));
+        action.undo(self.image_at_layer_index_mut(layer));
     }
 }

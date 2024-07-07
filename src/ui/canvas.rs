@@ -53,7 +53,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn new_p(ui_p: &Rc<RefCell<UiState>>, image: FusedLayeredImage) -> Rc<RefCell<Canvas>> {
+    pub fn new_p(ui_p: &Rc<RefCell<UiState>>, layered_image: FusedLayeredImage) -> Rc<RefCell<Canvas>> {
         let grid = gtk::Grid::new();
 
         let drawing_area =  gtk::DrawingArea::builder()
@@ -69,10 +69,10 @@ impl Canvas {
         grid.attach(&v_scrollbar, 1, 0, 1, 1);
         grid.attach(&h_scrollbar, 0, 1, 1, 1);
 
-        let image_net_size = image.height() as usize * image.width() as usize;
+        let image_net_size = layered_image.height() as usize * layered_image.width() as usize;
 
         let canvas_p = Rc::new(RefCell::new(Canvas {
-            image_hist: ImageHistory::new(image),
+            image_hist: ImageHistory::new(layered_image),
             zoom: 1.0,
             pan: (0.0, 0.0),
             cursor_pos: (0.0, 0.0),
@@ -582,20 +582,20 @@ impl Canvas {
         Propagation::Stop
     }
 
-    pub fn image_mut(&mut self) -> &mut impl TrackedLayeredImage {
-        self.image_hist.now_mut()
-    }
-
     pub fn undo_id(&self) -> usize {
         self.image_hist.now_id()
     }
 
-    pub fn image(&self) -> &FusedLayeredImage {
+    pub fn layered_image(&self) -> &FusedLayeredImage {
         self.image_hist.now()
     }
 
-    pub fn image_image_ref(&self) -> &Image {
-        self.image_hist.now().image()
+    pub fn active_image(&self) -> &Image {
+        self.image_hist.now().active_image()
+    }
+
+    pub fn active_image_mut(&mut self) -> &mut impl TrackedLayeredImage {
+        self.image_hist.now_mut()
     }
 
     pub fn image_height(&self) -> i32 {
@@ -661,8 +661,8 @@ impl Canvas {
     }
 
     pub fn crop_to(&mut self, x: usize, y: usize, w: usize, h: usize) {
-        let img_width = self.image().width() as usize;
-        let img_height = self.image().height() as usize;
+        let img_width = self.image_width() as usize;
+        let img_height = self.image_height() as usize;
 
         if w == 0 || h == 0 || x + w >= img_width || y + h >= img_height {
             panic!("Out of bounds crop: x={x} y={y} w={w} h={h} img_width={img_width} img_height={img_height}");
@@ -701,7 +701,7 @@ impl Canvas {
 
     /// Resize `self.pencil_mask` if it's become too small
     fn validate_pencil_mask(&mut self) {
-        let image_net_size = self.image().width() * self.image().height();
+        let image_net_size = self.image_width() * self.image_height();
         let deficit = image_net_size - self.pencil_mask.len() as i32;
         if deficit > 0 {
             self.pencil_mask.append(&mut vec![0; deficit as usize]);
@@ -716,14 +716,14 @@ impl Canvas {
 
     fn test_pencil_mask_at(&mut self, r: usize, c: usize) -> bool {
         self.validate_pencil_mask();
-        let w = self.image().width() as usize;
+        let w = self.image_width() as usize;
 
         self.pencil_mask[r * w + c] == self.pencil_mask_counter
     }
 
     fn set_pencil_mask_at(&mut self, r: usize, c: usize) {
         self.validate_pencil_mask();
-        let w = self.image().width() as usize;
+        let w = self.image_width() as usize;
         self.pencil_mask[r * w + c] = self.pencil_mask_counter;
     }
 
@@ -747,12 +747,12 @@ impl Canvas {
                 let ip = i as i32 + y;
                 let jp = j as i32 + x;
 
-                if ip < 0 || jp < 0 || ip >= self.image().height() || jp >= self.image().width() ||
+                if ip < 0 || jp < 0 || ip >= self.image_height() || jp >= self.image_width() ||
                    self.test_pencil_mask_at(ip as usize, jp as usize) {
                     continue;
                 }
 
-                let p = self.image_mut().pix_at_mut(ip, jp);
+                let p = self.active_image_mut().pix_at_mut(ip, jp);
                 let mut success = false;
 
                 if let Some(op) = other.try_pix_at(i as usize, j as usize) {
@@ -784,9 +784,9 @@ impl Canvas {
 
     /// Attempts to move the active layer up (by one)
     pub fn try_move_active_layer_up(&mut self) -> Result<LayerIndex, ()> {
-        let active_layer_idx = self.image().active_layer_index().clone();
+        let active_layer_idx = self.layered_image().active_layer_index().clone();
         let target_idx = LayerIndex::from_usize(active_layer_idx.to_usize() + 1);
-        if target_idx >= self.image().next_unused_layer_idx() {
+        if target_idx >= self.layered_image().next_unused_layer_idx() {
             return Err(()); // can't move top layer up
         }
 
@@ -797,7 +797,7 @@ impl Canvas {
 
     /// Attempts to move the active layer down (by one)
     pub fn try_move_active_layer_down(&mut self) -> Result<LayerIndex, ()> {
-        let active_layer_idx = self.image().active_layer_index().clone();
+        let active_layer_idx = self.layered_image().active_layer_index().clone();
         if active_layer_idx == LayerIndex::BaseLayer {
             return Err(()); // can't move base layer down
         }
@@ -810,7 +810,7 @@ impl Canvas {
     }
 
     pub fn try_merge_active_layer_down(&mut self) -> Result<LayerIndex, ()> {
-        let active_layer_idx = self.image().active_layer_index().clone();
+        let active_layer_idx = self.layered_image().active_layer_index().clone();
         if active_layer_idx == LayerIndex::BaseLayer {
             return Err(()); // can't move base layer down
         }

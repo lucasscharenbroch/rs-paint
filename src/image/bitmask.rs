@@ -1,7 +1,7 @@
 use std::collections::{VecDeque, HashMap};
 use gtk::cairo;
 
-use super::{Image, ImageLike, Pixel};
+use super::{ImageLike, Pixel};
 use super::undo::action::{AutoDiffAction, ActionName};
 
 /// Wrapper for flattened Vec<bool>; instances should

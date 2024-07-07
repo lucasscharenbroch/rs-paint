@@ -515,7 +515,7 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn active_image(&self) -> &FusedLayer {
+    fn active_fused_layer(&self) -> &FusedLayer {
         match self.active_layer_index {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
@@ -523,7 +523,7 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn active_image_mut(&mut self) -> &mut FusedLayer {
+    fn active_fused_layer_mut(&mut self) -> &mut FusedLayer {
         match self.active_layer_index {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
@@ -539,7 +539,7 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn fused_image_at_layer(&self, layer: LayerIndex) -> &FusedLayer {
+    fn fused_layer_at_index(&self, layer: LayerIndex) -> &FusedLayer {
         match layer {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
@@ -547,12 +547,7 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn image_at_layer(&self, layer: LayerIndex) -> &Image {
-        &self.fused_image_at_layer(layer).image
-    }
-
-    #[inline]
-    fn fused_image_at_layer_mut(&mut self, layer: LayerIndex) -> &mut FusedLayer {
+    fn fused_layer_at_index_mut(&mut self, layer: LayerIndex) -> &mut FusedLayer {
         match layer {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
@@ -560,8 +555,13 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn image_at_layer_mut(&mut self, layer: LayerIndex) -> &mut Image {
-        &mut self.fused_image_at_layer_mut(layer).image
+    fn image_at_layer_index(&self, layer: LayerIndex) -> &Image {
+        &self.fused_layer_at_index(layer).image
+    }
+
+    #[inline]
+    fn image_at_layer_index_mut(&mut self, layer: LayerIndex) -> &mut Image {
+        &mut self.fused_layer_at_index_mut(layer).image
     }
 
     /// Try to borrow two layers mutibly at the same time:
@@ -597,8 +597,13 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    pub fn image(&self) -> &Image {
-        &self.active_image().image
+    pub fn active_image(&self) -> &Image {
+        &self.active_fused_layer().image
+    }
+
+    #[inline]
+    pub fn active_image_mut(&mut self) -> &mut Image {
+        &mut self.active_fused_layer_mut().image
     }
 
     /// Blends the cross-section (across all layers) of the given pixel,
@@ -642,8 +647,8 @@ impl FusedLayeredImage {
             match self.active_layer_index {
                 LayerIndex::BaseLayer => &mut self.base_layer,
                 LayerIndex::Nth(n) => &mut self.other_layers[n],
-            }.drawable.pixels[*i] = self.active_image().image.pixels[*i].to_drawable();
-            let new_value = self.active_image().image.pixels[*i].clone();
+            }.drawable.pixels[*i] = self.active_image().pixels[*i].to_drawable();
+            let new_value = self.active_image().pixels[*i].clone();
             update_pix_modified_dict(&mut self.pix_modified_since_save, *i, p_before, &new_value);
         }
 
@@ -652,11 +657,11 @@ impl FusedLayeredImage {
     }
 
     pub fn layer_drawable(&mut self, layer_index: LayerIndex) -> &mut DrawableImage {
-        &mut self.fused_image_at_layer_mut(layer_index).drawable
+        &mut self.fused_layer_at_index_mut(layer_index).drawable
     }
 
     pub fn set_layer_name(&mut self, layer_index: LayerIndex, new_name: &str) {
-        self.fused_image_at_layer_mut(layer_index).props.layer_name = String::from(new_name)
+        self.fused_layer_at_index_mut(layer_index).props.layer_name = String::from(new_name)
     }
 
     fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerIndex) {
@@ -673,7 +678,7 @@ impl FusedLayeredImage {
         match layer {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
-        }.drawable.pixels[i] = self.image_at_layer(layer).pixels[i].to_drawable();
+        }.drawable.pixels[i] = self.image_at_layer_index(layer).pixels[i].to_drawable();
     }
 
     fn re_compute_main_drawable_pixel(&mut self, i: usize) {
@@ -687,7 +692,7 @@ impl FusedLayeredImage {
     }
 
     fn re_compute_drawable_at_index(&mut self, layer_index: LayerIndex) {
-        self.fused_image_at_layer_mut(layer_index).re_compute_drawable();
+        self.fused_layer_at_index_mut(layer_index).re_compute_drawable();
     }
 
     pub fn layer_indices(&self) -> impl Iterator<Item = LayerIndex> {
@@ -719,18 +724,18 @@ impl FusedLayeredImage {
     }
 
     fn append_layer_with_image(&mut self, layer: Layer, idx: LayerIndex) {
-        let mut new_image = FusedLayer::from_layer(layer);
+        let mut new_layer = FusedLayer::from_layer(layer);
 
         match idx {
             LayerIndex::BaseLayer => {
-                std::mem::swap(&mut new_image, &mut self.base_layer);
-                self.other_layers.insert(0, new_image);
+                std::mem::swap(&mut new_layer, &mut self.base_layer);
+                self.other_layers.insert(0, new_layer);
             },
             LayerIndex::Nth(n) => {
                 if n == self.other_layers.len() {
-                    self.other_layers.push(new_image);
+                    self.other_layers.push(new_layer);
                 } else {
-                    self.other_layers.insert(n, new_image);
+                    self.other_layers.insert(n, new_layer);
                 }
             }
         }
@@ -784,11 +789,11 @@ impl FusedLayeredImage {
     }
 
     pub fn toggle_layer_lock(&mut self, layer_index: LayerIndex) {
-        self.fused_image_at_layer_mut(layer_index).props.toggle_lock();
+        self.fused_layer_at_index_mut(layer_index).props.toggle_lock();
     }
 
     pub fn toggle_layer_visibility(&mut self, layer_index: LayerIndex) {
-        let is_visible = self.fused_image_at_layer_mut(layer_index).props.toggle_visible();
+        let is_visible = self.fused_layer_at_index_mut(layer_index).props.toggle_visible();
 
         if is_visible {
             self.re_compute_drawable_at_index(self.active_layer_index);
@@ -812,22 +817,22 @@ impl TrackedLayeredImage for FusedLayeredImage {
     #[inline]
     fn pix_at(&self, r: i32, c: i32) -> &Pixel {
         let i = (r * self.width() + c) as usize;
-        &self.active_image().image.pixels[i]
+        &self.active_image().pixels[i]
     }
 
     #[inline]
     fn pix_at_mut(&mut self, r: i32, c: i32) -> &mut Pixel {
         let i = (r * self.width() + c) as usize;
 
-        let current_value = self.active_image().image.pixels[i].clone();
+        let current_value = self.active_image().pixels[i].clone();
         self.pix_modified_since_draw.entry(i).or_insert(current_value);
 
-        &mut self.active_image_mut().image.pixels[i]
+        &mut self.active_image_mut().pixels[i]
     }
 
     #[inline]
     fn try_pix_at(&self, r: i32, c: i32) -> Option<&Pixel> {
-        let image = &self.active_image().image;
+        let image = self.active_image();
         if r < 0 || c < 0 || r as usize >= image.height || c as usize >= image.width {
             None
         } else {
@@ -837,7 +842,7 @@ impl TrackedLayeredImage for FusedLayeredImage {
 
     #[inline]
     fn try_pix_at_mut(&mut self, r: i32, c: i32) -> Option<&mut Pixel> {
-        let image = &self.active_image().image;
+        let image = self.active_image();
         if r < 0 || c < 0 || r as usize >= image.height || c as usize >= image.width {
             None
         } else {
@@ -847,11 +852,11 @@ impl TrackedLayeredImage for FusedLayeredImage {
 
     #[inline]
     fn width(&self) -> i32 {
-        self.active_image().image.width as i32
+        self.active_image().width as i32
     }
 
     #[inline]
     fn height(&self) -> i32 {
-        self.active_image().image.height as i32
+        self.active_image().height as i32
     }
 }

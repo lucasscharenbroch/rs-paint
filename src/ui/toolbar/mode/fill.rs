@@ -21,8 +21,8 @@ impl FillState {
         let (oc, or) = canvas.cursor_pos_pix_u();
         let tolerance = toolbar.get_fill_tolerance();
 
-        let bitmask = ImageBitmask::from_flood_fill(canvas.image().image(), tolerance, or, oc);
-        let image = canvas.image_mut();
+        let bitmask = ImageBitmask::from_flood_fill(canvas.active_image(), tolerance, or, oc);
+        let image = canvas.active_image_mut();
         let p = Pixel::from_rgba_struct(color);
 
         for (r, c) in bitmask.coords_of_active_bits() {
