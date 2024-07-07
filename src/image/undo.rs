@@ -127,13 +127,13 @@ impl DrawablesToUpdate {
 
         let num_layers = image.num_layers();
 
-        self.full_layers.into_iter()
+        self.full_layers.iter()
             .filter(|idx| idx.to_usize() < num_layers)
-            .for_each(|idx| image.re_compute_drawable_at_index(idx));
+            .for_each(|idx| image.re_compute_drawable_at_index(*idx));
 
         for (idx_usize, pix) in self.pixels_in_layers.iter().enumerate() {
-            if idx_usize >= num_layers {
-                continue; // ignore pixels from out-of-bounds layers
+            if idx_usize >= num_layers || self.full_layers.contains(&LayerIndex::from_usize(idx_usize)) {
+                continue; // ignore pixels from (out-of-bounds layers) and (already-computed layers)
             }
 
             let idx = LayerIndex::from_usize(idx_usize);
