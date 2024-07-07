@@ -38,13 +38,7 @@ impl Tab {
         let aspect_ratio = canvas_p.borrow().image_width() as f64 /
                            canvas_p.borrow().image_height() as f64;
 
-        const MAX_DIMENSION: i32 = 30;
-
-        let (w, h) = if aspect_ratio >= 1.0 {
-            (MAX_DIMENSION, (MAX_DIMENSION as f64 / aspect_ratio).ceil() as i32)
-        } else {
-            ((MAX_DIMENSION as f64 * aspect_ratio).ceil() as i32, MAX_DIMENSION)
-        };
+        let (w, h) = Self::wh_from_aspect_ratio(aspect_ratio);
 
         let thumbnail_area = gtk::DrawingArea::builder()
             .content_width(w)
@@ -67,6 +61,8 @@ impl Tab {
         let drawing_area = Rc::new(RefCell::new(
             thumbnail_area
         ));
+
+        canvas_p.borrow_mut().set_tab_thumbnail_p(drawing_area.clone());
 
         let x_button = gtk::Button::builder()
             .label("x")
@@ -134,6 +130,26 @@ impl Tab {
 
     pub fn redraw_thumbnail(&self) {
         self.drawing_area.borrow().queue_draw();
+    }
+
+    fn wh_from_aspect_ratio(aspect_ratio: f64) -> (i32, i32) {
+        const MAX_DIMENSION: i32 = 30;
+
+        let (w, h) = if aspect_ratio >= 1.0 {
+            (MAX_DIMENSION, (MAX_DIMENSION as f64 / aspect_ratio).ceil() as i32)
+        } else {
+            ((MAX_DIMENSION as f64 * aspect_ratio).ceil() as i32, MAX_DIMENSION)
+        };
+
+        (w, h)
+    }
+
+    pub fn update_aspect_ratio(drawing_area: &gtk::DrawingArea, aspect_ratio: f64) {
+        let (w, h) = Self::wh_from_aspect_ratio(aspect_ratio);
+
+        drawing_area.set_content_width(w);
+        drawing_area.set_content_height(h);
+        drawing_area.queue_resize();
     }
 }
 

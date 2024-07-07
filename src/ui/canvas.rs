@@ -6,6 +6,7 @@ use super::super::image::bitmask::DeletePix;
 use super::super::image::undo::{ImageHistory, action::ActionName};
 use super::super::image::resize::Crop;
 use super::selection::Selection;
+use super::tab::Tab;
 use super::UiState;
 use super::toolbar::Toolbar;
 use super::toolbar::mode::MouseMode;
@@ -52,6 +53,7 @@ pub struct Canvas {
     pencil_mask_counter: usize,
     layer_window_p: Rc<RefCell<LayerWindow>>,
     lock_dialog_open: Rc<RefCell<bool>>,
+    tab_thumbnail_p: Option<Rc<RefCell<gtk::DrawingArea>>>,
 }
 
 macro_rules! run_lockable_mouse_mode_hook {
@@ -122,6 +124,7 @@ impl Canvas {
             pencil_mask_counter: 1,
             layer_window_p: Rc::new(RefCell::new(LayerWindow::new())),
             lock_dialog_open: Rc::new(RefCell::new(false)),
+            tab_thumbnail_p: None,
         }));
 
         let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
@@ -533,6 +536,10 @@ impl Canvas {
         self.draw_thumbnail_helper(scale, cr, img_width, img_height, image_surface_pattern);
     }
 
+    pub fn set_tab_thumbnail_p(&mut self, thumbnail_p: Rc<RefCell<gtk::DrawingArea>>) {
+        self.tab_thumbnail_p = Some(thumbnail_p);
+    }
+
     fn update_scrollbars(&mut self) {
         let v_window = self.drawing_area.height() as f64 / self.zoom;
         let h_window = self.drawing_area.width() as f64 / self.zoom;
@@ -576,14 +583,20 @@ impl Canvas {
         self.update();
     }
 
-    pub fn update(&mut self) {
+    fn update_tab_thumbnail_aspect_ratio(&self, aspect_ratio: f64) {
+        if let Some(drawing_area_p) = self.tab_thumbnail_p.as_ref() {
+            Tab::update_aspect_ratio(&drawing_area_p.borrow(), aspect_ratio)
+        }
+    }
 
+    pub fn update(&mut self) {
         self.update_scrollbars();
         self.validate_selection();
         self.drawing_area.queue_draw();
 
         let aspect_ratio = self.image_width() as f64 /
             self.image_height() as f64;
+        self.update_tab_thumbnail_aspect_ratio(aspect_ratio);
         self.layer_window_p.borrow().update(
             self.image_hist.now().num_layers(),
             self.image_hist.now().layer_propss(),
