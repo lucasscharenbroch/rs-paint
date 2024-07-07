@@ -304,7 +304,7 @@ impl UndoTree {
     // node with the given id, returning the diff
     // functions necessary to convert the image to the target,
     // setting current to the target.
-    pub fn traverse_to(&mut self, target_id: usize) -> Vec<Box<dyn Fn(&mut ImageState) -> DrawablesToUpdate>> {
+    pub fn traverse_to(&mut self, target_id: usize) -> Vec<Box<dyn Fn(&mut ImageState, &mut DrawablesToUpdate)>> {
         if target_id == self.current.id() {
             return vec![];
         }
@@ -336,7 +336,7 @@ impl UndoTree {
                     // found target: now form diff chain, walking backwards from target to self.current
                     let target = neigh;
                     let mut curr = neigh;
-                    let mut diff_chain: Vec<Box<dyn Fn(&mut ImageState) -> DrawablesToUpdate>> = vec![];
+                    let mut diff_chain: Vec<Box<dyn Fn(&mut ImageState, &mut DrawablesToUpdate)>> = vec![];
                     // `diff_chain` will gather the diff-functions to walk the tree:
                     // there is one diff-function per edge.
                     // To apply an edge: apply its child.
@@ -355,12 +355,12 @@ impl UndoTree {
                         if curr.parent.as_ref().map(|parent| parent.upgrade().unwrap().id() == pred.id()).unwrap_or(false) {
                             // pred is parent: apply the edge (apply curr)
                             diff_chain.push(Box::new(
-                                clone!(@strong curr => move |img| curr.value.borrow_mut().apply_to(img))
+                                clone!(@strong curr => move |img, to_update| curr.value.borrow_mut().apply_to(img, to_update))
                             ));
                         } else {
                             // pred is child: unapply the edge (unapply pred)
                             diff_chain.push(Box::new(
-                                clone!(@strong pred => move |img| pred.value.borrow_mut().unapply_to(img))
+                                clone!(@strong pred => move |img, to_update| pred.value.borrow_mut().unapply_to(img, to_update))
                             ));
                         }
 

@@ -11,7 +11,7 @@ use std::rc::Rc;
 use gtk::{prelude::*, Widget};
 use std::collections::HashSet;
 
-/// A unifiable value for which drawables/pixels of
+/// Specifies which drawables/pixels of
 /// a `FusedLayeredImage` should be re-computed. This
 /// can be used to lazily accumulate changes before updating.
 /// The inclusion of any pixel implicitly includes that
@@ -27,75 +27,95 @@ struct DrawablesToUpdate {
 }
 
 impl DrawablesToUpdate {
-    fn union(mut self, mut other: DrawablesToUpdate) -> Self {
-        // ensure self.pixels_in_layers is the same length
-        // as other.pixels_in_layers
+    fn new() -> Self {
+        DrawablesToUpdate {
+            full_layers: HashSet::new(),
+            pixels_in_layers: Vec::new(),
+            definitely_main: false,
+        }
+    }
 
-        while self.pixels_in_layers.len() < other.pixels_in_layers.len() {
+    fn add_layer(&mut self, layer_idx: LayerIndex) {
+        self.full_layers.insert(layer_idx);
+    }
+
+    fn add_pixels(&mut self, pixels: &HashSet<usize>, layer_idx: LayerIndex) {
+        let idx_usize = layer_idx.to_usize();
+        while self.pixels_in_layers.len() <= idx_usize {
             self.pixels_in_layers.push(HashSet::new());
         }
 
-        while self.pixels_in_layers.len() > other.pixels_in_layers.len() {
-            other.pixels_in_layers.push(HashSet::new());
-        }
+        self.pixels_in_layers[idx_usize].extend(pixels);
+    }
 
-        let self_pix = self.pixels_in_layers.into_iter();
-        let other_pix = other.pixels_in_layers.into_iter();
+    fn add_the_main_drawable(&mut self) {
+        self.definitely_main = true;
+    }
 
-        let pixels_in_layers = self_pix.zip(other_pix)
-            .map(|(a, b)| a.union(&b).map(|x| *x).collect())
+    fn add_layers(&mut self, layer_indices: impl Iterator<Item = LayerIndex>) {
+        self.full_layers.extend(layer_indices);
+    }
+
+    /// Remove layer at `idx`, shifting higher indices down by one
+    fn remove_layer(&mut self, idx: LayerIndex) {
+        self.full_layers.remove(&idx);
+        self.full_layers = self.full_layers.iter()
+            .map(|i| {
+                if *i > idx {
+                    LayerIndex::from_usize(i.to_usize() - 1)
+                } else {
+                    *i
+                }
+            })
             .collect();
 
-        self.full_layers.extend(&other.full_layers);
+        if let Some(pix) = self.pixels_in_layers.get_mut(idx.to_usize()) {
+            pix.clear();
+        }
 
-        DrawablesToUpdate {
-            full_layers: self.full_layers,
-            pixels_in_layers,
-            definitely_main: self.definitely_main || other.definitely_main,
+        if self.pixels_in_layers.len() > idx.to_usize() {
+            self.pixels_in_layers.remove(idx.to_usize());
         }
     }
 
-    fn just_this_layer(layer_idx: LayerIndex) -> Self {
-        DrawablesToUpdate {
-            full_layers: std::iter::once(layer_idx).collect(),
-            pixels_in_layers: Vec::new(),
-            definitely_main: false,
+    /// Append and add a new layer at `idx`, shifting higher layers up by one
+    fn append_layer(&mut self, idx: LayerIndex) {
+        self.full_layers = self.full_layers.iter()
+            .map(|i| {
+                if *i >= idx {
+                    LayerIndex::from_usize(i.to_usize() + 1)
+                } else {
+                    *i
+                }
+            })
+            .collect();
+        self.full_layers.insert(idx);
+
+        let i = idx.to_usize();
+
+        while self.pixels_in_layers.len() < i {
+            self.pixels_in_layers.push(HashSet::new());
+        }
+
+        if i < self.pixels_in_layers.len() {
+            self.pixels_in_layers.insert(i, HashSet::new())
         }
     }
 
-    fn just_these_pixels(pixels: HashSet<usize>, layer_idx: LayerIndex) -> Self {
-        let mut pixels_in_layers = vec![HashSet::new(); layer_idx.to_usize()];
-        pixels_in_layers.push(pixels);
-
-        DrawablesToUpdate {
-            full_layers: HashSet::new(),
-            pixels_in_layers,
-            definitely_main: false,
+    fn swap_layers(&mut self, idx1: LayerIndex, idx2: LayerIndex) {
+        let (full_layer1, full_layer2) = (self.full_layers.remove(&idx2), self.full_layers.remove(&idx1));
+        if full_layer1 {
+            self.full_layers.insert(idx1);
         }
-    }
-
-    fn just_the_main_drawable() -> Self {
-        DrawablesToUpdate {
-            full_layers: HashSet::new(),
-            pixels_in_layers: Vec::new(),
-            definitely_main: true,
+        if full_layer2 {
+            self.full_layers.insert(idx2);
         }
-    }
 
-    fn these_layers(layer_indices: impl Iterator<Item = LayerIndex>) -> Self {
-        DrawablesToUpdate {
-            full_layers: layer_indices.collect(),
-            pixels_in_layers: Vec::new(),
-            definitely_main: false,
+        while self.pixels_in_layers.len() <= idx1.to_usize().max(idx2.to_usize()) {
+            self.pixels_in_layers.push(HashSet::new());
         }
-    }
 
-    fn none() -> Self {
-        DrawablesToUpdate {
-            full_layers: HashSet::new(),
-            pixels_in_layers: Vec::new(),
-            definitely_main: false,
-        }
+        self.pixels_in_layers.swap(idx1.to_usize(), idx2.to_usize());
     }
 
     fn do_update(self, image: &mut FusedLayeredImage) {
@@ -113,7 +133,7 @@ impl DrawablesToUpdate {
 
         for (idx_usize, pix) in self.pixels_in_layers.iter().enumerate() {
             if idx_usize >= num_layers {
-                continue; // ignore pixels from deleted layers
+                continue; // ignore pixels from out-of-bounds layers
             }
 
             let idx = LayerIndex::from_usize(idx_usize);
@@ -127,7 +147,7 @@ impl DrawablesToUpdate {
 
             for (idx_usize, pix) in self.pixels_in_layers.iter().enumerate() {
                 if idx_usize >= num_layers {
-                    continue; // ignore pixels from deleted layers
+                    continue; // ignore pixels from out-of-bounds layers
                 }
 
                 main_pix.extend(pix.iter());
@@ -164,7 +184,7 @@ impl ImageDiff {
         ImageDiff::Diff(diff_vec, layer)
     }
 
-    pub fn apply_to(&mut self, image: &mut FusedLayeredImage) -> DrawablesToUpdate {
+    pub fn apply_to(&mut self, image: &mut FusedLayeredImage, drawables_to_update: &mut DrawablesToUpdate) {
         match self {
             ImageDiff::Diff(ref pixs, layer) => {
                 let mut pix_mod = HashSet::new();
@@ -172,37 +192,40 @@ impl ImageDiff {
                     image.image_at_layer_mut(*layer).pixels[*i] = after.clone();
                     pix_mod.insert(*i);
                 }
-                DrawablesToUpdate::just_these_pixels(pix_mod, *layer)
+                drawables_to_update.add_pixels(&pix_mod, *layer)
             },
             ImageDiff::SingleLayerManualUndo(action, layer) => {
                 image.apply_action(action, *layer);
-                DrawablesToUpdate::just_this_layer(*layer)
+                drawables_to_update.add_layer(*layer)
             },
             ImageDiff::AppendLayer(color, idx) => {
                 image.append_new_layer(*color, *idx);
-                DrawablesToUpdate::just_this_layer(*idx)
+                drawables_to_update.append_layer(*idx);
             },
             ImageDiff::RemoveLayer(_deleted_image, idx) => {
                 image.remove_layer(*idx);
-                DrawablesToUpdate::just_the_main_drawable()
+                drawables_to_update.add_the_main_drawable();
+                drawables_to_update.remove_layer(*idx);
             },
             ImageDiff::SwapLayers(i1, i2) => {
                 image.swap_layers(*i1, *i2);
-                DrawablesToUpdate::just_the_main_drawable()
+                drawables_to_update.add_the_main_drawable();
+                drawables_to_update.swap_layers(*i1, *i2);
             }
             ImageDiff::MergeLayers(_save_top, top_idx, _save_bot, bot_idx) => {
                 image.merge_layers(*top_idx, *bot_idx);
-                DrawablesToUpdate::just_this_layer(*bot_idx)
+                drawables_to_update.remove_layer(*top_idx);
+                drawables_to_update.add_layer(*bot_idx);
             },
             ImageDiff::MultiLayerManualUndo(action_struct) => {
                 action_struct.exec(image);
-                DrawablesToUpdate::these_layers(image.layer_indices())
+                drawables_to_update.add_layers(image.layer_indices())
             }
-            ImageDiff::Null => DrawablesToUpdate::none(),
+            ImageDiff::Null => (),
         }
     }
 
-    pub fn unapply_to(&mut self, image: &mut FusedLayeredImage) -> DrawablesToUpdate {
+    pub fn unapply_to(&mut self, image: &mut FusedLayeredImage, drawables_to_update: &mut DrawablesToUpdate) {
         match self {
             ImageDiff::Diff(ref pixs, layer) => {
                 let mut pix_mod = HashSet::new();
@@ -210,35 +233,38 @@ impl ImageDiff {
                     image.image_at_layer_mut(*layer).pixels[*i] = before.clone();
                     pix_mod.insert(*i);
                 }
-                DrawablesToUpdate::just_these_pixels(pix_mod, *layer)
+                drawables_to_update.add_pixels(&pix_mod, *layer)
             },
             ImageDiff::SingleLayerManualUndo(action, layer) => {
                 image.unapply_action(action, *layer);
-                DrawablesToUpdate::just_this_layer(*layer)
+                drawables_to_update.add_layer(*layer)
             },
             ImageDiff::AppendLayer(_color, idx) => {
                 image.remove_layer(*idx);
-                DrawablesToUpdate::just_the_main_drawable()
+                drawables_to_update.add_the_main_drawable();
+                drawables_to_update.remove_layer(*idx);
             },
             ImageDiff::RemoveLayer(removed_layer_image, idx) => {
                 image.append_layer_with_image(removed_layer_image.clone(), *idx);
-                DrawablesToUpdate::just_this_layer(*idx)
+                drawables_to_update.append_layer(*idx);
             },
             ImageDiff::SwapLayers(i1, i2) => {
                 image.swap_layers(*i1, *i2);
-                DrawablesToUpdate::just_the_main_drawable()
+                drawables_to_update.add_the_main_drawable();
+                drawables_to_update.swap_layers(*i1, *i2);
             }
             ImageDiff::MergeLayers(save_top, top_index, save_bot, bot_index) => {
                 image.append_layer_with_image(save_top.clone(), *top_index);
                 *image.image_at_layer_mut(*bot_index) = save_bot.image.clone();
                 image.fused_image_at_layer_mut(*bot_index).info = save_bot.info.clone();
-                DrawablesToUpdate::these_layers(vec![*top_index, *bot_index].into_iter())
+                drawables_to_update.add_layer(*bot_index);
+                drawables_to_update.append_layer(*top_index);
             },
             ImageDiff::MultiLayerManualUndo(action_struct) => {
                 action_struct.undo(image);
-                DrawablesToUpdate::these_layers(image.layer_indices())
+                drawables_to_update.add_layers(image.layer_indices())
             }
-            ImageDiff::Null => DrawablesToUpdate::none(),
+            ImageDiff::Null => (),
         }
     }
 }
@@ -267,16 +293,14 @@ impl ImageStateDiff {
         }
     }
 
-    fn apply_to(&mut self, image_state: &mut ImageState) -> DrawablesToUpdate {
-        let to_update = self.image_diff.apply_to(&mut image_state.img);
+    fn apply_to(&mut self, image_state: &mut ImageState, to_update: &mut DrawablesToUpdate) {
+        self.image_diff.apply_to(&mut image_state.img, to_update);
         image_state.id = self.new_id;
-        to_update
     }
 
-    fn unapply_to(&mut self, image_state: &mut ImageState) -> DrawablesToUpdate {
-        let to_update = self.image_diff.unapply_to(&mut image_state.img);
+    fn unapply_to(&mut self, image_state: &mut ImageState, to_update: &mut DrawablesToUpdate) {
+        self.image_diff.unapply_to(&mut image_state.img, to_update);
         image_state.id = self.old_id;
-        to_update
     }
 }
 
@@ -328,7 +352,8 @@ impl ImageHistory {
     }
 
     fn apply_and_push_diff(&mut self, mut diff: ImageDiff, culprit: ActionName) {
-        let to_update = diff.apply_to(self.now_mut());
+        let mut to_update = DrawablesToUpdate::new();
+        diff.apply_to(self.now_mut(), &mut to_update);
         to_update.do_update(self.now_mut());
 
         let image_state_diff = ImageStateDiff::new(
@@ -343,14 +368,16 @@ impl ImageHistory {
 
     pub fn undo(&mut self) {
         if let Some(d) = self.undo_tree.undo() {
-            let to_update = d.borrow_mut().unapply_to(&mut self.now);
+            let mut to_update = DrawablesToUpdate::new();
+            d.borrow_mut().unapply_to(&mut self.now, &mut to_update);
             to_update.do_update(self.now_mut());
         }
     }
 
     pub fn redo(&mut self) {
         if let Some(d) = self.undo_tree.redo() {
-            let to_update = d.borrow_mut().apply_to(&mut self.now);
+            let mut to_update = DrawablesToUpdate::new();
+            d.borrow_mut().apply_to(&mut self.now, &mut to_update);
             to_update.do_update(self.now_mut());
         }
     }
@@ -372,11 +399,10 @@ impl ImageHistory {
         assert!(self.id_exists(target_id), "can't migrate to a non-existant commit");
         let diffs = self.undo_tree.traverse_to(target_id);
 
-        let mut drawables_to_update = DrawablesToUpdate::none();
+        let mut drawables_to_update = DrawablesToUpdate::new();
 
         for diff in diffs {
-            let to_update = diff(&mut self.now);
-            drawables_to_update = drawables_to_update.union(to_update);
+            diff(&mut self.now, &mut drawables_to_update);
         }
 
         drawables_to_update.do_update(self.now_mut())
