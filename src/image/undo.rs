@@ -105,10 +105,17 @@ impl DrawablesToUpdate {
             image.re_compute_main_drawable();
         }
 
+        let num_layers = image.num_layers();
+
         self.full_layers.into_iter()
+            .filter(|idx| idx.to_usize() < num_layers)
             .for_each(|idx| image.re_compute_drawable_at_index(idx));
 
         for (idx_usize, pix) in self.pixels_in_layers.iter().enumerate() {
+            if idx_usize >= num_layers {
+                continue; // ignore pixels from deleted layers
+            }
+
             let idx = LayerIndex::from_usize(idx_usize);
             for i in pix.iter() {
                 image.re_compute_layer_drawable_pixel(*i, idx);
@@ -118,7 +125,11 @@ impl DrawablesToUpdate {
         if !update_main {
             let mut main_pix = HashSet::new();
 
-            for pix in self.pixels_in_layers.iter() {
+            for (idx_usize, pix) in self.pixels_in_layers.iter().enumerate() {
+                if idx_usize >= num_layers {
+                    continue; // ignore pixels from deleted layers
+                }
+
                 main_pix.extend(pix.iter());
             }
 
