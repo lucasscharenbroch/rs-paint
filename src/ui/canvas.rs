@@ -51,7 +51,7 @@ pub struct Canvas {
     pencil_mask: Vec<usize>,
     pencil_mask_counter: usize,
     layer_window_p: Rc<RefCell<LayerWindow>>,
-    lock_dialog_open: bool,
+    lock_dialog_open: Rc<RefCell<bool>>,
 }
 
 macro_rules! run_lockable_mouse_mode_hook {
@@ -63,7 +63,7 @@ macro_rules! run_lockable_mouse_mode_hook {
         if mouse_mode.disable_when_locked() {
             if $canvas_p.borrow().active_layer_locked() {
                 std::mem::drop(toolbar); // prevent a double borrow-mut (from the above)
-                Canvas::alert_user_of_lock(&$canvas_p);
+                $canvas_p.borrow().alert_user_of_lock("Can't modify: active layer locked");
                 return;
             }
         }
@@ -121,7 +121,7 @@ impl Canvas {
             pencil_mask: vec![0; image_net_size],
             pencil_mask_counter: 1,
             layer_window_p: Rc::new(RefCell::new(LayerWindow::new())),
-            lock_dialog_open: false,
+            lock_dialog_open: Rc::new(RefCell::new(false)),
         }));
 
         let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
@@ -185,29 +185,35 @@ impl Canvas {
         canvas_p.borrow_mut().update_scrollbars();
     }
 
+    pub fn layer_at_index_is_locked(&self, layer_index: LayerIndex) -> bool {
+        self.image_hist.now().layer_at_index(layer_index).is_locked()
+    }
+
     pub fn active_layer_locked(&self) -> bool {
         self.image_hist.now().active_layer().is_locked()
     }
 
     /// Opens a dialog, but only if there isn't already
     /// an open one
-    fn alert_user_of_lock(canvas_p: &Rc<RefCell<Self>>) {
-        if canvas_p.borrow().lock_dialog_open {
+    fn alert_user_of_lock(&self, message: &str) {
+        if *self.lock_dialog_open.borrow() {
             return;
         }
 
-        canvas_p.borrow_mut().lock_dialog_open = true;
+        *self.lock_dialog_open.borrow_mut() = true;
+
+        let lock_dialog_open = self.lock_dialog_open.clone();
 
         modal_ok_dialog_str(
-            canvas_p.borrow().ui_p.borrow().window(),
+            self.ui_p.borrow().window(),
             "Active Layer Locked",
-            "Can't modify: active layer locked",
-            clone!(@strong canvas_p => move || {
-                canvas_p.borrow_mut().lock_dialog_open = false;
+            message,
+            clone!(@strong lock_dialog_open => move || {
+                *lock_dialog_open.borrow_mut() = false;
                 super::dialog::CloseDialog::Yes
             }),
-            clone!(@strong canvas_p => move || {
-                canvas_p.borrow_mut().lock_dialog_open = false;
+            clone!(@strong lock_dialog_open => move || {
+                *lock_dialog_open.borrow_mut() = false;
             })
         );
     }
@@ -704,6 +710,11 @@ impl Canvas {
     }
 
     pub fn delete_selection(&mut self) {
+        if self.active_layer_locked() {
+            self.alert_user_of_lock("Can't delete selection: active layer locked");
+            return;
+        }
+
         let action = DeletePix::new(self.selection.iter());
         self.image_hist.exec_doable_action(action);
         self.selection = Selection::NoSelection;
@@ -847,6 +858,14 @@ impl Canvas {
         }
 
         let target_idx = LayerIndex::from_usize(active_layer_idx.to_usize() - 1);
+
+        if self.active_layer_locked() {
+            self.alert_user_of_lock("Can't merge: active layer is locked");
+            return Err(());
+        } else if self.layer_at_index_is_locked(target_idx) {
+            self.alert_user_of_lock("Can't merge: target layer is locked");
+            return Err(());
+        }
 
         self.image_hist.merge_layers(active_layer_idx, target_idx);
         self.update();

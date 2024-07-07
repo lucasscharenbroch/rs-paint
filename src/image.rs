@@ -543,7 +543,7 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn layer_at_index(&self, layer_index: LayerIndex) -> &FusedLayer {
+    pub fn layer_at_index(&self, layer_index: LayerIndex) -> &FusedLayer {
         match layer_index {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
@@ -551,7 +551,7 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn layer_at_index_mut(&mut self, layer_index: LayerIndex) -> &mut FusedLayer {
+    pub fn layer_at_index_mut(&mut self, layer_index: LayerIndex) -> &mut FusedLayer {
         match layer_index {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
