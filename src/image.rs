@@ -415,7 +415,7 @@ impl FusedLayer {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LayerIndex {
     /// The bottom layer
     BaseLayer,
@@ -583,18 +583,6 @@ impl FusedLayeredImage {
             })
     }
 
-    /// Update (re-compute/re-blend) the pixel at the given
-    /// index for the whole-blended-image drawable and the
-    /// given layer's drawable
-    #[inline]
-    fn update_drawable_and_layer_at(&mut self, i: usize, layer: LayerIndex) {
-        self.drawable.pixels[i] = self.get_blended_pixel_at(i);
-        match layer {
-            LayerIndex::BaseLayer => &mut self.base_layer,
-            LayerIndex::Nth(n) => &mut self.other_layers[n],
-        }.drawable.pixels[i] = self.image_at_layer(layer).pixels[i].to_drawable();
-    }
-
     /// Updates the size of every drawable to
     /// match the image sizes (which should all match)
     fn update_drawable_sizes(&mut self) {
@@ -647,26 +635,26 @@ impl FusedLayeredImage {
         (mod_pix, self.active_layer_index)
     }
 
+    #[inline]
+    fn re_compute_layer_drawable_pixel(&mut self, i: usize, layer: LayerIndex) {
+        match layer {
+            LayerIndex::BaseLayer => &mut self.base_layer,
+            LayerIndex::Nth(n) => &mut self.other_layers[n],
+        }.drawable.pixels[i] = self.image_at_layer(layer).pixels[i].to_drawable();
+    }
+
+    fn re_compute_main_drawable_pixel(&mut self, i: usize) {
+        self.drawable.pixels[i] = self.get_blended_pixel_at(i);
+    }
+
     fn re_compute_main_drawable(&mut self) {
         self.drawable.pixels = (0..self.drawable.pixels.len())
             .map(|i| self.get_blended_pixel_at(i))
             .collect::<Vec<_>>();
     }
 
-    fn re_compute_all_drawables(&mut self) {
-        self.re_compute_main_drawable();
-        for layer_idx in self.layer_indices() {
-            self.fused_image_at_layer_mut(layer_idx).re_compute_drawable();
-        }
-    }
-
-    /// Call this after manually editing a child
-    /// (outside of the change-tracking API):
-    /// `self.drawable` and the active layer's drawable
-    /// will be re-computed by blending every pixel
-    fn re_compute_active_drawables(&mut self) {
-        self.re_compute_main_drawable();
-        self.fused_image_at_layer_mut(self.active_layer_index).re_compute_drawable();
+    fn re_compute_drawable_at_index(&mut self, layer_index: LayerIndex) {
+        self.fused_image_at_layer_mut(layer_index).re_compute_drawable();
     }
 
     pub fn layer_indices(&self) -> impl Iterator<Item = LayerIndex> {
@@ -713,8 +701,6 @@ impl FusedLayeredImage {
                 }
             }
         }
-
-        self.re_compute_main_drawable();
     }
 
     fn remove_layer(&mut self, idx: LayerIndex) {
@@ -734,16 +720,12 @@ impl FusedLayeredImage {
         if self.active_layer_index.to_usize() >= self.num_layers() {
             self.active_layer_index = LayerIndex::from_usize(self.num_layers());
         }
-
-        self.re_compute_main_drawable();
     }
 
     fn swap_layers(&mut self, i1: LayerIndex, i2: LayerIndex) {
         if let Some((l1, l2)) = self.dual_layer_borrow_mut(i1, i2) {
             std::mem::swap(l1, l2);
         }
-
-        self.re_compute_main_drawable();
     }
 
     fn merge_layers(&mut self, top_idx: LayerIndex, bot_idx: LayerIndex) {

@@ -222,11 +222,9 @@ impl ImageHistory {
 impl FusedLayeredImage {
     pub fn apply_action(&mut self, action: &mut Box<dyn SingleLayerAction<Image>>, layer: LayerIndex) {
         action.exec(self.image_at_layer_mut(layer));
-        self.re_compute_active_drawables();
     }
 
     pub fn unapply_action(&mut self, action: &mut Box<dyn SingleLayerAction<Image>>, layer: LayerIndex) {
         action.undo(self.image_at_layer_mut(layer));
-        self.re_compute_active_drawables();
     }
 }

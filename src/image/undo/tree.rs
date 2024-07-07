@@ -1,6 +1,6 @@
 use super::{ImageStateDiff, ImageDiff, ImageState};
 use super::action::ActionName;
-use super::ImageHistory;
+use super::{ImageHistory, DrawablesToUpdate};
 
 use std::rc::{Rc, Weak};
 use std::cell::RefCell;
@@ -304,7 +304,7 @@ impl UndoTree {
     // node with the given id, returning the diff
     // functions necessary to convert the image to the target,
     // setting current to the target.
-    pub fn traverse_to(&mut self, target_id: usize) -> Vec<Box<dyn Fn(&mut ImageState)>> {
+    pub fn traverse_to(&mut self, target_id: usize) -> Vec<Box<dyn Fn(&mut ImageState) -> DrawablesToUpdate>> {
         if target_id == self.current.id() {
             return vec![];
         }
@@ -336,7 +336,7 @@ impl UndoTree {
                     // found target: now form diff chain, walking backwards from target to self.current
                     let target = neigh;
                     let mut curr = neigh;
-                    let mut diff_chain: Vec<Box<dyn Fn(&mut ImageState)>> = vec![];
+                    let mut diff_chain: Vec<Box<dyn Fn(&mut ImageState) -> DrawablesToUpdate>> = vec![];
                     // `diff_chain` will gather the diff-functions to walk the tree:
                     // there is one diff-function per edge.
                     // To apply an edge: apply its child.
