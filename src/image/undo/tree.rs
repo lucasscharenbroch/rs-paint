@@ -204,8 +204,8 @@ impl UndoTree {
         self.set_node_is_active(&*self.current, true);
     }
 
-    pub fn commit(&mut self, diff: ImageStateDiff) {
-        let new_current = Rc::new(UndoNode::new(&self.current, diff));
+    pub fn commit(&mut self, state_diff: ImageStateDiff) {
+        let new_current = Rc::new(UndoNode::new(&self.current, state_diff));
         new_current.connect_hooks(&self);
         self.current.children.borrow_mut().push(Rc::clone(&new_current));
         self.update_current(new_current);

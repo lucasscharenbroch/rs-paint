@@ -57,11 +57,11 @@ impl DrawablesToUpdate {
     }
 
     /// Remove layer at `idx`, shifting higher indices down by one
-    fn remove_layer(&mut self, idx: LayerIndex) {
-        self.full_layers.remove(&idx);
+    fn remove_layer(&mut self, layer_index: LayerIndex) {
+        self.full_layers.remove(&layer_index);
         self.full_layers = self.full_layers.iter()
             .map(|i| {
-                if *i > idx {
+                if *i > layer_index {
                     LayerIndex::from_usize(i.to_usize() - 1)
                 } else {
                     *i
@@ -69,29 +69,29 @@ impl DrawablesToUpdate {
             })
             .collect();
 
-        if let Some(pix) = self.pixels_in_layers.get_mut(idx.to_usize()) {
+        if let Some(pix) = self.pixels_in_layers.get_mut(layer_index.to_usize()) {
             pix.clear();
         }
 
-        if self.pixels_in_layers.len() > idx.to_usize() {
-            self.pixels_in_layers.remove(idx.to_usize());
+        if self.pixels_in_layers.len() > layer_index.to_usize() {
+            self.pixels_in_layers.remove(layer_index.to_usize());
         }
     }
 
     /// Append and add a new layer at `idx`, shifting higher layers up by one
-    fn append_layer(&mut self, idx: LayerIndex) {
+    fn append_layer(&mut self, layer_index: LayerIndex) {
         self.full_layers = self.full_layers.iter()
             .map(|i| {
-                if *i >= idx {
+                if *i >= layer_index {
                     LayerIndex::from_usize(i.to_usize() + 1)
                 } else {
                     *i
                 }
             })
             .collect();
-        self.full_layers.insert(idx);
+        self.full_layers.insert(layer_index);
 
-        let i = idx.to_usize();
+        let i = layer_index.to_usize();
 
         while self.pixels_in_layers.len() < i {
             self.pixels_in_layers.push(HashSet::new());
@@ -102,20 +102,20 @@ impl DrawablesToUpdate {
         }
     }
 
-    fn swap_layers(&mut self, idx1: LayerIndex, idx2: LayerIndex) {
-        let (full_layer1, full_layer2) = (self.full_layers.remove(&idx2), self.full_layers.remove(&idx1));
+    fn swap_layers(&mut self, layer_index1: LayerIndex, layer_index2: LayerIndex) {
+        let (full_layer1, full_layer2) = (self.full_layers.remove(&layer_index2), self.full_layers.remove(&layer_index1));
         if full_layer1 {
-            self.full_layers.insert(idx1);
+            self.full_layers.insert(layer_index1);
         }
         if full_layer2 {
-            self.full_layers.insert(idx2);
+            self.full_layers.insert(layer_index2);
         }
 
-        while self.pixels_in_layers.len() <= idx1.to_usize().max(idx2.to_usize()) {
+        while self.pixels_in_layers.len() <= layer_index1.to_usize().max(layer_index2.to_usize()) {
             self.pixels_in_layers.push(HashSet::new());
         }
 
-        self.pixels_in_layers.swap(idx1.to_usize(), idx2.to_usize());
+        self.pixels_in_layers.swap(layer_index1.to_usize(), layer_index2.to_usize());
     }
 
     fn do_update(self, layered_image: &mut FusedLayeredImage) {
@@ -136,9 +136,9 @@ impl DrawablesToUpdate {
                 continue; // ignore pixels from (out-of-bounds layers) and (already-computed layers)
             }
 
-            let idx = LayerIndex::from_usize(idx_usize);
+            let layer_index = LayerIndex::from_usize(idx_usize);
             for i in pix.iter() {
-                layered_image.re_compute_layer_drawable_pixel(*i, idx);
+                layered_image.re_compute_layer_drawable_pixel(*i, layer_index);
             }
         }
 
@@ -243,8 +243,8 @@ impl ImageDiff {
                 drawables_to_update.add_the_main_drawable();
                 drawables_to_update.remove_layer(*idx);
             },
-            ImageDiff::RemoveLayer(removed_layer_image, idx) => {
-                image.append_layer_with_image(removed_layer_image.clone(), *idx);
+            ImageDiff::RemoveLayer(removed_layer, idx) => {
+                image.append_layer_with_image(removed_layer.clone(), *idx);
                 drawables_to_update.append_layer(*idx);
             },
             ImageDiff::SwapLayers(i1, i2) => {
@@ -415,8 +415,8 @@ impl ImageHistory {
         self.undo_tree.set_hooks(mod_self, update_canvas);
     }
 
-    pub fn append_layer(&mut self, fill_color: gtk::gdk::RGBA, idx: LayerIndex) {
-        let image_diff = ImageDiff::AppendLayer(fill_color, idx);
+    pub fn append_layer(&mut self, fill_color: gtk::gdk::RGBA, layer_index: LayerIndex) {
+        let image_diff = ImageDiff::AppendLayer(fill_color, layer_index);
         self.apply_and_push_diff(image_diff, ActionName::AppendLayer);
     }
 
@@ -428,30 +428,30 @@ impl ImageHistory {
         }
     }
 
-    pub fn focus_layer(&mut self, idx: LayerIndex) {
+    pub fn focus_layer(&mut self, layer_index: LayerIndex) {
         self.commit_any_changes_on_active_layer();
-        self.now_mut().active_layer_index = idx;
+        self.now_mut().active_layer_index = layer_index;
     }
 
-    pub fn remove_layer(&mut self, idx: LayerIndex) {
+    pub fn remove_layer(&mut self, layer_index: LayerIndex) {
         if let LayerIndex::BaseLayer = self.now().active_layer_index() {
             self.commit_any_changes_on_active_layer();
         }
 
         let image_diff = ImageDiff::RemoveLayer(
-            self.now().fused_layer_at_index(idx).unfused(),
-            idx,
+            self.now().fused_layer_at_index(layer_index).unfused(),
+            layer_index,
         );
 
         self.apply_and_push_diff(image_diff, ActionName::RemoveLayer)
     }
 
-    pub fn swap_layers(&mut self, i1: LayerIndex, i2: LayerIndex) {
-        if [i1, i2].contains(self.now().active_layer_index()) {
+    pub fn swap_layers(&mut self, layer_index1: LayerIndex, layer_index2: LayerIndex) {
+        if [layer_index1, layer_index2].contains(self.now().active_layer_index()) {
             self.commit_any_changes_on_active_layer();
         }
 
-        let image_diff = ImageDiff::SwapLayers(i1, i2);
+        let image_diff = ImageDiff::SwapLayers(layer_index1, layer_index2);
 
         self.apply_and_push_diff(image_diff, ActionName::RearrangeLayers);
     }

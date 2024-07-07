@@ -143,38 +143,38 @@ impl MultiLayerActionWrapper {
     }
 
     // Idempotent.
-    fn init_layer_datas(&mut self, image: &mut FusedLayeredImage) {
+    fn init_layer_datas(&mut self, layered_image: &mut FusedLayeredImage) {
         if let None = self.layer_datas {
             let mut layer_datas = Vec::new();
 
-            for idx in image.layer_indices() {
-                layer_datas.push(self.action.new_layer_data(image.image_at_layer_index_mut(idx)))
+            for idx in layered_image.layer_indices() {
+                layer_datas.push(self.action.new_layer_data(layered_image.image_at_layer_index_mut(idx)))
             }
 
             self.layer_datas = Some(layer_datas);
         }
     }
 
-    pub fn exec(&mut self, image: &mut FusedLayeredImage) {
-        self.init_layer_datas(image);
+    pub fn exec(&mut self, layered_image: &mut FusedLayeredImage) {
+        self.init_layer_datas(layered_image);
         let layer_datas = self.layer_datas.as_mut().unwrap();
 
-        for (i, ld) in layer_datas.iter_mut().enumerate() {
-            self.action.exec(ld, image.image_at_layer_index_mut(LayerIndex::from_usize(i)));
+        for (i, layer_data) in layer_datas.iter_mut().enumerate() {
+            self.action.exec(layer_data, layered_image.image_at_layer_index_mut(LayerIndex::from_usize(i)));
         }
 
-        image.update_drawable_sizes();
+        layered_image.update_drawable_sizes();
     }
 
-    pub fn undo(&mut self, image: &mut FusedLayeredImage) {
-        self.init_layer_datas(image);
+    pub fn undo(&mut self, layered_image: &mut FusedLayeredImage) {
+        self.init_layer_datas(layered_image);
         let layer_datas = self.layer_datas.as_mut().unwrap();
 
-        for (i, ld) in layer_datas.iter_mut().enumerate() {
-            self.action.undo(ld, image.image_at_layer_index_mut(LayerIndex::from_usize(i)));
+        for (i, layer_data) in layer_datas.iter_mut().enumerate() {
+            self.action.undo(layer_data, layered_image.image_at_layer_index_mut(LayerIndex::from_usize(i)));
         }
 
-        image.update_drawable_sizes();
+        layered_image.update_drawable_sizes();
     }
 }
 
@@ -199,12 +199,12 @@ impl ImageHistory {
         self.push_undo_action(action, layer);
     }
 
-    fn push_undo_action(&mut self, action: Box<dyn SingleLayerAction<Image>>, layer: LayerIndex) {
+    fn push_undo_action(&mut self, action: Box<dyn SingleLayerAction<Image>>, layer_index: LayerIndex) {
         // assume the current state is already pushed (this is done in `exec_undoable_action`)
         // otherwise an anonymous undo step might get lost
 
         let culprit = action.name();
-        let image_diff = ImageDiff::SingleLayerManualUndo(action, layer);
+        let image_diff = ImageDiff::SingleLayerManualUndo(action, layer_index);
         let image_state_diff = ImageStateDiff::new(image_diff, self.now.id, self.id_counter, culprit);
 
         self.push_state_diff(image_state_diff)
@@ -220,11 +220,11 @@ impl ImageHistory {
 }
 
 impl FusedLayeredImage {
-    pub fn apply_action(&mut self, action: &mut Box<dyn SingleLayerAction<Image>>, layer: LayerIndex) {
-        action.exec(self.image_at_layer_index_mut(layer));
+    pub fn apply_action(&mut self, action: &mut Box<dyn SingleLayerAction<Image>>, layer_index: LayerIndex) {
+        action.exec(self.image_at_layer_index_mut(layer_index));
     }
 
-    pub fn unapply_action(&mut self, action: &mut Box<dyn SingleLayerAction<Image>>, layer: LayerIndex) {
-        action.undo(self.image_at_layer_index_mut(layer));
+    pub fn unapply_action(&mut self, action: &mut Box<dyn SingleLayerAction<Image>>, layer_index: LayerIndex) {
+        action.undo(self.image_at_layer_index_mut(layer_index));
     }
 }

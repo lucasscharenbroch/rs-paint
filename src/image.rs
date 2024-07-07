@@ -539,29 +539,29 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn fused_layer_at_index(&self, layer: LayerIndex) -> &FusedLayer {
-        match layer {
+    fn fused_layer_at_index(&self, layer_index: LayerIndex) -> &FusedLayer {
+        match layer_index {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
         }
     }
 
     #[inline]
-    fn fused_layer_at_index_mut(&mut self, layer: LayerIndex) -> &mut FusedLayer {
-        match layer {
+    fn fused_layer_at_index_mut(&mut self, layer_index: LayerIndex) -> &mut FusedLayer {
+        match layer_index {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
         }
     }
 
     #[inline]
-    fn image_at_layer_index(&self, layer: LayerIndex) -> &Image {
-        &self.fused_layer_at_index(layer).image
+    fn image_at_layer_index(&self, layer_index: LayerIndex) -> &Image {
+        &self.fused_layer_at_index(layer_index).image
     }
 
     #[inline]
-    fn image_at_layer_index_mut(&mut self, layer: LayerIndex) -> &mut Image {
-        &mut self.fused_layer_at_index_mut(layer).image
+    fn image_at_layer_index_mut(&mut self, layer_index: LayerIndex) -> &mut Image {
+        &mut self.fused_layer_at_index_mut(layer_index).image
     }
 
     /// Try to borrow two layers mutibly at the same time:
@@ -569,8 +569,8 @@ impl FusedLayeredImage {
     /// vector, so this function wraps it. `None` is returned
     /// if the two layers are the same.
     #[inline]
-    fn dual_layer_borrow_mut(&mut self, layer1: LayerIndex, layer2: LayerIndex) -> Option<(&mut FusedLayer, &mut FusedLayer)> {
-        match (layer1, layer2) {
+    fn dual_layer_borrow_mut(&mut self, layer_index1: LayerIndex, layer_index2: LayerIndex) -> Option<(&mut FusedLayer, &mut FusedLayer)> {
+        match (layer_index1, layer_index2) {
             (LayerIndex::BaseLayer, LayerIndex::BaseLayer) => None,
             (LayerIndex::BaseLayer, LayerIndex::Nth(n)) => {
                 Some((&mut self.base_layer, &mut self.other_layers[n]))
@@ -674,11 +674,11 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn re_compute_layer_drawable_pixel(&mut self, i: usize, layer: LayerIndex) {
-        match layer {
+    fn re_compute_layer_drawable_pixel(&mut self, i: usize, layer_index: LayerIndex) {
+        match layer_index {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
-        }.drawable.pixels[i] = self.image_at_layer_index(layer).pixels[i].to_drawable();
+        }.drawable.pixels[i] = self.image_at_layer_index(layer_index).pixels[i].to_drawable();
     }
 
     fn re_compute_main_drawable_pixel(&mut self, i: usize) {
@@ -715,18 +715,18 @@ impl FusedLayeredImage {
         LayerIndex::Nth(self.other_layers.len())
     }
 
-    fn append_new_layer(&mut self, fill_color: gtk::gdk::RGBA, idx: LayerIndex) {
+    fn append_new_layer(&mut self, fill_color: gtk::gdk::RGBA, layer_index: LayerIndex) {
         let width = self.width() as usize;
         let height = self.height() as usize;
         let pixels = vec![Pixel::from_rgba_struct(fill_color); width * height];
 
-        self.append_layer_with_image(Layer::new(Image::new(pixels, width, height)), idx);
+        self.append_layer_with_image(Layer::new(Image::new(pixels, width, height)), layer_index);
     }
 
-    fn append_layer_with_image(&mut self, layer: Layer, idx: LayerIndex) {
+    fn append_layer_with_image(&mut self, layer: Layer, layer_index: LayerIndex) {
         let mut new_layer = FusedLayer::from_layer(layer);
 
-        match idx {
+        match layer_index {
             LayerIndex::BaseLayer => {
                 std::mem::swap(&mut new_layer, &mut self.base_layer);
                 self.other_layers.insert(0, new_layer);
@@ -741,8 +741,8 @@ impl FusedLayeredImage {
         }
     }
 
-    fn remove_layer(&mut self, idx: LayerIndex) {
-        match idx {
+    fn remove_layer(&mut self, layer_index: LayerIndex) {
+        match layer_index {
             LayerIndex::BaseLayer => {
                 assert!(self.other_layers.len() != 0);
                 let new_base = self.other_layers.remove(0);
@@ -751,7 +751,7 @@ impl FusedLayeredImage {
             },
             LayerIndex::Nth(n) => {
                 self.other_layers.remove(n);
-                self.active_layer_index = LayerIndex::from_usize(idx.to_usize() - 1);
+                self.active_layer_index = LayerIndex::from_usize(layer_index.to_usize() - 1);
             }
         }
 
@@ -760,17 +760,17 @@ impl FusedLayeredImage {
         }
     }
 
-    fn swap_layers(&mut self, i1: LayerIndex, i2: LayerIndex) {
-        if let Some((l1, l2)) = self.dual_layer_borrow_mut(i1, i2) {
+    fn swap_layers(&mut self, layer_index1: LayerIndex, layer_index2: LayerIndex) {
+        if let Some((l1, l2)) = self.dual_layer_borrow_mut(layer_index1, layer_index2) {
             std::mem::swap(l1, l2);
         }
     }
 
-    fn merge_layers(&mut self, top_idx: LayerIndex, bot_idx: LayerIndex) {
-        if let Some((below, above)) = self.dual_layer_borrow_mut(bot_idx, top_idx) {
+    fn merge_layers(&mut self, top_index: LayerIndex, bottom_index: LayerIndex) {
+        if let Some((below, above)) = self.dual_layer_borrow_mut(bottom_index, top_index) {
             below.image.blend_under(&above.image);
 
-            self.remove_layer(top_idx); // this calls `self.re_compute_drawables()`
+            self.remove_layer(top_index); // this calls `self.re_compute_drawables()`
         }
     }
 
