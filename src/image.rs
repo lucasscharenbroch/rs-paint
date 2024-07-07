@@ -312,23 +312,52 @@ impl DrawableImage {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-struct LayerProps {
+pub struct LayerProps {
     /// Name showed in the LayerWindow: purely visual,
     /// not tied to undo
     layer_name: String,
+    locked: bool,
+    visible: bool,
 }
 
 impl LayerProps {
     fn new(layer_name: &str) -> Self {
         LayerProps {
             layer_name: String::from(layer_name),
+            locked: false,
+            visible: true,
         }
     }
 
     fn default() -> Self {
         Self {
             layer_name: String::from("New Layer"),
+            locked: false,
+            visible: true,
         }
+    }
+
+    pub fn toggle_lock(&mut self) -> bool {
+        self.locked = !self.locked;
+        self.locked
+    }
+
+    pub fn toggle_visible(&mut self) -> bool {
+        self.visible = !self.visible;
+        self.visible
+    }
+
+    pub fn layer_name(&self) -> &str {
+        self.layer_name.as_str()
+    }
+
+    #[inline]
+    pub fn is_visible(&self) -> bool {
+        self.visible
+    }
+
+    pub fn is_locked(&self) -> bool {
+        self.locked
     }
 }
 
@@ -336,26 +365,26 @@ impl LayerProps {
 #[derive(Clone, Serialize, Deserialize)]
 struct Layer {
     image: Image,
-    info: LayerProps,
+    props: LayerProps,
 }
 
 impl Layer {
     fn new(image: Image) ->  Self {
         Self {
             image,
-            info: LayerProps::default(),
+            props: LayerProps::default(),
         }
     }
 }
 
-/// `FusedLayer` = `Image` + `DrawableImage` + `LayerInfo`
+/// `FusedLayer` = `Image` + `DrawableImage` + `LayerProps`
 /// This is effectively a data struct: no magic, just a container;
 /// any updates to `drawable` must be done by the user.
 #[derive(Clone)]
 pub struct FusedLayer {
     image: Image,
     drawable: DrawableImage,
-    info: LayerProps,
+    props: LayerProps,
 }
 
 impl FusedLayer {
@@ -363,7 +392,7 @@ impl FusedLayer {
         FusedLayer {
             drawable: DrawableImage::from_image(&image),
             image,
-            info: LayerProps::default(),
+            props: LayerProps::default(),
         }
     }
 
@@ -371,7 +400,7 @@ impl FusedLayer {
         FusedLayer {
             drawable: DrawableImage::from_image(&image),
             image,
-            info: LayerProps::new(layer_name),
+            props: LayerProps::new(layer_name),
         }
     }
 
@@ -379,7 +408,7 @@ impl FusedLayer {
         FusedLayer {
             drawable: DrawableImage::from_image(&layer.image),
             image: layer.image,
-            info: layer.info,
+            props: layer.props,
         }
     }
 
@@ -388,7 +417,7 @@ impl FusedLayer {
     pub fn unfused(&self) -> Layer {
         Layer {
             image: self.image.clone(),
-            info: self.info.clone(),
+            props: self.props.clone(),
         }
     }
 
@@ -579,7 +608,11 @@ impl FusedLayeredImage {
         self.other_layers.iter().rev()
             .chain(std::iter::once(&self.base_layer))
             .fold(DrawablePixel::from_rgba(0, 0, 0, 0), |x, layer| {
-                x.blend_onto(&layer.image.pixels[i])
+                if layer.props.is_visible() {
+                    x.blend_onto(&layer.image.pixels[i])
+                } else {
+                    x
+                }
             })
     }
 
@@ -623,7 +656,7 @@ impl FusedLayeredImage {
     }
 
     pub fn set_layer_name(&mut self, layer_index: LayerIndex, new_name: &str) {
-        self.fused_image_at_layer_mut(layer_index).info.layer_name = String::from(new_name)
+        self.fused_image_at_layer_mut(layer_index).props.layer_name = String::from(new_name)
     }
 
     fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerIndex) {
@@ -736,9 +769,9 @@ impl FusedLayeredImage {
         }
     }
 
-    pub fn layer_names(&self) -> impl Iterator<Item = &str> + '_ {
-        std::iter::once(self.base_layer.info.layer_name.as_str())
-        .chain(self.other_layers.iter().map(|layer| layer.info.layer_name.as_str()))
+    pub fn layer_propss(&self) -> impl Iterator<Item = &LayerProps> + '_ {
+        std::iter::once(&self.base_layer.props)
+        .chain(self.other_layers.iter().map(|layer| &layer.props))
     }
 
     pub fn gen_entire_blended_image(&self) -> Image {
@@ -748,6 +781,19 @@ impl FusedLayeredImage {
         }
 
         res
+    }
+
+    pub fn toggle_layer_lock(&mut self, layer_index: LayerIndex) {
+        self.fused_image_at_layer_mut(layer_index).props.toggle_lock();
+    }
+
+    pub fn toggle_layer_visibility(&mut self, layer_index: LayerIndex) {
+        let is_visible = self.fused_image_at_layer_mut(layer_index).props.toggle_visible();
+
+        if is_visible {
+            self.re_compute_drawable_at_index(self.active_layer_index);
+        }
+        self.re_compute_main_drawable();
     }
 }
 

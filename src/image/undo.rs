@@ -256,7 +256,7 @@ impl ImageDiff {
             ImageDiff::MergeLayers(save_top, top_index, save_bot, bot_index) => {
                 image.append_layer_with_image(save_top.clone(), *top_index);
                 *image.image_at_layer_mut(*bot_index) = save_bot.image.clone();
-                image.fused_image_at_layer_mut(*bot_index).info = save_bot.info.clone();
+                image.fused_image_at_layer_mut(*bot_index).props = save_bot.props.clone();
                 drawables_to_update.add_layer(*bot_index);
                 drawables_to_update.append_layer(*top_index);
             },

@@ -549,7 +549,7 @@ impl Canvas {
             self.image_height() as f64;
         self.layer_window_p.borrow().update(
             self.image_hist.now().num_layers(),
-            self.image_hist.now().layer_names(),
+            self.image_hist.now().layer_propss(),
             *self.image_hist.now().active_layer_index(),
             aspect_ratio,
         );
@@ -824,6 +824,16 @@ impl Canvas {
 
     pub fn remove_layer(&mut self, layer_index: LayerIndex) {
         self.image_hist.remove_layer(layer_index);
+        self.update();
+    }
+
+    pub fn toggle_layer_lock(&mut self, layer_index: LayerIndex) {
+        self.image_hist.now_mut().toggle_layer_lock(layer_index);
+        self.update();
+    }
+
+    pub fn toggle_layer_visibility(&mut self, layer_index: LayerIndex) {
+        self.image_hist.now_mut().toggle_layer_visibility(layer_index);
         self.update();
     }
 }

@@ -1,6 +1,6 @@
 use gtk::{prelude::*, GestureClick, Ordering};
 
-use crate::image::LayerIndex;
+use crate::image::{LayerIndex, LayerProps};
 
 use super::canvas::Canvas;
 use std::rc::Rc;
@@ -16,6 +16,8 @@ struct LayerTab {
     widget: gtk::CenterBox,
     thumbnail_widget: gtk::DrawingArea,
     label: gtk::EditableLabel,
+    visible_button: gtk::ToggleButton,
+    lock_button: gtk::ToggleButton,
 }
 
 impl LayerTab {
@@ -41,12 +43,12 @@ impl LayerTab {
             .tooltip_text("Close Layer")
             .build();
 
-        let lock_button = gtk::Button::builder()
+        let lock_button = gtk::ToggleButton::builder()
             .child(&gtk::Image::from_file(crate::icon_file!("lock")))
             .tooltip_text("Lock Layer (Disable Changes)")
             .build();
 
-        let visible_button = gtk::Button::builder()
+        let visible_button = gtk::ToggleButton::builder()
             .child(&gtk::Image::from_file(crate::icon_file!("eyeball")))
             .tooltip_text("Toggle Visibility")
             .build();
@@ -118,13 +120,13 @@ impl LayerTab {
             canvas_p.borrow_mut().remove_layer(layer_index);
         }));
 
-        lock_button.connect_clicked(|_button| {
-            todo!() // TODO
-        });
+        lock_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
+            canvas_p.borrow_mut().toggle_layer_lock(layer_index);
+        }));
 
-        visible_button.connect_clicked(|_button| {
-            todo!() // TODO
-        });
+        visible_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
+            canvas_p.borrow_mut().toggle_layer_visibility(layer_index);
+        }));
 
         // attach the controller to inner_widget so clicks
         // to the lock/visible buttons don't trigger the handler
@@ -135,6 +137,8 @@ impl LayerTab {
             widget,
             thumbnail_widget,
             label,
+            visible_button,
+            lock_button,
         }
     }
 
@@ -310,7 +314,7 @@ impl LayerWindow {
     pub fn update<'a>(
         &self,
         num_layers: usize,
-        layer_names: impl Iterator<Item = &'a str>,
+        layer_propss: impl Iterator<Item = &'a LayerProps>,
         active_idx: LayerIndex,
         aspect_ratio: f64
     ) {
@@ -337,10 +341,12 @@ impl LayerWindow {
         self.layer_tabs.borrow_mut()[active_idx.to_usize()].widget.add_css_class("active-layer-tab");
 
         self.layer_tabs.borrow().iter()
-        .zip(layer_names)
-        .for_each(|(tab, layer_name)| {
+        .zip(layer_propss)
+        .for_each(|(tab, props)| {
             tab.thumbnail_widget.queue_draw();
-            tab.label.set_text(layer_name);
+            tab.label.set_text(props.layer_name());
+            tab.visible_button.set_active(!props.is_visible());
+            tab.lock_button.set_active(props.is_locked());
         });
     }
 }
