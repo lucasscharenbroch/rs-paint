@@ -10,7 +10,7 @@ mod layer_window;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
-use dialog::{about_dialog, cancel_discard_dialog_str, expand_dialog, truncate_dialog, close_dialog, ok_dialog_str_, scale_dialog, CloseDialog};
+use dialog::{about_dialog, cancel_discard_dialog_str, close_dialog, expand_dialog, no_button_dialog, ok_dialog_str_, scale_dialog, truncate_dialog, CloseDialog};
 use crate::image::{generate::{generate, NewImageProps}, Image, FusedLayeredImage, io::LayeredImage};
 use crate::image::resize::Crop;
 use tab::{Tab, Tabbar};
@@ -346,12 +346,10 @@ impl UiState {
             let canvas = canvas_p.borrow();
             let history_widget = canvas.history_widget();
 
-            close_dialog(
+            no_button_dialog(
                 self.window(),
                 "Image History",
                 history_widget,
-                || CloseDialog::Yes,
-                || (),
             );
         }
     }
@@ -361,12 +359,10 @@ impl UiState {
             let canvas = canvas_p.borrow();
             let layers_widget = canvas.layers_widget();
 
-            close_dialog(
+            no_button_dialog(
                 self.window(),
                 "Layers",
                 &layers_widget,
-                || CloseDialog::Yes,
-                || (),
             );
         }
     }

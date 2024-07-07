@@ -35,7 +35,7 @@ A lightweight image editor, written in Rust using GTK4.
     - Layers
         - Merging and Rearranging
         - Visibility Toggle
-        - Modification locking
+        - Modification Locking
     - Multi-Level Undo
 - Misc.
     - [ ] Copy/Paste (internal selections and external clipboard)

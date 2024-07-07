@@ -155,3 +155,36 @@ pub fn ok_dialog_str_(
 ) {
     ok_dialog_str(parent, title, prompt, || CloseDialog::Yes, || ());
 }
+
+// no yes/no buttons: just a window with a title and content
+pub fn no_button_dialog(
+    parent: &impl IsA<gtk::Window>,
+    title: &str,
+    inner_content: &impl IsA<gtk::Widget>,
+) {
+    let wrapper = gtk::Box::builder()
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .margin_end(12)
+        .spacing(12)
+        .hexpand(true)
+        .vexpand(true)
+        .build();
+
+    wrapper.append(inner_content);
+
+    let dialog_window = gtk::Window::builder()
+        .transient_for(parent)
+        .title(title)
+        .child(&wrapper)
+        .build();
+
+    dialog_window.present();
+    dialog_window.grab_focus();
+
+    dialog_window.connect_close_request(clone!(@strong inner_content => move |_| {
+        wrapper.remove(&inner_content);
+        gtk::glib::Propagation::Proceed
+    }));
+}
