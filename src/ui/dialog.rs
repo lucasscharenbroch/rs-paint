@@ -89,7 +89,7 @@ pub fn new_image_dialog<P: Fn(NewImageProps) + 'static>(
 
     let on_cancel = || CloseDialog::Yes;
 
-    ok_cancel_dialog(parent, "New Image", form.widget(), on_ok, on_cancel)
+    ok_cancel_dialog(parent, "New Image", form.widget(), on_ok, on_cancel, || ())
 }
 
 pub fn scale_dialog<P: Fn(Scale) + 'static>(
@@ -126,7 +126,7 @@ pub fn scale_dialog<P: Fn(Scale) + 'static>(
 
     let on_cancel = || CloseDialog::Yes;
 
-    ok_cancel_dialog(parent, "Scale", form.widget(), on_ok, on_cancel);
+    ok_cancel_dialog(parent, "Scale", form.widget(), on_ok, on_cancel, || ());
 }
 
 pub fn expand_dialog<P: Fn(Expand) + 'static>(
@@ -169,7 +169,7 @@ pub fn expand_dialog<P: Fn(Expand) + 'static>(
 
     let on_cancel = || CloseDialog::Yes;
 
-    ok_cancel_dialog(parent, "Expand", form.widget(), on_ok, on_cancel);
+    ok_cancel_dialog(parent, "Expand", form.widget(), on_ok, on_cancel, || ());
 }
 
 pub fn truncate_dialog<P: Fn((i32, i32, i32, i32)) + 'static>(
@@ -210,5 +210,5 @@ pub fn truncate_dialog<P: Fn((i32, i32, i32, i32)) + 'static>(
 
     let on_cancel = || CloseDialog::Yes;
 
-    ok_cancel_dialog(parent, "Expand", form.widget(), on_ok, on_cancel);
+    ok_cancel_dialog(parent, "Expand", form.widget(), on_ok, on_cancel, || ());
 }

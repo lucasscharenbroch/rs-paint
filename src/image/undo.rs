@@ -255,7 +255,7 @@ impl ImageDiff {
             ImageDiff::MergeLayers(save_top, top_index, save_bot, bot_index) => {
                 image.append_layer_with_image(save_top.clone(), *top_index);
                 *image.image_at_layer_index_mut(*bot_index) = save_bot.image.clone();
-                image.fused_layer_at_index_mut(*bot_index).props = save_bot.props.clone();
+                image.layer_at_index_mut(*bot_index).props = save_bot.props.clone();
                 drawables_to_update.add_layer(*bot_index);
                 drawables_to_update.append_layer(*top_index);
             },
@@ -439,7 +439,7 @@ impl ImageHistory {
         }
 
         let image_diff = ImageDiff::RemoveLayer(
-            self.now().fused_layer_at_index(layer_index).unfused(),
+            self.now().layer_at_index(layer_index).unfused(),
             layer_index,
         );
 
@@ -462,9 +462,9 @@ impl ImageHistory {
         }
 
         let image_diff = ImageDiff::MergeLayers(
-            self.now().fused_layer_at_index(top_index).unfused(),
+            self.now().layer_at_index(top_index).unfused(),
             top_index,
-            self.now().fused_layer_at_index(bottom_index).unfused(),
+            self.now().layer_at_index(bottom_index).unfused(),
             bottom_index,
         );
 

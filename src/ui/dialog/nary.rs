@@ -8,21 +8,30 @@ use glib_macros::clone;
 
 macro_rules! first_ident {
     ($x:ident) => ($x);
-    ($head:ident, $($tail:ident),*) => ($head);
+    ($head:ident $(, $tail:ident )+) => ($head);
+}
+
+macro_rules! last_ident {
+    ($x:ident) => ($x);
+    ($head:ident $(, $tail:ident )+) => {
+        last_ident!($($tail),*)
+    };
 }
 
 // e.g. nary_dialog!(yes_no, yes, no)
 macro_rules! nary_dialog {
-    ( $name:ident, $( $variant:ident ),+ ) => { paste::item! {
-        pub fn [< $name _dialog >]<$([< F $variant>]),*>(
+    ( $name:ident $(, $variant:ident )+ ; $is_modal:expr ) => { paste::item! {
+        pub fn [< $name _dialog >]<G, $([< F $variant>]),*>(
             parent: &impl IsA<gtk::Window>,
             title: &str,
             inner_content: &impl IsA<gtk::Widget>,
             $(
             [< on_ $variant >]: [< F $variant >],
             )*
+            on_force_close: G,
         )
         where
+            G: Fn() + 'static,
             $(
                 [< F $variant >]: Fn() -> CloseDialog + 'static
             ),*
@@ -74,10 +83,13 @@ macro_rules! nary_dialog {
                 .transient_for(parent)
                 .title(title)
                 .child(&content)
+                .modal($is_modal)
                 .build();
 
             dialog_window.connect_close_request(clone!(@strong inner_content => move |_| {
                 content.remove(&inner_content);
+                on_force_close();
+
                 gtk::glib::Propagation::Proceed
             }));
 
@@ -95,15 +107,17 @@ macro_rules! nary_dialog {
             )*
         }
 
-        pub fn [< $name _dialog_str >]<$([< F $variant>]),*>(
+        pub fn [< $name _dialog_str >]<G, $([< F $variant>]),*>(
             parent: &impl IsA<gtk::Window>,
             title: &str,
             prompt: &str,
             $(
             [< on_ $variant >]: [< F $variant >],
             )*
+            on_force_close: G,
         )
         where
+            G: Fn() + 'static,
             $(
                 [< F $variant >]: Fn() -> CloseDialog + 'static
             ),*
@@ -114,23 +128,24 @@ macro_rules! nary_dialog {
                 .selectable(true)
                 .build();
 
-            [< $name _dialog >](parent, title, &text_label, $([< on_ $variant >]),*);
+            [< $name _dialog >](parent, title, &text_label, $([< on_ $variant >]),*, on_force_close);
         }
     } }
 }
 
-nary_dialog!(yes_no, yes, no);
-nary_dialog!(ok, ok);
-nary_dialog!(close, close);
-nary_dialog!(ok_cancel, ok, cancel);
-nary_dialog!(cancel_discard, cancel, discard);
+nary_dialog!(yes_no, yes, no; false);
+nary_dialog!(ok, ok; false);
+nary_dialog!(modal_ok, ok; true);
+nary_dialog!(close, close; false);
+nary_dialog!(ok_cancel, ok, cancel; false);
+nary_dialog!(cancel_discard, cancel, discard; false);
 
 pub fn ok_dialog_(
     parent: &impl IsA<gtk::Window>,
     title: &str,
     inner_content: &impl IsA<gtk::Widget>,
 ) {
-    ok_dialog(parent, title, inner_content, || CloseDialog::Yes);
+    ok_dialog(parent, title, inner_content, || CloseDialog::Yes, || ());
 }
 
 pub fn ok_dialog_str_(
@@ -138,5 +153,5 @@ pub fn ok_dialog_str_(
     title: &str,
     prompt: &str,
 ) {
-    ok_dialog_str(parent, title, prompt, || CloseDialog::Yes);
+    ok_dialog_str(parent, title, prompt, || CloseDialog::Yes, || ());
 }

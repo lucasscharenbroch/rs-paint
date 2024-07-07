@@ -11,6 +11,7 @@ use super::toolbar::Toolbar;
 use super::toolbar::mode::MouseMode;
 use crate::image::{ImageLike, blend::BlendingMode};
 use super::layer_window::LayerWindow;
+use super::dialog::modal_ok_dialog_str;
 
 use gtk::prelude::*;
 use gtk::gdk::{ModifierType, RGBA};
@@ -50,6 +51,36 @@ pub struct Canvas {
     pencil_mask: Vec<usize>,
     pencil_mask_counter: usize,
     layer_window_p: Rc<RefCell<LayerWindow>>,
+    lock_dialog_open: bool,
+}
+
+macro_rules! run_lockable_mouse_mode_hook {
+    ($ui_p:expr, $canvas_p:expr, $controller:expr, $hook_name:ident) => {
+        let ui = $ui_p.borrow();
+        let mut toolbar = ui.toolbar_p.borrow_mut();
+        let mut mouse_mode = toolbar.mouse_mode().clone();
+
+        if mouse_mode.disable_when_locked() {
+            if $canvas_p.borrow().active_layer_locked() {
+                std::mem::drop(toolbar); // prevent a double borrow-mut (from the above)
+                Canvas::alert_user_of_lock(&$canvas_p);
+                return;
+            }
+        }
+
+        mouse_mode.$hook_name(&$controller.current_event_state(), &mut $canvas_p.borrow_mut(), &mut toolbar);
+        toolbar.set_mouse_mode(mouse_mode);
+    };
+}
+
+macro_rules! run_non_lockable_mouse_mode_hook {
+    ($ui_p:expr, $canvas_p:expr, $controller:expr, $hook_name:ident) => {
+        let ui = $ui_p.borrow();
+        let mut toolbar = ui.toolbar_p.borrow_mut();
+        let mut mouse_mode = toolbar.mouse_mode().clone();
+        mouse_mode.$hook_name(&$controller.current_event_state(), &mut $canvas_p.borrow_mut(), &mut toolbar);
+        toolbar.set_mouse_mode(mouse_mode);
+    };
 }
 
 impl Canvas {
@@ -90,6 +121,7 @@ impl Canvas {
             pencil_mask: vec![0; image_net_size],
             pencil_mask_counter: 1,
             layer_window_p: Rc::new(RefCell::new(LayerWindow::new())),
+            lock_dialog_open: false,
         }));
 
         let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
@@ -153,6 +185,33 @@ impl Canvas {
         canvas_p.borrow_mut().update_scrollbars();
     }
 
+    pub fn active_layer_locked(&self) -> bool {
+        self.image_hist.now().active_layer().is_locked()
+    }
+
+    /// Opens a dialog, but only if there isn't already
+    /// an open one
+    fn alert_user_of_lock(canvas_p: &Rc<RefCell<Self>>) {
+        if canvas_p.borrow().lock_dialog_open {
+            return;
+        }
+
+        canvas_p.borrow_mut().lock_dialog_open = true;
+
+        modal_ok_dialog_str(
+            canvas_p.borrow().ui_p.borrow().window(),
+            "Active Layer Locked",
+            "Can't modify: active layer locked",
+            clone!(@strong canvas_p => move || {
+                canvas_p.borrow_mut().lock_dialog_open = false;
+                super::dialog::CloseDialog::Yes
+            }),
+            clone!(@strong canvas_p => move || {
+                canvas_p.borrow_mut().lock_dialog_open = false;
+            })
+        );
+    }
+
     fn init_ui_state_connections(canvas_p: &Rc<RefCell<Self>>, ui_p: &Rc<RefCell<UiState>>) {
         // left click drag
 
@@ -160,27 +219,15 @@ impl Canvas {
             .button(1) // left click
             .build();
         left_drag_controller.connect_begin(clone!(@strong ui_p, @strong canvas_p => move |dc, _| {
-            let ui = ui_p.borrow();
-            let mut toolbar = ui.toolbar_p.borrow_mut();
-            let mut mouse_mode = toolbar.mouse_mode().clone();
-            mouse_mode.handle_drag_start(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
-            toolbar.set_mouse_mode(mouse_mode);
+            run_lockable_mouse_mode_hook!(ui_p, canvas_p, dc, handle_drag_start);
         }));
 
         left_drag_controller.connect_drag_update(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
-            let ui = ui_p.borrow();
-            let mut toolbar = ui.toolbar_p.borrow_mut();
-            let mut mouse_mode = toolbar.mouse_mode().clone();
-            mouse_mode.handle_drag_update(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
-            toolbar.set_mouse_mode(mouse_mode);
+            run_lockable_mouse_mode_hook!(ui_p, canvas_p, dc, handle_drag_update);
         }));
 
         left_drag_controller.connect_drag_end(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
-            let ui = ui_p.borrow();
-            let mut toolbar = ui.toolbar_p.borrow_mut();
-            let mut mouse_mode = toolbar.mouse_mode().clone();
-            mouse_mode.handle_drag_end(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
-            toolbar.set_mouse_mode(mouse_mode);
+            run_lockable_mouse_mode_hook!(ui_p, canvas_p, dc, handle_drag_end);
         }));
 
         canvas_p.borrow().drawing_area().add_controller(left_drag_controller);
@@ -191,27 +238,15 @@ impl Canvas {
             .button(3) // right click
             .build();
         right_drag_controller.connect_begin(clone!(@strong ui_p, @strong canvas_p => move |dc, _| {
-            let ui = ui_p.borrow();
-            let mut toolbar = ui.toolbar_p.borrow_mut();
-            let mut mouse_mode = toolbar.mouse_mode().clone();
-            mouse_mode.handle_right_drag_start(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
-            toolbar.set_mouse_mode(mouse_mode);
+            run_lockable_mouse_mode_hook!(ui_p, canvas_p, dc, handle_right_drag_start);
         }));
 
         right_drag_controller.connect_drag_update(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
-            let ui = ui_p.borrow();
-            let mut toolbar = ui.toolbar_p.borrow_mut();
-            let mut mouse_mode = toolbar.mouse_mode().clone();
-            mouse_mode.handle_right_drag_update(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
-            toolbar.set_mouse_mode(mouse_mode);
+            run_lockable_mouse_mode_hook!(ui_p, canvas_p, dc, handle_right_drag_update);
         }));
 
         right_drag_controller.connect_drag_end(clone!(@strong ui_p, @strong canvas_p => move |dc, _, _| {
-            let ui = ui_p.borrow();
-            let mut toolbar = ui.toolbar_p.borrow_mut();
-            let mut mouse_mode = toolbar.mouse_mode().clone();
-            mouse_mode.handle_right_drag_end(&dc.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
-            toolbar.set_mouse_mode(mouse_mode);
+            run_lockable_mouse_mode_hook!(ui_p, canvas_p, dc, handle_right_drag_end);
         }));
 
         canvas_p.borrow().drawing_area().add_controller(right_drag_controller);
@@ -222,11 +257,7 @@ impl Canvas {
 
         motion_controller.connect_motion(clone!(@strong ui_p, @strong canvas_p => move |ecm, x, y| {
             canvas_p.borrow_mut().update_cursor_pos(x, y);
-            let ui = ui_p.borrow();
-            let mut toolbar = ui.toolbar_p.borrow_mut();
-            let mut mouse_mode = toolbar.mouse_mode().clone();
-            mouse_mode.handle_motion(&ecm.current_event_state(), &mut canvas_p.borrow_mut(), &mut toolbar);
-            toolbar.set_mouse_mode(mouse_mode);
+            run_non_lockable_mouse_mode_hook!(ui_p, canvas_p, ecm, handle_motion);
         }));
 
         canvas_p.borrow().drawing_area().add_controller(motion_controller);

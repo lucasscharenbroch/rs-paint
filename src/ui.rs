@@ -123,6 +123,7 @@ impl UiState {
                         dialog::CloseDialog::Yes
                     },
                     close_it,
+                    || (),
                 );
                 return;
              }
@@ -345,7 +346,13 @@ impl UiState {
             let canvas = canvas_p.borrow();
             let history_widget = canvas.history_widget();
 
-            close_dialog(self.window(), "Image History", history_widget, || CloseDialog::Yes);
+            close_dialog(
+                self.window(),
+                "Image History",
+                history_widget,
+                || CloseDialog::Yes,
+                || (),
+            );
         }
     }
 
@@ -354,7 +361,13 @@ impl UiState {
             let canvas = canvas_p.borrow();
             let layers_widget = canvas.layers_widget();
 
-            close_dialog(self.window(), "Layers", &layers_widget, || CloseDialog::Yes);
+            close_dialog(
+                self.window(),
+                "Layers",
+                &layers_widget,
+                || CloseDialog::Yes,
+                || (),
+            );
         }
     }
 

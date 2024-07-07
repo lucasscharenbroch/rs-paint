@@ -172,4 +172,15 @@ impl MouseMode {
             MouseMode::Fill(_) => MouseModeVariant::Fill,
         }
     }
+
+    pub fn disable_when_locked(&self) -> bool {
+        match self {
+            MouseMode::Cursor(_) => false,
+            MouseMode::Pencil(_) => true,
+            MouseMode::RectangleSelect(_) => false,
+            MouseMode::Eyedropper(_) => false,
+            MouseMode::MagicWand(_) => false,
+            MouseMode::Fill(_) => true,
+        }
+    }
 }

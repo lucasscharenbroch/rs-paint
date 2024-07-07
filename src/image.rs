@@ -442,6 +442,10 @@ impl FusedLayer {
             .map(|p| p.to_drawable())
             .collect::<Vec<_>>();
     }
+
+    pub fn is_locked(&self) -> bool {
+        self.props.is_locked()
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -539,7 +543,7 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn fused_layer_at_index(&self, layer_index: LayerIndex) -> &FusedLayer {
+    fn layer_at_index(&self, layer_index: LayerIndex) -> &FusedLayer {
         match layer_index {
             LayerIndex::BaseLayer => &self.base_layer,
             LayerIndex::Nth(n) => &self.other_layers[n],
@@ -547,7 +551,7 @@ impl FusedLayeredImage {
     }
 
     #[inline]
-    fn fused_layer_at_index_mut(&mut self, layer_index: LayerIndex) -> &mut FusedLayer {
+    fn layer_at_index_mut(&mut self, layer_index: LayerIndex) -> &mut FusedLayer {
         match layer_index {
             LayerIndex::BaseLayer => &mut self.base_layer,
             LayerIndex::Nth(n) => &mut self.other_layers[n],
@@ -555,13 +559,23 @@ impl FusedLayeredImage {
     }
 
     #[inline]
+    pub fn active_layer(&self) -> &FusedLayer {
+        self.layer_at_index(self.active_layer_index)
+    }
+
+    #[inline]
+    pub fn active_layer_mut(&mut self) -> &mut FusedLayer {
+        self.layer_at_index_mut(self.active_layer_index)
+    }
+
+    #[inline]
     fn image_at_layer_index(&self, layer_index: LayerIndex) -> &Image {
-        &self.fused_layer_at_index(layer_index).image
+        &self.layer_at_index(layer_index).image
     }
 
     #[inline]
     fn image_at_layer_index_mut(&mut self, layer_index: LayerIndex) -> &mut Image {
-        &mut self.fused_layer_at_index_mut(layer_index).image
+        &mut self.layer_at_index_mut(layer_index).image
     }
 
     /// Try to borrow two layers mutibly at the same time:
@@ -657,11 +671,11 @@ impl FusedLayeredImage {
     }
 
     pub fn layer_drawable(&mut self, layer_index: LayerIndex) -> &mut DrawableImage {
-        &mut self.fused_layer_at_index_mut(layer_index).drawable
+        &mut self.layer_at_index_mut(layer_index).drawable
     }
 
     pub fn set_layer_name(&mut self, layer_index: LayerIndex, new_name: &str) {
-        self.fused_layer_at_index_mut(layer_index).props.layer_name = String::from(new_name)
+        self.layer_at_index_mut(layer_index).props.layer_name = String::from(new_name)
     }
 
     fn get_and_reset_modified(&mut self) -> (HashMap<usize, (Pixel, Pixel)>, LayerIndex) {
@@ -692,7 +706,7 @@ impl FusedLayeredImage {
     }
 
     fn re_compute_drawable_at_index(&mut self, layer_index: LayerIndex) {
-        self.fused_layer_at_index_mut(layer_index).re_compute_drawable();
+        self.layer_at_index_mut(layer_index).re_compute_drawable();
     }
 
     pub fn layer_indices(&self) -> impl Iterator<Item = LayerIndex> {
@@ -789,11 +803,11 @@ impl FusedLayeredImage {
     }
 
     pub fn toggle_layer_lock(&mut self, layer_index: LayerIndex) {
-        self.fused_layer_at_index_mut(layer_index).props.toggle_lock();
+        self.layer_at_index_mut(layer_index).props.toggle_lock();
     }
 
     pub fn toggle_layer_visibility(&mut self, layer_index: LayerIndex) {
-        let is_visible = self.fused_layer_at_index_mut(layer_index).props.toggle_visible();
+        let is_visible = self.layer_at_index_mut(layer_index).props.toggle_visible();
 
         if is_visible {
             self.re_compute_drawable_at_index(self.active_layer_index);
