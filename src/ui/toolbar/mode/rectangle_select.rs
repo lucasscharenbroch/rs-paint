@@ -150,7 +150,7 @@ impl super::MouseModeState for RectangleSelectState {
     fn draw(&self, canvas: &Canvas, cr: &Context, _toolbar: &mut Toolbar) {
         if let RectangleSelectMode::Selected(x, y, w, h) = self.mode {
             if self.crop_visual_enabled {
-                let image = canvas.image_ref();
+                let image = canvas.image();
                 crop_visual(x, y, w, h, image.width(), image.height(), cr);
             }
 

@@ -72,7 +72,7 @@ impl LayerTab {
 
         label.connect_text_notify(clone!(@strong canvas_p => move |label| {
             if let Ok(mut canvas) = canvas_p.try_borrow_mut() {
-                canvas.image().set_layer_name(layer_index, &label.text());
+                canvas.set_layer_name(layer_index, &label.text());
             }
         }));
 
@@ -231,7 +231,7 @@ impl LayerWindow {
                                 canvas_p.borrow().image_height() as f64;
         *self.last_aspect_ratio.borrow_mut() = aspect_ratio;
 
-        for _ in 0..canvas_p.borrow().image_ref().num_layers() {
+        for _ in 0..canvas_p.borrow().image().num_layers() {
             self.new_tab(aspect_ratio);
         }
 

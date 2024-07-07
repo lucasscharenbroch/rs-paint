@@ -582,7 +582,7 @@ impl Canvas {
         Propagation::Stop
     }
 
-    pub fn image(&mut self) -> &mut FusedLayeredImage {
+    pub fn image_mut(&mut self) -> &mut impl TrackedLayeredImage {
         self.image_hist.now_mut()
     }
 
@@ -590,7 +590,7 @@ impl Canvas {
         self.image_hist.now_id()
     }
 
-    pub fn image_ref(&self) -> &FusedLayeredImage {
+    pub fn image(&self) -> &FusedLayeredImage {
         self.image_hist.now()
     }
 
@@ -752,7 +752,7 @@ impl Canvas {
                     continue;
                 }
 
-                let p = self.image().pix_at_mut(ip, jp);
+                let p = self.image_mut().pix_at_mut(ip, jp);
                 let mut success = false;
 
                 if let Some(op) = other.try_pix_at(i as usize, j as usize) {
@@ -835,5 +835,9 @@ impl Canvas {
     pub fn toggle_layer_visibility(&mut self, layer_index: LayerIndex) {
         self.image_hist.now_mut().toggle_layer_visibility(layer_index);
         self.update();
+    }
+
+    pub fn set_layer_name(&mut self, layer_index: LayerIndex, new_name: &str) {
+        self.image_hist.now_mut().set_layer_name(layer_index, new_name);
     }
 }
