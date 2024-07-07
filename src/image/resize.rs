@@ -1,4 +1,4 @@
-use super::undo::action::{ActionName, AutoDiffAction, MultiLayerAction};
+use super::undo::action::{ActionName, MultiLayerAction};
 use super::{FusedLayer, Image, ImageLike, ImageLikeUnchecked, TrackedLayeredImage, Pixel,};
 
 use gtk::gdk::RGBA;
@@ -28,39 +28,45 @@ impl Scale {
 }
 
 impl Scale {
-    fn exec_scale_with_fn(&self, layer: &mut FusedLayer, interpolation_fn: fn(&Image, f32, f32) -> Pixel) {
+    fn exec_scale_with_fn(&self, image: &mut Image, interpolation_fn: fn(&Image, f32, f32) -> Pixel) {
         let new_sz = self.w * self.h;
         let mut new_pix = Vec::with_capacity(new_sz);
 
         for i in 0..self.w {
             for j in 0..self.h {
                 // project (i, j) into the coords of `image`
-                let x_proj = j as f32 * (layer.width() as f32 / self.w as f32);
-                let y_proj = i as f32 * (layer.height() as f32 / self.h as f32);
-                let p = interpolation_fn(&layer.image, x_proj, y_proj);
+                let x_proj = j as f32 * (image.width() as f32 / self.w as f32);
+                let y_proj = i as f32 * (image.height() as f32 / self.h as f32);
+                let p = interpolation_fn(&image, x_proj, y_proj);
 
                 new_pix.push(p);
             }
         }
 
-        // TODO
-        // image.set_image(Image::new(new_pix, self.w, self.h));
+        *image = Image::new(new_pix, self.w, self.h);
     }
 }
 
-impl AutoDiffAction for Scale {
+impl MultiLayerAction for Scale {
+    type LayerData = Image;
+
+    fn new_layer_data(&self, image: &mut Image) -> Self::LayerData {
+        image.clone()
+    }
+
     fn name(&self) -> ActionName {
         ActionName::Scale
     }
 
-    fn exec(self, image: &mut impl TrackedLayeredImage) {
-        todo!()
-        /* TODO add full-image back-up mechanism to TrackedLayeredImage
+    fn exec(&mut self, _layer_data: &mut Self::LayerData, image: &mut Image) {
         match self.method {
             ScaleMethod::NearestNeighbor => self.exec_scale_with_fn(image, nearest_neighbor),
             ScaleMethod::Bilinear => self.exec_scale_with_fn(image, bilinear),
         }
-        */
+    }
+
+    fn undo(&mut self, layer_data: &mut Self::LayerData, image: &mut Image) {
+        *image = layer_data.clone();
     }
 }
 
