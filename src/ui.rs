@@ -346,6 +346,12 @@ impl UiState {
             let canvas = canvas_p.borrow();
             let history_widget = canvas.history_widget();
 
+            if let Some(_) = history_widget.parent() {
+                // Dialog is probably already open.
+                // If not, something's gone wrong, and we'll watch the world burn.
+                return;
+            }
+
             no_button_dialog(
                 self.window(),
                 "Image History",
@@ -358,6 +364,12 @@ impl UiState {
         if let Some(canvas_p) = self.active_canvas_p() {
             let canvas = canvas_p.borrow();
             let layers_widget = canvas.layers_widget();
+
+            if let Some(_) = layers_widget.parent() {
+                // Dialog is probably already open.
+                // If not, something's gone wrong, and we'll watch the world burn.
+                return;
+            }
 
             no_button_dialog(
                 self.window(),
