@@ -348,7 +348,8 @@ impl UiState {
 
             if let Some(_) = history_widget.parent() {
                 // Dialog is probably already open.
-                // If not, something's gone wrong, and we'll watch the world burn.
+                // If not, something's gone wrong, and we'll turn our
+                // backs as the world burns.
                 return;
             }
 
@@ -367,7 +368,8 @@ impl UiState {
 
             if let Some(_) = layers_widget.parent() {
                 // Dialog is probably already open.
-                // If not, something's gone wrong, and we'll watch the world burn.
+                // If not, something's gone wrong, and we'll turn our
+                // backs as the world burns.
                 return;
             }
 

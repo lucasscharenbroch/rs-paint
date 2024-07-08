@@ -32,11 +32,11 @@ impl Scale {
         let new_sz = self.w * self.h;
         let mut new_pix = Vec::with_capacity(new_sz);
 
-        for i in 0..self.w {
-            for j in 0..self.h {
+        for i in 0..self.h {
+            for j in 0..self.w {
                 // project (i, j) into the coords of `image`
-                let x_proj = j as f32 * (image.width() as f32 / self.w as f32);
-                let y_proj = i as f32 * (image.height() as f32 / self.h as f32);
+                let x_proj = j as f32 / self.w as f32 * image.width() as f32;
+                let y_proj = i as f32 / self.h as f32 * image.height() as f32;
                 let p = interpolation_fn(&image, x_proj, y_proj);
 
                 new_pix.push(p);
