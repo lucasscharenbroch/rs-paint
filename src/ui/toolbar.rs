@@ -94,13 +94,14 @@ impl Toolbar {
     pub fn init_ui_hooks(ui_p: &Rc<RefCell<UiState>>) {
         let toolbar_p = ui_p.borrow().toolbar_p.clone();
 
-        let button_info: Vec<(&str, &str, fn(&Canvas) -> MouseMode, fn() -> MouseMode)> = vec![
+        let button_info: Vec<(&str, &str, fn(&mut Canvas) -> MouseMode, fn() -> MouseMode)> = vec![
             ("cursor", "Cursor", MouseMode::cursor, MouseMode::cursor_default),
             ("pencil", "Pencil", MouseMode::pencil, MouseMode::pencil_default),
             ("eyedropper", "Eyedropper", MouseMode::eyedropper, MouseMode::eyedropper_default),
             ("rectangle-select", "Rectangle Select", MouseMode::rectangle_select, MouseMode::rectangle_select_default),
             ("magic-wand", "Magic Wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
             ("fill", "Fill", MouseMode::fill, MouseMode::fill_default),
+            ("free-transform", "Free Transform", MouseMode::free_transform, MouseMode::free_transform_default),
         ];
 
         toolbar_p.borrow_mut().mouse_mode_buttons = button_info.into_iter()
@@ -120,7 +121,7 @@ impl Toolbar {
                     if b.is_active() {
                         let mode =
                             if let Some(canvas_p) = ui_p.borrow().active_canvas_p()  {
-                                mode_constructor(&canvas_p.borrow())
+                                mode_constructor(&mut canvas_p.borrow_mut())
                             } else {
                                 mode_constructor_default()
                             };

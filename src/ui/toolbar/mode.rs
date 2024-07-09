@@ -5,6 +5,7 @@ mod pencil;
 mod eyedropper;
 mod magic_wand;
 mod fill;
+mod free_transform;
 
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};
 pub use mode_toolbar::ModeToolbar;
@@ -15,6 +16,7 @@ use pencil::PencilState;
 use fill::FillState;
 use self::eyedropper::EyedropperState;
 pub use self::rectangle_select::{RectangleSelectState, RectangleSelectMode};
+pub use free_transform::{FreeTransformState, TransformMode};
 
 use gtk::cairo::Context;
 use gtk::gdk::ModifierType;
@@ -27,6 +29,7 @@ pub enum MouseMode {
     Eyedropper(EyedropperState),
     MagicWand(MagicWandState),
     Fill(FillState),
+    FreeTransform(FreeTransformState),
 }
 
 #[derive(PartialEq)]
@@ -37,6 +40,7 @@ pub enum MouseModeVariant {
     Eyedropper,
     MagicWand,
     Fill,
+    FreeTransform,
 }
 
 trait MouseModeState {
@@ -56,7 +60,7 @@ trait MouseModeState {
 }
 
 impl MouseMode {
-    pub fn cursor(canvas: &Canvas) -> MouseMode {
+    pub fn cursor(canvas: &mut Canvas) -> MouseMode {
         MouseMode::Cursor(CursorState::default(canvas))
     }
 
@@ -64,7 +68,7 @@ impl MouseMode {
         MouseMode::Cursor(CursorState::default_no_canvas())
     }
 
-    pub fn pencil(canvas: &Canvas) -> MouseMode {
+    pub fn pencil(canvas: &mut Canvas) -> MouseMode {
         MouseMode::Pencil(PencilState::default(canvas))
     }
 
@@ -72,7 +76,7 @@ impl MouseMode {
         MouseMode::Pencil(PencilState::default_no_canvas())
     }
 
-    pub fn rectangle_select(canvas: &Canvas) -> MouseMode {
+    pub fn rectangle_select(canvas: &mut Canvas) -> MouseMode {
         MouseMode::RectangleSelect(RectangleSelectState::default(canvas))
     }
 
@@ -80,7 +84,7 @@ impl MouseMode {
         MouseMode::RectangleSelect(RectangleSelectState::default_no_canvas())
     }
 
-    pub fn eyedropper(canvas: &Canvas) -> MouseMode {
+    pub fn eyedropper(canvas: &mut Canvas) -> MouseMode {
         MouseMode::Eyedropper(EyedropperState::default(canvas))
     }
 
@@ -88,7 +92,7 @@ impl MouseMode {
         MouseMode::Eyedropper(EyedropperState::default_no_canvas())
     }
 
-    pub fn magic_wand(canvas: &Canvas) -> MouseMode {
+    pub fn magic_wand(canvas: &mut Canvas) -> MouseMode {
         MouseMode::MagicWand(MagicWandState::default(canvas))
     }
 
@@ -96,12 +100,20 @@ impl MouseMode {
         MouseMode::MagicWand(MagicWandState::default_no_canvas())
     }
 
-    pub fn fill(canvas: &Canvas) -> MouseMode {
+    pub fn fill(canvas: &mut Canvas) -> MouseMode {
         MouseMode::Fill(FillState::default(canvas))
     }
 
     pub fn fill_default() -> MouseMode {
         MouseMode::Fill(FillState::default_no_canvas())
+    }
+
+    pub fn free_transform(canvas: &mut Canvas) -> MouseMode {
+        MouseMode::FreeTransform(FreeTransformState::default(canvas))
+    }
+
+    pub fn free_transform_default() -> MouseMode {
+        MouseMode::FreeTransform(FreeTransformState::default_no_canvas())
     }
 
     fn get_state(&mut self) -> &mut dyn MouseModeState {
@@ -112,6 +124,7 @@ impl MouseMode {
             MouseMode::Eyedropper(ref mut s) => s,
             MouseMode::MagicWand(ref mut s) => s,
             MouseMode::Fill(ref mut s) => s,
+            MouseMode::FreeTransform(ref mut s) => s,
         }
     }
 
@@ -123,6 +136,7 @@ impl MouseMode {
             MouseMode::Eyedropper(ref s) => s,
             MouseMode::MagicWand(ref s) => s,
             MouseMode::Fill(ref s) => s,
+            MouseMode::FreeTransform(ref s) => s,
         }
     }
 
@@ -170,6 +184,7 @@ impl MouseMode {
             MouseMode::Eyedropper(_) => MouseModeVariant::Eyedropper,
             MouseMode::MagicWand(_) => MouseModeVariant::MagicWand,
             MouseMode::Fill(_) => MouseModeVariant::Fill,
+            MouseMode::FreeTransform(_) => MouseModeVariant::FreeTransform,
         }
     }
 
@@ -181,6 +196,7 @@ impl MouseMode {
             MouseMode::Eyedropper(_) => false,
             MouseMode::MagicWand(_) => false,
             MouseMode::Fill(_) => true,
+            MouseMode::FreeTransform(_) => true,
         }
     }
 }

@@ -139,6 +139,7 @@ impl ModeToolbar {
             MouseModeVariant::Pencil => &self.pencil_form,
             MouseModeVariant::RectangleSelect => &self.empty_form,
             MouseModeVariant::Fill => &self.fill_form,
+            MouseModeVariant::FreeTransform => &self.empty_form,
         }
     }
 

@@ -118,6 +118,18 @@ impl Image {
             r1 * self.width + c1,
         );
     }
+
+    pub fn subimage(&self, x: usize, y: usize, w: usize, h: usize) -> Self {
+        let mut pix = Vec::new();
+
+        for i in 0..h {
+            for j in 0..w {
+                pix.push(self.pix_at(y + i, x + j).clone());
+            }
+        }
+
+        Image::new(pix, w, h)
+    }
 }
 
 /// A read-only interface for mixing-and-matching image types

@@ -13,8 +13,8 @@ A lightweight image editor, written in Rust using GTK4.
     - Rectangle Select
     - Magic Wand
     - Fill
+    - Free Transform
     - [ ] Shapes
-    - [ ] Free Transform
     - [ ] Lasso Select
     - [ ] Text
 - Color Palette

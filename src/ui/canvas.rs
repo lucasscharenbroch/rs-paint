@@ -1,5 +1,6 @@
 use crate::image::undo::action::{AutoDiffAction, MultiLayerAction, SingleLayerAction};
 use crate::image::LayerIndex;
+use crate::transformable::{Transformable, TransformableImage};
 
 use super::super::image::{Image, FusedLayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::bitmask::DeletePix;
@@ -9,7 +10,7 @@ use super::selection::Selection;
 use super::tab::Tab;
 use super::UiState;
 use super::toolbar::Toolbar;
-use super::toolbar::mode::MouseMode;
+use super::toolbar::mode::{MouseMode, TransformMode};
 use crate::image::{ImageLike, blend::BlendingMode};
 use super::layer_window::LayerWindow;
 use super::dialog::modal_ok_dialog_str;
@@ -33,7 +34,7 @@ pub struct Canvas {
     cursor_pos: (f64, f64),
     drawing_area: gtk::DrawingArea,
     grid: gtk::Grid,
-    pub selection: Selection,
+    selection: Selection,
     v_scrollbar: gtk::Scrollbar,
     h_scrollbar: gtk::Scrollbar,
     scrollbar_update_handlers: Option<(SignalHandlerId, SignalHandlerId)>,
@@ -54,6 +55,7 @@ pub struct Canvas {
     layer_window_p: Rc<RefCell<LayerWindow>>,
     lock_dialog_open: Rc<RefCell<bool>>,
     tab_thumbnail_p: Option<Rc<RefCell<gtk::DrawingArea>>>,
+    transformable: Option<Box<dyn Transformable>>,
 }
 
 macro_rules! run_lockable_mouse_mode_hook {
@@ -125,6 +127,7 @@ impl Canvas {
             layer_window_p: Rc::new(RefCell::new(LayerWindow::new())),
             lock_dialog_open: Rc::new(RefCell::new(false)),
             tab_thumbnail_p: None,
+            transformable: None,
         }));
 
         let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
@@ -902,5 +905,32 @@ impl Canvas {
 
     pub fn set_layer_name(&mut self, layer_index: LayerIndex, new_name: &str) {
         self.image_hist.now_mut().set_layer_name(layer_index, new_name);
+    }
+
+    pub fn selection_mut(&mut self) -> &mut Selection {
+        &mut self.selection
+    }
+
+    pub fn transformable(&self) -> &Option<Box<dyn Transformable>> {
+        &self.transformable
+    }
+
+    pub fn try_consume_selection_to_transformable(&mut self) -> Option<TransformMode> {
+        match self.selection {
+            Selection::Rectangle(x, y, w, h) => {
+                self.selection = Selection::NoSelection;
+                self.transformable = Some(Box::new(TransformableImage::from_image(
+                    self.active_image().subimage(x, y, w, h)
+                )));
+
+                let mut matrix = cairo::Matrix::identity();
+                matrix.translate(x as f64, y as f64);
+                matrix.scale(w as f64, h as f64);
+
+                Some(TransformMode::Transforming(matrix))
+            },
+            Selection::Bitmask(_) => todo!(),
+            _ => None,
+        }
     }
 }

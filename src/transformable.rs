@@ -6,7 +6,7 @@ pub trait Transformable {
     /// Draw the untransformed thing within the unit
     /// square: (0.0, 0.0) (1.0, 1.0)
     fn draw(&mut self, cr: &cairo::Context);
-    fn sampleable(self) -> impl Samplable;
+    fn sampleable(self) -> Box<dyn Samplable>;
 }
 
 pub trait Samplable {
@@ -15,13 +15,13 @@ pub trait Samplable {
     fn sample(&self, x: f32, y: f32) -> Pixel;
 }
 
-struct TransformableImage {
+pub struct TransformableImage {
     image: Image,
     drawable: DrawableImage,
 }
 
 impl TransformableImage {
-    fn from_image(image: Image) -> Self {
+    pub fn from_image(image: Image) -> Self {
         let drawable = DrawableImage::from_image(&image);
 
         TransformableImage {
@@ -46,8 +46,8 @@ impl Transformable for TransformableImage {
         let _ = cr.restore();
     }
 
-    fn sampleable(self) -> impl Samplable {
-        self.image
+    fn sampleable(self) -> Box<dyn Samplable> {
+        Box::new(self.image)
     }
 }
 

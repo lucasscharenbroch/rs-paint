@@ -61,8 +61,8 @@ impl Canvas {
         let image_width = self.image_width() as usize;
         let zoom = *self.zoom();
 
-        match self.selection {
-            Selection::Rectangle(x, y, w, h) => draw_rect_sel(zoom, x, y, w, h, cr),
+        match self.selection_mut() {
+            Selection::Rectangle(x, y, w, h) => draw_rect_sel(zoom, *x, *y, *w, *h, cr),
             Selection::Bitmask(ref mut selection_mask) => draw_sel_mask(
                 zoom,
                 image_height,
