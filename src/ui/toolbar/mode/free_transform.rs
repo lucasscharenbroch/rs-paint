@@ -33,7 +33,8 @@ impl TransformationType {
         match self {
             Self::Sterile => (), // TODO
             Self::Translate => {
-                matrix.translate(dx, dy);
+                let (width, height) = matrix.transform_distance(1.0, 1.0);
+                matrix.translate(dx / width, dy / height);
             },
         }
     }
@@ -110,11 +111,8 @@ impl super::MouseModeState for FreeTransformState {
         if let TransformMode::Transforming(ref mut matrix) = &mut self.transform_mode {
             if let FreeTransformMouseState::Down(x0, y0, transform_type) = self.mouse_state {
                 let (x, y) = canvas.cursor_pos_pix_f();
-                const SENSITIVITY: f64 = 0.01;
-
-                // TODO scale by matrix zoom level
-                let dx = (x - x0) * SENSITIVITY;
-                let dy = (y - y0) * SENSITIVITY;
+                let dx = x - x0;
+                let dy = y - y0;
 
                 transform_type.update_matrix_with_diff(matrix, dx, dy);
                 self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type);
