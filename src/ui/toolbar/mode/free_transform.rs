@@ -72,6 +72,46 @@ impl FreeTransformState {
     }
 }
 
+impl FreeTransformState {
+    /// Draw the transform tool selection visual (border + corners, etc)
+    /// in the unit square
+    fn draw_transform_overlay(cr: &cairo::Context, zoom: f64, width: f64, height: f64) {
+        const BORDER_WIDTH: f64 = 3.0;
+        const POINT_RADIUS: f64 = 5.0;
+
+        // height in terms of width
+        let aspect_ratio = height / width;
+
+        fn corner(cr: &cairo::Context, x: f64, y: f64, radius: f64) {
+            cr.rectangle(x - radius, y - radius, 2.0 * radius, 2.0 * radius);
+            let _ = cr.fill();
+        }
+
+        cr.set_source_rgb(0.0, 0.0, 1.0);
+        let _ = cr.save();
+        {
+            cr.scale(1.0, 1.0 / aspect_ratio);
+
+            let x0 = 0.0;
+            let y0 = 0.0;
+            let x1 = 1.0;
+            let y1 = aspect_ratio;
+
+            let mult = 1.0 / width / zoom;
+
+            cr.set_line_width(BORDER_WIDTH * mult);
+            cr.rectangle(x0, y0, x1 - x0, y1 - x0);
+            let _ = cr.stroke();
+
+            corner(cr, x0, y0, POINT_RADIUS * mult);
+            corner(cr, x0, y1, POINT_RADIUS * mult);
+            corner(cr, x1, y0, POINT_RADIUS * mult);
+            corner(cr, x1, y1, POINT_RADIUS * mult);
+        }
+        let _ = cr.restore();
+    }
+}
+
 impl super::MouseModeState for FreeTransformState {
     fn draw(&self, canvas: &Canvas, cr: &cairo::Context, _toolbar: &mut Toolbar) {
         if let TransformMode::Transforming(matrix) = &self.transform_mode {
@@ -81,12 +121,9 @@ impl super::MouseModeState for FreeTransformState {
                     cr.set_matrix(cairo::Matrix::multiply(matrix, &cr.matrix()));
                     transformable.draw(cr);
 
-                    // TODO method to draw pretty border,
-                    // scaled to zoom
-                    cr.set_line_width(0.01);
-                    cr.set_source_rgb(0.0, 0.0, 1.0);
-                    cr.rectangle(0.0, 0.0, 1.0, 1.0);
-                    let _ = cr.stroke();
+                    let (width, height) = matrix.transform_distance(1.0, 1.0);
+
+                    Self::draw_transform_overlay(cr, *canvas.zoom(), width, height);
                 }
                 let _ = cr.restore();
             } else {
