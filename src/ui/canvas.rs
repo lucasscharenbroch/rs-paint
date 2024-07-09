@@ -55,7 +55,7 @@ pub struct Canvas {
     layer_window_p: Rc<RefCell<LayerWindow>>,
     lock_dialog_open: Rc<RefCell<bool>>,
     tab_thumbnail_p: Option<Rc<RefCell<gtk::DrawingArea>>>,
-    transformable: Option<Box<dyn Transformable>>,
+    transformable: RefCell<Option<Box<dyn Transformable>>>,
 }
 
 macro_rules! run_lockable_mouse_mode_hook {
@@ -127,7 +127,7 @@ impl Canvas {
             layer_window_p: Rc::new(RefCell::new(LayerWindow::new())),
             lock_dialog_open: Rc::new(RefCell::new(false)),
             tab_thumbnail_p: None,
-            transformable: None,
+            transformable: RefCell::new(None),
         }));
 
         let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
@@ -280,7 +280,7 @@ impl Canvas {
             let ui = ui_p.borrow();
             let mut toolbar = ui.toolbar_p.borrow_mut();
             let mouse_mode = toolbar.mouse_mode().clone();
-            mouse_mode.draw(&canvas_p.borrow(), cr, &mut toolbar);
+            mouse_mode.draw(&mut canvas_p.borrow(), cr, &mut toolbar);
         })));
 
         // mouse-mode-change
@@ -911,7 +911,7 @@ impl Canvas {
         &mut self.selection
     }
 
-    pub fn transformable(&self) -> &Option<Box<dyn Transformable>> {
+    pub fn transformable(&self) -> &RefCell<Option<Box<dyn Transformable>>> {
         &self.transformable
     }
 
@@ -919,7 +919,7 @@ impl Canvas {
         match self.selection {
             Selection::Rectangle(x, y, w, h) => {
                 self.selection = Selection::NoSelection;
-                self.transformable = Some(Box::new(TransformableImage::from_image(
+                *self.transformable.borrow_mut() = Some(Box::new(TransformableImage::from_image(
                     self.active_image().subimage(x, y, w, h)
                 )));
 
