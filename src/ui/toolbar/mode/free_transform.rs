@@ -102,12 +102,47 @@ impl TransformationType {
     }
 
     fn update_matrix_with_diff(&self, matrix: &mut cairo::Matrix, dx: f64, dy: f64) {
+        let (width, height) = matrix.transform_distance(1.0, 1.0);
+
         match self {
             Self::Sterile => (), // TODO
             Self::Translate => {
-                let (width, height) = matrix.transform_distance(1.0, 1.0);
                 matrix.translate(dx / width, dy / height);
             },
+            Self::ExpandUpLeft => {
+                let (sx, sy) = (1.0 - dx / width, 1.0 - dy / height);
+                matrix.translate(1.0 - sx, 1.0 - sy);
+                matrix.scale(sx, sy);
+            },
+            Self::ExpandUpRight => {
+                let (sx, sy) = (1.0 + dx / width, 1.0 - dy / height);
+                matrix.translate(0.0, 1.0 - sy);
+                matrix.scale(sx, sy);
+            }
+            Self::ExpandDownLeft => {
+                let (sx, sy) = (1.0 - dx / width, 1.0 + dy / height);
+                matrix.translate(1.0 - sx, 0.0);
+                matrix.scale(sx, sy);
+            }
+            Self::ExpandDownRight => {
+                matrix.scale(1.0 + dx / width, 1.0 + dy / height);
+            },
+            Self::ExpandUp => {
+                let sy = 1.0 - dy / height;
+                matrix.translate(0.0, 1.0 - sy);
+                matrix.scale(1.0, sy);
+            }
+            Self::ExpandDown => {
+                matrix.scale(1.0, 1.0 + dy / height);
+            }
+            Self::ExpandLeft => {
+                let sx = 1.0 - dx / width;
+                matrix.translate(1.0 - sx, 0.0);
+                matrix.scale(sx, 1.0);
+            }
+            Self::ExpandRight => {
+                matrix.scale(1.0 + dx / width, 1.0);
+            }
             _ => todo!(),
         }
     }
