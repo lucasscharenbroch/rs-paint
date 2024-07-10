@@ -1,5 +1,5 @@
 use super::{Canvas, Toolbar};
-use gtk::cairo;
+use gtk::{prelude::*, cairo, gdk};
 
 #[derive(Clone, Copy)]
 pub enum TransformMode {
@@ -13,6 +13,15 @@ enum TransformationType {
     /// Pan the canvas
     Sterile,
     Translate,
+    ExpandUpLeft,
+    ExpandUpRight,
+    ExpandDownLeft,
+    ExpandDownRight,
+    ExpandUp,
+    ExpandDown,
+    ExpandLeft,
+    ExpandRight,
+    Rotate,
 }
 
 impl TransformationType {
@@ -29,6 +38,26 @@ impl TransformationType {
         }
     }
 
+    /// The gdk::Cursor associated with this transformation
+    fn cursor(&self) -> Option<gdk::Cursor> {
+        gdk::Cursor::from_name(
+            match self {
+                TransformationType::Sterile => "default",
+                TransformationType::Translate => "move",
+                TransformationType::ExpandUpLeft => "nwse-resize",
+                TransformationType::ExpandUpRight => "nesw-resize",
+                TransformationType::ExpandDownLeft => "nesw-resize",
+                TransformationType::ExpandDownRight => "nwse-resize",
+                TransformationType::ExpandUp => "ns-resize",
+                TransformationType::ExpandDown => "ns-resize",
+                TransformationType::ExpandLeft => "ew-resize",
+                TransformationType::ExpandRight => "ew-resize",
+                TransformationType::Rotate => "grab", // this one isn't great...
+            },
+            gdk::Cursor::from_name("default", None).as_ref(),
+        )
+    }
+
     fn update_matrix_with_diff(&self, matrix: &mut cairo::Matrix, dx: f64, dy: f64) {
         match self {
             Self::Sterile => (), // TODO
@@ -36,6 +65,7 @@ impl TransformationType {
                 let (width, height) = matrix.transform_distance(1.0, 1.0);
                 matrix.translate(dx / width, dy / height);
             },
+            _ => todo!(),
         }
     }
 }
@@ -113,6 +143,16 @@ impl FreeTransformState {
 }
 
 impl super::MouseModeState for FreeTransformState {
+    fn handle_motion(&mut self, _mod_keys: &gdk::ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+        if let TransformMode::Transforming(matrix) = &self.transform_mode {
+            if let Some(transformable) = canvas.transformable().borrow_mut().as_mut() {
+                    // cursor
+                    let cursor_pos = canvas.cursor_pos_pix_f();
+                    canvas.drawing_area().set_cursor(TransformationType::from_matrix_and_point(matrix, cursor_pos).cursor().as_ref());
+            }
+        }
+    }
+
     fn draw(&self, canvas: &Canvas, cr: &cairo::Context, _toolbar: &mut Toolbar) {
         if let TransformMode::Transforming(matrix) = &self.transform_mode {
             if let Some(transformable) = canvas.transformable().borrow_mut().as_mut() {
@@ -127,7 +167,7 @@ impl super::MouseModeState for FreeTransformState {
                 }
                 let _ = cr.restore();
             } else {
-                // canvas.transformable is gone - this shouldn't happen,
+                // `canvas.transformable` is gone - this shouldn't happen,
                 // but this state isn't destructive/unrecoverable,
                 // so just do nothing
             }
