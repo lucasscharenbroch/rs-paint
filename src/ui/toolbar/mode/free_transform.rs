@@ -25,14 +25,57 @@ enum TransformationType {
 }
 
 impl TransformationType {
-    fn from_matrix_and_point(matrix: &cairo::Matrix, (x, y): (f64, f64)) -> Self {
-        // TODO combine with zoom
+    fn from_matrix_and_point(matrix: &cairo::Matrix, (x, y): (f64, f64), zoom: f64) -> Self {
+        let (width, height) = matrix.transform_distance(1.0, 1.0);
+
+        // how many pixels from the border
+        // the mouse must be to switch to expansion
+        let outer_border_radius_x = 0.05 * width;
+        let outer_border_radius_y = 0.05 * height;
+        let inner_border_radius_x = 0.025 * width;
+        let inner_border_radius_y = 0.025 * height;
 
         let (x0, y0) = matrix.transform_point(0.0, 0.0);
         let (x1, y1) = matrix.transform_point(1.0, 1.0);
+        let (x0i, y0i) = (x0 + inner_border_radius_x, y0 + inner_border_radius_y);
+        let (x1i, y1i) = (x1 - inner_border_radius_x, y1 - inner_border_radius_y);
+        let (x0o, y0o) = (x0 - outer_border_radius_x, y0 - outer_border_radius_y);
+        let (x1o, y1o) = (x1 + outer_border_radius_x, y1 + outer_border_radius_y);
 
-        if x >= x0 && x <= x1 && y >= y0 && y <= y1 {
+        // give a little extra margin for corners
+        const EXTRA_MARGIN: f64 = 1.0;
+        let (x0oo, y0oo) = (x0 - outer_border_radius_x * EXTRA_MARGIN, y0 - outer_border_radius_y * EXTRA_MARGIN);
+        let (x1oo, y1oo) = (x1 + outer_border_radius_x * EXTRA_MARGIN, y1 + outer_border_radius_y * EXTRA_MARGIN);
+
+        let close_to_left = x < x0i && x >= x0o;
+        let close_to_right = x > x1i && x <= x1o;
+        let close_to_top = y < y0i && y >= y0o;
+        let close_to_bot = y > y1i && y <= y1o;
+        let close_ish_to_left = x < x0i && x >= x0oo;
+        let close_ish_to_right = x > x1i && x <= x1oo;
+        let close_ish_to_top = y < y0i && y >= y0oo;
+        let close_ish_to_bot = y > y1i && y <= y1oo;
+        let in_vert_bounds = y >= y0 && y <= y1;
+        let in_horz_bounds = x >= x0 && x <= x1;
+
+        if x >= x0i && x <= x1i && y >= y0i && y <= y1i {
             TransformationType::Translate
+        } else if close_ish_to_top && close_ish_to_left {
+            TransformationType::ExpandUpLeft
+        } else if close_ish_to_top && close_ish_to_right {
+            TransformationType::ExpandUpRight
+        } else if close_ish_to_bot && close_ish_to_left {
+            TransformationType::ExpandDownLeft
+        } else if close_ish_to_bot && close_ish_to_right {
+            TransformationType::ExpandDownRight
+        } else if close_to_left && in_vert_bounds {
+            TransformationType::ExpandLeft
+        } else if close_to_right && in_vert_bounds {
+            TransformationType::ExpandRight
+        } else if close_to_top && in_horz_bounds {
+            TransformationType::ExpandUp
+        } else if close_to_bot && in_horz_bounds {
+            TransformationType::ExpandDown
         } else {
             TransformationType::Sterile
         }
@@ -148,7 +191,10 @@ impl super::MouseModeState for FreeTransformState {
             if let Some(transformable) = canvas.transformable().borrow_mut().as_mut() {
                     // cursor
                     let cursor_pos = canvas.cursor_pos_pix_f();
-                    canvas.drawing_area().set_cursor(TransformationType::from_matrix_and_point(matrix, cursor_pos).cursor().as_ref());
+                    canvas.drawing_area().set_cursor(
+                        TransformationType::from_matrix_and_point(matrix, cursor_pos, *canvas.zoom())
+                            .cursor().as_ref()
+                    );
             }
         }
     }
@@ -179,7 +225,7 @@ impl super::MouseModeState for FreeTransformState {
             let (x, y) = canvas.cursor_pos_pix_f();
 
             self.mouse_state = FreeTransformMouseState::Down(x, y,
-                TransformationType::from_matrix_and_point(&matrix, (x, y))
+                TransformationType::from_matrix_and_point(&matrix, (x, y), *canvas.zoom())
             )
         }
     }
