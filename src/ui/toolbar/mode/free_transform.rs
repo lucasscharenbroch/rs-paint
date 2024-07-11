@@ -30,16 +30,16 @@ impl TransformationType {
     fn from_matrix_and_point(matrix: &cairo::Matrix, (x, y): (f64, f64), zoom: f64) -> Self {
         let (width, height) = matrix.transform_distance(1.0, 1.0);
 
-        let outer_margin_mult = 0.05 / zoom;
-        let inner_margin_mult = 0.05 / zoom;
+        let outer_margin = 5.0 / zoom;
+        let inner_margin = 5.0 / zoom;
         let rotation_stub_dist_thresh = 25.0 / zoom;
 
         // how many pixels from the border
         // the mouse must be to switch to expansion
-        let outer_border_radius_x = outer_margin_mult * width;
-        let outer_border_radius_y = outer_margin_mult * height;
-        let inner_border_radius_x = inner_margin_mult * width;
-        let inner_border_radius_y = inner_margin_mult * height;
+        let outer_border_radius_x = outer_margin;
+        let outer_border_radius_y = outer_margin;
+        let inner_border_radius_x = inner_margin;
+        let inner_border_radius_y = inner_margin;
 
         let rotation_nub_pt = matrix.transform_point(0.5, -ROTATION_STUB_LENGTH * width / height);
         let dist_from_rotation_nub = ((rotation_nub_pt.0 - x).powi(2) + (rotation_nub_pt.1 - y).powi(2)).sqrt();
