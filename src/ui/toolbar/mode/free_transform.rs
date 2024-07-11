@@ -31,12 +31,10 @@ fn point_tuple_dist((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
 }
 
 impl TransformationType {
-    fn from_matrix_and_point(matrix: &cairo::Matrix, pt@(x, y): (f64, f64), zoom: f64) -> Self {
-        let (width, height) = matrix_width_height(matrix);
-
-        let outer_margin = 5.0 / zoom;
-        let inner_margin = 5.0 / zoom;
-        let rotation_stub_dist_thresh = 25.0 / zoom;
+    fn from_matrix_and_point(matrix: &cairo::Matrix, (x, y): (f64, f64), zoom: f64) -> Self {
+        let outer_margin = 0.1 / zoom;
+        let inner_margin = 0.1 / zoom;
+        let rotation_stub_dist_thresh = 0.1 / zoom;
 
         // how many pixels from the border
         // the mouse must be to switch to expansion
@@ -45,11 +43,15 @@ impl TransformationType {
         let inner_border_radius_x = inner_margin;
         let inner_border_radius_y = inner_margin;
 
-        let rotation_nub_pt = matrix.transform_point(0.5, -ROTATION_STUB_LENGTH * width / height);
+        // if there's no inverse, return garbage value - it's bad, but better than crashing
+        let inverse = matrix.try_invert().unwrap_or(matrix.clone());
+        let pt@(x, y) = inverse.transform_point(x, y);
+
+        let rotation_nub_pt = (0.5, -ROTATION_STUB_LENGTH);
         let dist_from_rotation_nub = point_tuple_dist(rotation_nub_pt, pt);
 
-        let (x0, y0) = matrix.transform_point(0.0, 0.0);
-        let (x1, y1) = matrix.transform_point(1.0, 1.0);
+        let (x0, y0) = (0.0, 0.0);
+        let (x1, y1) = (1.0, 1.0);
         let (x0i, y0i) = (x0 + inner_border_radius_x, y0 + inner_border_radius_y);
         let (x1i, y1i) = (x1 - inner_border_radius_x, y1 - inner_border_radius_y);
         let (x0o, y0o) = (x0 - outer_border_radius_x, y0 - outer_border_radius_y);
@@ -71,7 +73,7 @@ impl TransformationType {
         let in_vert_bounds = y >= y0 && y <= y1;
         let in_horz_bounds = x >= x0 && x <= x1;
 
-        if dist_from_rotation_nub < (ROTATION_STUB_LENGTH * 0.5 * height).min(rotation_stub_dist_thresh) {
+        if dist_from_rotation_nub < rotation_stub_dist_thresh {
             TransformationType::Rotate
         } else if x >= x0i && x <= x1i && y >= y0i && y <= y1i {
             TransformationType::Translate
