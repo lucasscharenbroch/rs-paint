@@ -165,7 +165,9 @@ impl TransformationType {
                 matrix.scale(1.0 + dx, 1.0);
             }
             Self::Rotate => {
+                matrix.translate(0.5, 0.5);
                 matrix.rotate(dx);
+                matrix.translate(-0.5, -0.5);
             }
         }
     }
