@@ -26,9 +26,13 @@ enum TransformationType {
 
 const ROTATION_STUB_LENGTH: f64 = 0.05;
 
+fn point_tuple_dist((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
+    ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt()
+}
+
 impl TransformationType {
-    fn from_matrix_and_point(matrix: &cairo::Matrix, (x, y): (f64, f64), zoom: f64) -> Self {
-        let (width, height) = matrix.transform_distance(1.0, 1.0);
+    fn from_matrix_and_point(matrix: &cairo::Matrix, pt@(x, y): (f64, f64), zoom: f64) -> Self {
+        let (width, height) = matrix_width_height(matrix);
 
         let outer_margin = 5.0 / zoom;
         let inner_margin = 5.0 / zoom;
@@ -42,7 +46,7 @@ impl TransformationType {
         let inner_border_radius_y = inner_margin;
 
         let rotation_nub_pt = matrix.transform_point(0.5, -ROTATION_STUB_LENGTH * width / height);
-        let dist_from_rotation_nub = ((rotation_nub_pt.0 - x).powi(2) + (rotation_nub_pt.1 - y).powi(2)).sqrt();
+        let dist_from_rotation_nub = point_tuple_dist(rotation_nub_pt, pt);
 
         let (x0, y0) = matrix.transform_point(0.0, 0.0);
         let (x1, y1) = matrix.transform_point(1.0, 1.0);
@@ -113,7 +117,7 @@ impl TransformationType {
     }
 
     fn update_matrix_with_diff(&self, matrix: &mut cairo::Matrix, dx: f64, dy: f64) {
-        let (width, height) = matrix.transform_distance(1.0, 1.0);
+        let (width, height) = matrix_width_height(matrix);
 
         match self {
             Self::Sterile => (),
@@ -154,7 +158,9 @@ impl TransformationType {
             Self::ExpandRight => {
                 matrix.scale(1.0 + dx / width, 1.0);
             }
-            _ => todo!(),
+            Self::Rotate => {
+                matrix.rotate(dx / width);
+            }
         }
     }
 }
@@ -189,6 +195,20 @@ impl FreeTransformState {
             mouse_state: FreeTransformMouseState::Up,
         }
     }
+}
+
+/// The effective width and height of a matrix's
+/// unit square
+fn matrix_width_height(matrix: &cairo::Matrix) -> (f64, f64) {
+    // actual coordinates of the unit square's corners
+    let p00 = matrix.transform_point(0.0, 0.0);
+    let p10 = matrix.transform_point(1.0, 0.0);
+    let p01 = matrix.transform_point(0.0, 1.0);
+
+    (
+        point_tuple_dist(p00, p01),
+        point_tuple_dist(p00, p10),
+    )
 }
 
 impl FreeTransformState {
@@ -259,8 +279,7 @@ impl super::MouseModeState for FreeTransformState {
                     cr.set_matrix(cairo::Matrix::multiply(matrix, &cr.matrix()));
                     transformable.draw(cr);
 
-                    let (width, height) = matrix.transform_distance(1.0, 1.0);
-
+                    let (width, height) = matrix_width_height(matrix);
                     Self::draw_transform_overlay(cr, *canvas.zoom(), width, height);
                 }
                 let _ = cr.restore();
