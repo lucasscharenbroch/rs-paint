@@ -121,47 +121,51 @@ impl TransformationType {
     fn update_matrix_with_diff(&self, matrix: &mut cairo::Matrix, dx: f64, dy: f64) {
         let (width, height) = matrix_width_height(matrix);
 
+        // if there's no inverse, return garbage value - it's bad, but better than crashing
+        let inverse = matrix.try_invert().unwrap_or(matrix.clone());
+        let (dx, dy) = inverse.transform_distance(dx, dy);
+
         match self {
             Self::Sterile => (),
             Self::Translate => {
-                matrix.translate(dx / width, dy / height);
+                matrix.translate(dx, dy);
             },
             Self::ExpandUpLeft => {
-                let (sx, sy) = (1.0 - dx / width, 1.0 - dy / height);
+                let (sx, sy) = (1.0 - dx, 1.0 - dy);
                 matrix.translate(1.0 - sx, 1.0 - sy);
                 matrix.scale(sx, sy);
             },
             Self::ExpandUpRight => {
-                let (sx, sy) = (1.0 + dx / width, 1.0 - dy / height);
+                let (sx, sy) = (1.0 + dx, 1.0 - dy);
                 matrix.translate(0.0, 1.0 - sy);
                 matrix.scale(sx, sy);
             }
             Self::ExpandDownLeft => {
-                let (sx, sy) = (1.0 - dx / width, 1.0 + dy / height);
+                let (sx, sy) = (1.0 - dx, 1.0 + dy);
                 matrix.translate(1.0 - sx, 0.0);
                 matrix.scale(sx, sy);
             }
             Self::ExpandDownRight => {
-                matrix.scale(1.0 + dx / width, 1.0 + dy / height);
+                matrix.scale(1.0 + dx, 1.0 + dy);
             },
             Self::ExpandUp => {
-                let sy = 1.0 - dy / height;
+                let sy = 1.0 - dy;
                 matrix.translate(0.0, 1.0 - sy);
                 matrix.scale(1.0, sy);
             }
             Self::ExpandDown => {
-                matrix.scale(1.0, 1.0 + dy / height);
+                matrix.scale(1.0, 1.0 + dy);
             }
             Self::ExpandLeft => {
-                let sx = 1.0 - dx / width;
+                let sx = 1.0 - dx;
                 matrix.translate(1.0 - sx, 0.0);
                 matrix.scale(sx, 1.0);
             }
             Self::ExpandRight => {
-                matrix.scale(1.0 + dx / width, 1.0);
+                matrix.scale(1.0 + dx, 1.0);
             }
             Self::Rotate => {
-                matrix.rotate(dx / width);
+                matrix.rotate(dx);
             }
         }
     }
