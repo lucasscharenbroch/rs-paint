@@ -10,7 +10,7 @@ pub enum TransformMode {
 
 #[derive(Clone, Copy)]
 enum TransformationType {
-    /// Pan the canvas
+    /// Do nothing
     Sterile,
     Translate,
     ExpandUpLeft,
@@ -24,16 +24,21 @@ enum TransformationType {
     Rotate,
 }
 
+const ROTATION_STUB_LENGTH: f64 = 0.05;
+
 impl TransformationType {
     fn from_matrix_and_point(matrix: &cairo::Matrix, (x, y): (f64, f64), zoom: f64) -> Self {
         let (width, height) = matrix.transform_distance(1.0, 1.0);
 
         // how many pixels from the border
         // the mouse must be to switch to expansion
-        let outer_border_radius_x = 0.05 * width;
-        let outer_border_radius_y = 0.05 * height;
+        let outer_border_radius_x = 0.025 * width;
+        let outer_border_radius_y = 0.025 * height;
         let inner_border_radius_x = 0.025 * width;
         let inner_border_radius_y = 0.025 * height;
+
+        let rotation_nub_pt = matrix.transform_point(0.5, -ROTATION_STUB_LENGTH);
+        let dist_from_rotation_nub = ((rotation_nub_pt.0 - x).powi(2) + (rotation_nub_pt.1 - y).powi(2)).sqrt();
 
         let (x0, y0) = matrix.transform_point(0.0, 0.0);
         let (x1, y1) = matrix.transform_point(1.0, 1.0);
@@ -58,7 +63,9 @@ impl TransformationType {
         let in_vert_bounds = y >= y0 && y <= y1;
         let in_horz_bounds = x >= x0 && x <= x1;
 
-        if x >= x0i && x <= x1i && y >= y0i && y <= y1i {
+        if dist_from_rotation_nub < (ROTATION_STUB_LENGTH / 3.0) * height{
+            TransformationType::Rotate
+        } else if x >= x0i && x <= x1i && y >= y0i && y <= y1i {
             TransformationType::Translate
         } else if close_ish_to_top && close_ish_to_left {
             TransformationType::ExpandUpLeft
@@ -105,7 +112,7 @@ impl TransformationType {
         let (width, height) = matrix.transform_distance(1.0, 1.0);
 
         match self {
-            Self::Sterile => (), // TODO
+            Self::Sterile => (),
             Self::Translate => {
                 matrix.translate(dx / width, dy / height);
             },
@@ -215,6 +222,12 @@ impl FreeTransformState {
             corner(cr, x0, y1, POINT_RADIUS * mult);
             corner(cr, x1, y0, POINT_RADIUS * mult);
             corner(cr, x1, y1, POINT_RADIUS * mult);
+
+            cr.move_to(0.5, y0);
+            cr.line_to(0.5, y0 - ROTATION_STUB_LENGTH);
+            let _ = cr.stroke();
+
+            corner(cr, 0.5, -ROTATION_STUB_LENGTH, POINT_RADIUS * mult)
         }
         let _ = cr.restore();
     }
