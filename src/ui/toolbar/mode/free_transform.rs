@@ -30,14 +30,18 @@ impl TransformationType {
     fn from_matrix_and_point(matrix: &cairo::Matrix, (x, y): (f64, f64), zoom: f64) -> Self {
         let (width, height) = matrix.transform_distance(1.0, 1.0);
 
+        let outer_margin_mult = 0.05 / zoom;
+        let inner_margin_mult = 0.05 / zoom;
+        let rotation_stub_dist_thresh = 25.0 / zoom;
+
         // how many pixels from the border
         // the mouse must be to switch to expansion
-        let outer_border_radius_x = 0.025 * width;
-        let outer_border_radius_y = 0.025 * height;
-        let inner_border_radius_x = 0.025 * width;
-        let inner_border_radius_y = 0.025 * height;
+        let outer_border_radius_x = outer_margin_mult * width;
+        let outer_border_radius_y = outer_margin_mult * height;
+        let inner_border_radius_x = inner_margin_mult * width;
+        let inner_border_radius_y = inner_margin_mult * height;
 
-        let rotation_nub_pt = matrix.transform_point(0.5, -ROTATION_STUB_LENGTH);
+        let rotation_nub_pt = matrix.transform_point(0.5, -ROTATION_STUB_LENGTH * width / height);
         let dist_from_rotation_nub = ((rotation_nub_pt.0 - x).powi(2) + (rotation_nub_pt.1 - y).powi(2)).sqrt();
 
         let (x0, y0) = matrix.transform_point(0.0, 0.0);
@@ -63,7 +67,7 @@ impl TransformationType {
         let in_vert_bounds = y >= y0 && y <= y1;
         let in_horz_bounds = x >= x0 && x <= x1;
 
-        if dist_from_rotation_nub < (ROTATION_STUB_LENGTH / 3.0) * height{
+        if dist_from_rotation_nub < (ROTATION_STUB_LENGTH * 0.5 * height).min(rotation_stub_dist_thresh) {
             TransformationType::Rotate
         } else if x >= x0i && x <= x1i && y >= y0i && y <= y1i {
             TransformationType::Translate
