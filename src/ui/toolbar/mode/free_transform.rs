@@ -208,8 +208,8 @@ fn matrix_width_height(matrix: &cairo::Matrix) -> (f64, f64) {
     let p01 = matrix.transform_point(0.0, 1.0);
 
     (
-        point_tuple_dist(p00, p01),
         point_tuple_dist(p00, p10),
+        point_tuple_dist(p00, p01),
     )
 }
 
