@@ -173,10 +173,14 @@ impl TransformationType {
             }
             Self::Rotate => {
                 matrix.translate(0.5, 0.5);
-                // I have no idea where this formula comes from,
-                // and it's probably BS, but it's good enough.
-                matrix.rotate(dx * 3.1415926535 / 1.75);
-                // matrix.scale(1.0, width / height);
+                matrix.scale(1.0, width / height);
+                // This formula is totally BS, but it's good enough for now.
+                // Ideally: compute the perimeter of the ellipse (?) that the
+                // rotation nub follows, and adjust a single revolution there to
+                // match 2pi radians. The below doesn't do that, it's just random numbers
+                // that kind of work.
+                matrix.rotate(dx * 3.1415926535 / (9.0 / 5.0) * width / height);
+                matrix.scale(1.0, height / width);
                 matrix.translate(-0.5, -0.5);
             }
         }
