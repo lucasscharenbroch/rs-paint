@@ -105,22 +105,70 @@ impl TransformationType {
         }
     }
 
+    // very sloppy, but it works
+    fn get_cursor_name(&self, matrix: &cairo::Matrix) -> &str {
+        let inverse = matrix.try_invert().unwrap();
+
+        let p00 = inverse.transform_point(0.0, 0.0);
+        let p10 = inverse.transform_point(1.0, 0.0);
+        let p01 = inverse.transform_point(0.0, 1.0);
+        let p11 = inverse.transform_point(1.0, 1.0);
+
+        let pts = match self {
+            TransformationType::Sterile => return "default",
+            TransformationType::Translate => return "move",
+            TransformationType::Rotate => return "grab", // this one isn't great...
+            TransformationType::ExpandUpLeft => (p11, p00),
+            TransformationType::ExpandUpRight => (p10, p01),
+            TransformationType::ExpandDownLeft => (p10, p01),
+            TransformationType::ExpandDownRight => (p00, p11),
+            TransformationType::ExpandUp => (p10, p00),
+            TransformationType::ExpandDown => (p10, p00),
+            TransformationType::ExpandLeft => (p01, p00),
+            TransformationType::ExpandRight => (p01, p00),
+        };
+
+        let directional_cursors = vec![
+            // (vector, cursor-name)
+            // replicate each for the opposite arrow-direction
+            (((1.0, -1.0)), "nwse-resize"),
+            (((-1.0, 1.0)), "nwse-resize"),
+            (((1.0, 1.0)), "nesw-resize"),
+            (((-1.0, -1.0)), "nesw-resize"),
+            (((0.0, 1.0)), "ns-resize"),
+            (((0.0, -1.0)), "ns-resize"),
+            (((1.0, 0.0)), "ew-resize"),
+            (((-1.0, 0.0)), "ew-resize"),
+        ];
+
+        // the vector formed by the two points
+        let vec = (pts.1.0 - pts.0.0, pts.1.1 - pts.0.1);
+
+        fn vec_magnitude((x, y): (f64, f64)) -> f64 {
+            (x.powi(2) + y.powi(2)).sqrt()
+        }
+
+        fn cross_product((dx0, dy0): (f64, f64), (dx1, dy1): (f64, f64)) -> f64 {
+            dx0 * dy1 - dx1 * dy0
+        }
+
+        fn vecs_to_sin(v0: (f64, f64), v1: (f64, f64)) -> f64 {
+            cross_product(v0, v1) / vec_magnitude(v0) / vec_magnitude(v1)
+        }
+
+        directional_cursors.iter()
+            .map(|(test_vec, name)| {
+                (vecs_to_sin(*test_vec, vec), name)
+            })
+            .max_by(|(a, _name_a), (b, _name_b)| a.partial_cmp(b).unwrap())
+            .unwrap()
+            .1
+    }
+
     /// The gdk::Cursor associated with this transformation
-    fn cursor(&self) -> Option<gdk::Cursor> {
+    fn cursor(&self, matrix: &cairo::Matrix) -> Option<gdk::Cursor> {
         gdk::Cursor::from_name(
-            match self {
-                TransformationType::Sterile => "default",
-                TransformationType::Translate => "move",
-                TransformationType::ExpandUpLeft => "nwse-resize",
-                TransformationType::ExpandUpRight => "nesw-resize",
-                TransformationType::ExpandDownLeft => "nesw-resize",
-                TransformationType::ExpandDownRight => "nwse-resize",
-                TransformationType::ExpandUp => "ns-resize",
-                TransformationType::ExpandDown => "ns-resize",
-                TransformationType::ExpandLeft => "ew-resize",
-                TransformationType::ExpandRight => "ew-resize",
-                TransformationType::Rotate => "grab", // this one isn't great...
-            },
+            self.get_cursor_name(matrix),
             gdk::Cursor::from_name("default", None).as_ref(),
         )
     }
@@ -289,7 +337,7 @@ impl super::MouseModeState for FreeTransformState {
                     let cursor_pos = canvas.cursor_pos_pix_f();
                     canvas.drawing_area().set_cursor(
                         TransformationType::from_matrix_and_point(matrix, cursor_pos, *canvas.zoom())
-                            .cursor().as_ref()
+                            .cursor(matrix).as_ref()
                     );
             }
         }
