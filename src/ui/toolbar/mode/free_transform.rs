@@ -166,7 +166,9 @@ impl TransformationType {
             }
             Self::Rotate => {
                 matrix.translate(0.5, 0.5);
-                matrix.rotate(dx);
+                // I have no idea where this formula comes from,
+                // and it's probably BS, but it's good enough.
+                matrix.rotate(dx * 3.1415926535 / 1.75);
                 matrix.translate(-0.5, -0.5);
             }
         }
