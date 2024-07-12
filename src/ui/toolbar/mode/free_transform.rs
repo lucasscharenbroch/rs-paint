@@ -24,7 +24,10 @@ enum TransformationType {
     Rotate,
 }
 
-const ROTATION_STUB_LENGTH: f64 = 0.05;
+/// Returns the stub length w/r/t the height of the unit square
+fn rotation_stub_length(width: f64, height: f64) -> f64 {
+    0.05 * width.max(height) / height
+}
 
 fn point_tuple_dist((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
     ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt()
@@ -34,7 +37,6 @@ impl TransformationType {
     fn from_matrix_and_point(matrix: &cairo::Matrix, (x, y): (f64, f64), zoom: f64) -> Self {
         let outer_margin = 0.1 / zoom;
         let inner_margin = 0.1 / zoom;
-        let rotation_stub_dist_thresh = 0.1 / zoom;
 
         // how many pixels from the border
         // the mouse must be to switch to expansion
@@ -47,7 +49,10 @@ impl TransformationType {
         let inverse = matrix.try_invert().unwrap_or(matrix.clone());
         let pt@(x, y) = inverse.transform_point(x, y);
 
-        let rotation_nub_pt = (0.5, -ROTATION_STUB_LENGTH);
+        let (width, height) = matrix_width_height(matrix);
+        let rotation_stub_length = rotation_stub_length(width, height);
+
+        let rotation_nub_pt = (0.5, -rotation_stub_length);
         let dist_from_rotation_nub = point_tuple_dist(rotation_nub_pt, pt);
 
         let (x0, y0) = (0.0, 0.0);
@@ -58,7 +63,7 @@ impl TransformationType {
         let (x1o, y1o) = (x1 + outer_border_radius_x, y1 + outer_border_radius_y);
 
         // give a little extra margin for corners
-        const EXTRA_MARGIN: f64 = 1.0;
+        const EXTRA_MARGIN: f64 = 1.5;
         let (x0oo, y0oo) = (x0 - outer_border_radius_x * EXTRA_MARGIN, y0 - outer_border_radius_y * EXTRA_MARGIN);
         let (x1oo, y1oo) = (x1 + outer_border_radius_x * EXTRA_MARGIN, y1 + outer_border_radius_y * EXTRA_MARGIN);
 
@@ -73,7 +78,7 @@ impl TransformationType {
         let in_vert_bounds = y >= y0 && y <= y1;
         let in_horz_bounds = x >= x0 && x <= x1;
 
-        if dist_from_rotation_nub < rotation_stub_dist_thresh {
+        if dist_from_rotation_nub < rotation_stub_length / 4.0 {
             TransformationType::Rotate
         } else if x >= x0i && x <= x1i && y >= y0i && y <= y1i {
             TransformationType::Translate
@@ -169,6 +174,7 @@ impl TransformationType {
                 // I have no idea where this formula comes from,
                 // and it's probably BS, but it's good enough.
                 matrix.rotate(dx * 3.1415926535 / 1.75);
+                // matrix.scale(1.0, width / height);
                 matrix.translate(-0.5, -0.5);
             }
         }
@@ -257,11 +263,13 @@ impl FreeTransformState {
             corner(cr, x1, y0, POINT_RADIUS * mult);
             corner(cr, x1, y1, POINT_RADIUS * mult);
 
+            let rotation_stub_length = rotation_stub_length(width, height);
+
             cr.move_to(0.5, y0);
-            cr.line_to(0.5, y0 - ROTATION_STUB_LENGTH);
+            cr.line_to(0.5, y0 - rotation_stub_length * aspect_ratio);
             let _ = cr.stroke();
 
-            corner(cr, 0.5, -ROTATION_STUB_LENGTH, POINT_RADIUS * mult)
+            corner(cr, 0.5, -rotation_stub_length * aspect_ratio, POINT_RADIUS * mult)
         }
         let _ = cr.restore();
     }
