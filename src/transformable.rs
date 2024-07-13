@@ -1,4 +1,4 @@
-use crate::image::{DrawableImage, Image, ImageLike, ImageLikeUnchecked, Pixel};
+use crate::image::{undo::action::{ActionName, AutoDiffAction}, DrawableImage, Image, ImageLike, ImageLikeUnchecked, Pixel};
 
 use gtk::cairo;
 
@@ -6,7 +6,8 @@ pub trait Transformable {
     /// Draw the untransformed thing within the unit
     /// square: (0.0, 0.0) (1.0, 1.0)
     fn draw(&mut self, cr: &cairo::Context);
-    fn sampleable(self) -> Box<dyn Samplable>;
+    // TODO: avoid the generation/make an accessor (?)
+    fn gen_sampleable(&self) -> Box<dyn Samplable>;
 }
 
 pub trait Samplable {
@@ -16,7 +17,7 @@ pub trait Samplable {
 }
 
 pub struct TransformableImage {
-    image: Image,
+    image: Box<Image>,
     drawable: DrawableImage,
 }
 
@@ -25,7 +26,7 @@ impl TransformableImage {
         let drawable = DrawableImage::from_image(&image);
 
         TransformableImage {
-            image,
+            image: Box::new(image),
             drawable,
         }
     }
@@ -46,8 +47,8 @@ impl Transformable for TransformableImage {
         let _ = cr.restore();
     }
 
-    fn sampleable(self) -> Box<dyn Samplable> {
-        Box::new(self.image)
+    fn gen_sampleable(&self) -> Box<dyn Samplable> {
+        self.image.clone()
     }
 }
 
@@ -60,5 +61,29 @@ impl Samplable for Image {
             (y * h).floor().min(h - 1.0).max(0.0) as usize,
             (x * w).floor().min(w - 1.0).max(0.0) as usize,
         ).clone()
+    }
+}
+
+pub struct SampleableCommit<'t> {
+    matrix: cairo::Matrix,
+    sampleable: &'t Box<dyn Samplable>,
+}
+
+impl<'s> SampleableCommit<'s> {
+    pub fn new(sampleable: &'s Box<dyn Samplable>, matrix: cairo::Matrix) -> Self {
+        SampleableCommit {
+            matrix,
+            sampleable,
+        }
+    }
+}
+
+impl<'s> AutoDiffAction for SampleableCommit<'s> {
+    fn name(&self) -> ActionName {
+        ActionName::Transform
+    }
+
+    fn exec(self, image: &mut impl crate::image::TrackedLayeredImage) {
+        println!("do the thing")
     }
 }

@@ -21,6 +21,7 @@ pub enum ActionName {
     RemoveLayer,
     RearrangeLayers,
     MergeLayers,
+    Transform,
 }
 
 impl ActionName {
@@ -40,6 +41,7 @@ impl ActionName {
             Self::RemoveLayer => "Remove Layer",
             Self::RearrangeLayers => "Rearrange Layers",
             Self::MergeLayers => "Merge Layers",
+            Self::Transform => "Transform",
         }
     }
 }

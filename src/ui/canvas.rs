@@ -1,6 +1,6 @@
 use crate::image::undo::action::{AutoDiffAction, MultiLayerAction, SingleLayerAction};
 use crate::image::LayerIndex;
-use crate::transformable::{Transformable, TransformableImage};
+use crate::transformable::{Transformable, SampleableCommit, TransformableImage};
 
 use super::super::image::{Image, FusedLayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::bitmask::DeletePix;
@@ -10,7 +10,7 @@ use super::selection::Selection;
 use super::tab::Tab;
 use super::UiState;
 use super::toolbar::Toolbar;
-use super::toolbar::mode::{CursorState, MouseMode, TransformMode};
+use super::toolbar::mode::{CursorState, FreeTransformState, MouseMode, TransformMode};
 use crate::image::{ImageLike, blend::BlendingMode};
 use super::layer_window::LayerWindow;
 use super::dialog::modal_ok_dialog_str;
@@ -682,7 +682,7 @@ impl Canvas {
         self.save_cursor_pos_after_history_commit();
     }
 
-    pub fn exec_doable_action<A>(&mut self, action: A)
+    pub fn exec_auto_diff_action<A>(&mut self, action: A)
     where
         A: AutoDiffAction,
     {
@@ -939,5 +939,44 @@ impl Canvas {
         self.ui_p.borrow().toolbar_p.borrow_mut()
             .set_mouse_mode(MouseMode::Cursor(CursorState::default(self)));
         self.update();
+    }
+
+    fn commit_transformable_no_update(&mut self) {
+        {
+            let transformable_option = self.transformable.borrow_mut();
+
+            if let Some(transformable) = transformable_option.as_ref() {
+                let matrix_option = if let MouseMode::FreeTransform(transform_state) = self.ui_p.borrow().toolbar_p.borrow().mouse_mode() {
+                    transform_state.matrix()
+                } else {
+                    None
+                };
+
+                if let Some(matrix) = matrix_option {
+                    let sampleable = transformable.gen_sampleable();
+                    let commit_struct = SampleableCommit::new(&sampleable, matrix);
+
+                    // self.exec_auto_diff_action(commit_struct);
+                    // can't call because of ownership: work-around:
+                    {
+                        self.image_hist.exec_doable_action(commit_struct);
+                        std::mem::drop(sampleable);
+                        std::mem::drop(transformable);
+                        std::mem::drop(transformable_option);
+                        self.save_cursor_pos_after_history_commit();
+                    }
+                }
+            }
+        } // block ensures `transformable_option` is dropped
+    }
+
+    pub fn commit_transformable(&mut self) {
+        self.commit_transformable_no_update();
+        self.update();
+    }
+
+    pub fn commit_and_scrap_transformable(&mut self) {
+        self.commit_transformable_no_update();
+        self.scrap_transformable();
     }
 }

@@ -294,6 +294,14 @@ impl FreeTransformState {
             mouse_state: FreeTransformMouseState::Up,
         }
     }
+
+    pub fn matrix(&self) -> Option<cairo::Matrix> {
+        if let TransformMode::Transforming(matrix) = self.transform_mode {
+            Some(matrix)
+        } else {
+            None
+        }
+    }
 }
 
 /// The effective width and height of a matrix's

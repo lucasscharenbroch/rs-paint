@@ -137,17 +137,35 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
         .height_request(75)
         .build();
 
+    commit_button.connect_clicked(clone!(@strong ui_p => move |_| {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().commit_and_scrap_transformable();
+        }
+    }));
+
     let commit_and_keep_button = gtk::Button::builder()
         .child(&commit_and_keep_inner)
         .width_request(75)
         .height_request(75)
         .build();
 
+    commit_and_keep_button.connect_clicked(clone!(@strong ui_p => move |_| {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().commit_transformable();
+        }
+    }));
+
     let scrap_button = gtk::Button::builder()
         .child(&scrap_inner)
         .width_request(75)
         .height_request(75)
         .build();
+
+    scrap_button.connect_clicked(clone!(@strong ui_p => move |_| {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().scrap_transformable();
+        }
+    }));
 
     let form = Form::builder()
         .orientation(gtk::Orientation::Horizontal)
@@ -159,12 +177,6 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
     let get = move || {
         ()
     };
-
-    scrap_button.connect_clicked(clone!(@strong ui_p => move |_| {
-        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
-            canvas_p.borrow_mut().scrap_transformable();
-        }
-    }));
 
     (form, Box::new(get))
 }
