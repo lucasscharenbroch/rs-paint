@@ -1,5 +1,5 @@
 use crate::image::undo::action::{AutoDiffAction, MultiLayerAction, SingleLayerAction};
-use crate::image::LayerIndex;
+use crate::image::{ImageLikeUnchecked, LayerIndex, Pixel};
 use crate::transformable::{Transformable, SampleableCommit, TransformableImage};
 
 use super::super::image::{Image, FusedLayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
@@ -919,19 +919,45 @@ impl Canvas {
     /// clears the pixels on the image, without committing that change),
     /// switching the mouse mode to free-transform
     pub fn try_consume_selection_to_transformable(&mut self) -> Option<TransformMode> {
+        fn xywh_to_matrix(x: usize, y: usize, w: usize, h: usize) -> cairo::Matrix {
+            let mut matrix = cairo::Matrix::identity();
+            matrix.translate(x as f64, y as f64);
+            matrix.scale(w as f64, h as f64);
+
+            matrix
+
+        }
+
         let res = match self.selection {
             Selection::Rectangle(x, y, w, h) => {
                 *self.transformable.borrow_mut() = Some(Box::new(TransformableImage::from_image(
                     self.active_image().subimage(x, y, w, h)
                 )));
 
-                let mut matrix = cairo::Matrix::identity();
-                matrix.translate(x as f64, y as f64);
-                matrix.scale(w as f64, h as f64);
-
-                Some(TransformMode::Transforming(matrix))
+                Some(TransformMode::Transforming(xywh_to_matrix(x, y, w, h)))
             },
-            Selection::Bitmask(_) => todo!(),
+            Selection::Bitmask(ref bitmask) => {
+                let (x, y, w, h) = bitmask.bounding_box();
+
+                if w == 0 || h == 0 {
+                    None
+                } else {
+                    let subimage = self.active_image().subimage(x, y, w, h);
+                    let submask = bitmask.submask(x, y, w, h);
+                    let transparent = Pixel::from_rgba(0, 0, 0, 0);
+
+                    let pixels = (0..(w * h))
+                        .map(|i| if submask.bit_at(i) { subimage.pix_at_flat(i) } else { &transparent })
+                        .map(|p| p.clone())
+                        .collect::<Vec<_>>();
+
+                    let masked_image = Image::new(pixels, w, h);
+
+                    *self.transformable.borrow_mut() = Some(Box::new(TransformableImage::from_image(masked_image)));
+
+                    Some(TransformMode::Transforming(xywh_to_matrix(x, y, w, h)))
+                }
+            }
             _ => None,
         };
 

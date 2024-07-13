@@ -290,6 +290,42 @@ impl ImageBitmask {
             self.edge_path.as_ref().unwrap()
         }
     }
+
+    /// Returns the minimal rectangle (x, y, w, h) that contains
+    /// all selected pixels in the mask
+    pub fn bounding_box(&self) -> (usize, usize, usize, usize) {
+        let (min_x, max_x, min_y, max_y) = self.coords_of_active_bits()
+            .fold((self.width, 0, self.height, 0), |(min_x, max_x, min_y, max_y), (y, x)| {
+                (
+                    min_x.min(x),
+                    max_x.max(x),
+                    min_y.min(y),
+                    max_y.max(y),
+                )
+            });
+
+        if min_x > max_x || min_y > max_y {
+            (0, 0, 0, 0)
+        } else {
+            (min_x, min_y, max_x - min_x, max_y - min_y)
+        }
+    }
+
+    pub fn submask(&self, x: usize, y: usize, w: usize, h: usize) -> Self {
+        let mut bits = Vec::new();
+
+        for i in 0..h {
+            for j in 0..w {
+                bits.push(self.bits[(y + i) * self.width + (x + j)]);
+            }
+        }
+
+        ImageBitmask::from_flat_bits(h, w, bits)
+    }
+
+    pub fn bit_at(&self, i: usize) -> bool {
+        self.bits[i]
+    }
 }
 
 /// Returns `true` iff `a` "tolerates" (is close to) `b`
