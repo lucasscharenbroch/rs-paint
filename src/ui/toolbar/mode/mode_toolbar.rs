@@ -4,8 +4,12 @@ use crate::image::blend::BlendingMode;
 use crate::image::brush::BrushType;
 use crate::ui::form::gadget::NumberedSliderGadget;
 use crate::ui::form::{DropdownField, Form, FormBuilderIsh, NaturalField};
+use crate::ui::UiState;
 
+use std::rc::Rc;
+use std::cell::RefCell;
 use gtk::prelude::*;
+use glib_macros::clone;
 
 type PencilSettings = (BrushType, BlendingMode, u8);
 fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
@@ -99,7 +103,7 @@ fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
 }
 
 type FreeTransformSettings = ();
-fn mk_free_transform_toolbar() -> (Form, Box<dyn Fn() -> FreeTransformSettings>) {
+fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() -> FreeTransformSettings>) {
     let commit_image = gtk::Image::builder()
         .file(icon_file!("checkmark"))
         .vexpand(true)
@@ -156,7 +160,20 @@ fn mk_free_transform_toolbar() -> (Form, Box<dyn Fn() -> FreeTransformSettings>)
         ()
     };
 
+    scrap_button.connect_clicked(clone!(@strong ui_p => move |_| {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().scrap_transformable();
+        }
+    }));
+
     (form, Box::new(get))
+}
+
+/// Contains members of `ModeToolbars` whose construction
+/// must be deferred until there's access to a `ui_p`
+struct DeferredFormsAndSettings {
+    free_transform_form: Form,
+    get_free_transform_settings_p: Box<dyn Fn() -> FreeTransformSettings>,
 }
 
 pub struct ModeToolbar {
@@ -169,8 +186,7 @@ pub struct ModeToolbar {
     get_magic_wand_settings_p: Box<dyn Fn() -> MagicWandSettings>,
     fill_form: Form,
     get_fill_settings_p: Box<dyn Fn() -> FillSettings>,
-    free_transform_form: Form,
-    get_free_transform_settings_p: Box<dyn Fn() -> FreeTransformSettings>,
+    deferred: Option<DeferredFormsAndSettings>,
 }
 
 impl ModeToolbar {
@@ -178,7 +194,6 @@ impl ModeToolbar {
         let (pencil_form, get_pencil_settings_p) = mk_pencil_toolbar();
         let (magic_wand_form, get_magic_wand_settings_p) = mk_magic_wand_toolbar();
         let (fill_form, get_fill_settings_p) = mk_fill_toolbar();
-        let (free_transform_form, get_free_transform_settings_p) = mk_free_transform_toolbar();
 
         let mut res = ModeToolbar {
             active_variant: None,
@@ -190,8 +205,7 @@ impl ModeToolbar {
             get_magic_wand_settings_p,
             fill_form,
             get_fill_settings_p,
-            free_transform_form,
-            get_free_transform_settings_p,
+            deferred: None,
         };
 
         active_variant.map(|v| res.set_to_variant(v));
@@ -206,7 +220,7 @@ impl ModeToolbar {
             MouseModeVariant::Pencil => &self.pencil_form,
             MouseModeVariant::RectangleSelect => &self.empty_form,
             MouseModeVariant::Fill => &self.fill_form,
-            MouseModeVariant::FreeTransform => &self.free_transform_form,
+            MouseModeVariant::FreeTransform => &self.deferred.as_ref().unwrap().free_transform_form,
         }
     }
 
@@ -238,6 +252,15 @@ impl ModeToolbar {
     }
 
     pub fn get_free_transform_settings(&self) -> FreeTransformSettings {
-        (self.get_free_transform_settings_p)()
+        (self.deferred.as_ref().unwrap().get_free_transform_settings_p)()
+    }
+
+    pub fn init_ui_hooks(&mut self, ui_p: &Rc<RefCell<UiState>>) {
+        let (free_transform_form, get_free_transform_settings_p) = mk_free_transform_toolbar(ui_p.clone());
+
+        self.deferred = Some(DeferredFormsAndSettings {
+            free_transform_form,
+            get_free_transform_settings_p,
+        });
     }
 }

@@ -10,7 +10,7 @@ use super::selection::Selection;
 use super::tab::Tab;
 use super::UiState;
 use super::toolbar::Toolbar;
-use super::toolbar::mode::{MouseMode, TransformMode};
+use super::toolbar::mode::{CursorState, MouseMode, TransformMode};
 use crate::image::{ImageLike, blend::BlendingMode};
 use super::layer_window::LayerWindow;
 use super::dialog::modal_ok_dialog_str;
@@ -932,5 +932,12 @@ impl Canvas {
             Selection::Bitmask(_) => todo!(),
             _ => None,
         }
+    }
+
+    pub fn scrap_transformable(&mut self) {
+        *self.transformable.borrow_mut() = None;
+        self.ui_p.borrow().toolbar_p.borrow_mut()
+            .set_mouse_mode(MouseMode::Cursor(CursorState::default(self)));
+        self.update();
     }
 }

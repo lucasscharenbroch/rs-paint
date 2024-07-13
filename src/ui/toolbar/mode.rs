@@ -10,7 +10,7 @@ mod free_transform;
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};
 pub use mode_toolbar::ModeToolbar;
 
-use cursor::CursorState;
+pub use cursor::CursorState;
 use magic_wand::MagicWandState;
 use pencil::PencilState;
 use fill::FillState;

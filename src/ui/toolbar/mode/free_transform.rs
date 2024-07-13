@@ -385,9 +385,11 @@ impl super::MouseModeState for FreeTransformState {
                 }
                 let _ = cr.restore();
             } else {
-                // `canvas.transformable` is gone - this shouldn't happen,
-                // but this state isn't destructive/unrecoverable,
-                // so just do nothing
+                // `canvas.transformable` is gone - it must have been scrapped;
+                // do nothing for now (the current mode isn't accurate, but it
+                // can't be recovered; ideally we could change it here, but we
+                // don't have mutable access, and this headache is less than
+                // the one from changing all the functions to allow that)
             }
         }
     }

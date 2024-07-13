@@ -157,6 +157,8 @@ impl Toolbar {
                 b.widget.set_active(true);
             }
         });
+
+        toolbar_p.borrow_mut().mode_toolbar.init_ui_hooks(ui_p);
     }
 
     pub fn mouse_mode(&self) -> &MouseMode {
