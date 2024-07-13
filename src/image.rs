@@ -699,6 +699,10 @@ impl FusedLayeredImage {
         (mod_pix, self.active_layer_index)
     }
 
+    fn has_unsaved_changes(&self) -> bool {
+        !self.pix_modified_since_save.is_empty()
+    }
+
     #[inline]
     fn re_compute_layer_drawable_pixel(&mut self, i: usize, layer_index: LayerIndex) {
         match layer_index {

@@ -915,10 +915,12 @@ impl Canvas {
         &self.transformable
     }
 
+    /// Deletes the current selection (both `self.selection`, and actually
+    /// clears the pixels on the image, without committing that change),
+    /// switching the mouse mode to free-transform
     pub fn try_consume_selection_to_transformable(&mut self) -> Option<TransformMode> {
-        match self.selection {
+        let res = match self.selection {
             Selection::Rectangle(x, y, w, h) => {
-                self.selection = Selection::NoSelection;
                 *self.transformable.borrow_mut() = Some(Box::new(TransformableImage::from_image(
                     self.active_image().subimage(x, y, w, h)
                 )));
@@ -931,7 +933,15 @@ impl Canvas {
             },
             Selection::Bitmask(_) => todo!(),
             _ => None,
+        };
+
+        let selection = std::mem::replace(&mut self.selection, Selection::NoSelection);
+        for (i, j) in selection.iter() {
+            *self.active_image_mut().pix_at_mut(i as i32, j as i32) =
+                crate::image::Pixel::from_rgba(0, 0, 0, 0); // transparent
         }
+
+        res
     }
 
     pub fn scrap_transformable(&mut self) {
@@ -961,7 +971,7 @@ impl Canvas {
                     // self.exec_auto_diff_action(commit_struct);
                     // can't call because of ownership: work-around:
                     {
-                        self.image_hist.exec_doable_action(commit_struct);
+                        self.image_hist.exec_doable_action_taking_blame(commit_struct);
                         std::mem::drop(sampleable);
                         std::mem::drop(transformable_option);
                         self.save_cursor_pos_after_history_commit();

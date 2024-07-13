@@ -185,20 +185,35 @@ impl ImageHistory {
     where
         A: AutoDiffAction,
     {
+        if self.now.img.has_unsaved_changes() {
+            // if self is modified in any way, push the sate with Anon
+            self.push_current_state(ActionName::Anonymous);
+        }
+
+        self.exec_doable_action_taking_blame(action);
+    }
+
+    /// Execute the given action, taking the blame for any
+    /// unsaved changes on the active image
+    pub fn exec_doable_action_taking_blame<A>(&mut self, action: A)
+    where
+        A: AutoDiffAction,
+    {
         let name = action.name();
         action.exec(self.now_mut());
         self.push_current_state(name);
     }
 
     pub fn exec_undoable_action(&mut self, mut action: Box<dyn SingleLayerAction<Image>>) {
-        let (mod_pix, layer) = self.now.img.get_and_reset_modified();
-        if !mod_pix.is_empty() {
+        if self.now.img.has_unsaved_changes() {
             // if self is modified in any way, push the sate with Anon
             self.push_current_state(ActionName::Anonymous);
         }
 
-        self.now_mut().apply_action(&mut action, layer);
-        self.push_undo_action(action, layer);
+        let layer_idx = self.now.img.active_layer_index;
+
+        self.now_mut().apply_action(&mut action, layer_idx);
+        self.push_undo_action(action, layer_idx);
     }
 
     fn push_undo_action(&mut self, action: Box<dyn SingleLayerAction<Image>>, layer_index: LayerIndex) {
