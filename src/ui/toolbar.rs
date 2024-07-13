@@ -8,6 +8,7 @@ use super::UiState;
 use palette::Palette;
 use crate::image::brush::{Brush, BrushType};
 use crate::image::blend::BlendingMode;
+use crate::shape::ShapeType;
 use super::toolbar::mode::ModeToolbar;
 use super::super::icon_file;
 
@@ -238,5 +239,9 @@ impl Toolbar {
 
     fn get_fill_tolerance(&self) -> f64 {
         self.mode_toolbar.get_fill_settings()
+    }
+
+    fn get_shape_type(&self) -> ShapeType {
+        self.mode_toolbar.get_insert_shape_settings().clone()
     }
 }

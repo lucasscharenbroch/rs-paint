@@ -73,7 +73,7 @@ macro_rules! run_lockable_mouse_mode_hook {
         }
 
         mouse_mode.$hook_name(&$controller.current_event_state(), &mut $canvas_p.borrow_mut(), &mut toolbar);
-        toolbar.set_mouse_mode(mouse_mode);
+        toolbar.set_mouse_mode(mouse_mode.updated_after_hook());
     };
 }
 
@@ -83,7 +83,7 @@ macro_rules! run_non_lockable_mouse_mode_hook {
         let mut toolbar = ui.toolbar_p.borrow_mut();
         let mut mouse_mode = toolbar.mouse_mode().clone();
         mouse_mode.$hook_name(&$controller.current_event_state(), &mut $canvas_p.borrow_mut(), &mut toolbar);
-        toolbar.set_mouse_mode(mouse_mode);
+        toolbar.set_mouse_mode(mouse_mode.updated_after_hook());
     };
 }
 
@@ -925,7 +925,6 @@ impl Canvas {
             matrix.scale(w as f64, h as f64);
 
             matrix
-
         }
 
         let res = match self.selection {

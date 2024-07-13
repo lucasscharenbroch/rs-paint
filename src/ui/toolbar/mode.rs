@@ -61,6 +61,12 @@ trait MouseModeState {
     fn handle_motion(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
     fn handle_mod_key_update(&mut self, _mod_keys: &ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {}
     fn draw(&self, _canvas: &Canvas, _cr: &Context, _toolbar: &mut Toolbar) {}
+
+    /// Hack to transfer from one MouseMode to another
+    /// within a handler (which only allow homogeneous mutation)
+    /// (call this after each handler)
+    /// Err(()) => don't transfer
+    fn try_transfer(&self) -> Result<MouseMode, ()> { Err(()) }
 }
 
 impl MouseMode {
@@ -213,6 +219,13 @@ impl MouseMode {
             MouseMode::Fill(_) => true,
             MouseMode::FreeTransform(_) => true,
             MouseMode::InsertShape(_) => true,
+        }
+    }
+
+    pub fn updated_after_hook(self) -> Self {
+        match self.get_state_immutable().try_transfer() {
+            Ok(new_mode) => new_mode,
+            _ => self,
         }
     }
 }

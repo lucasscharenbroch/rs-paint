@@ -277,14 +277,23 @@ pub struct FreeTransformState {
 }
 
 impl FreeTransformState {
+    pub fn from_transform_mode(transform_mode: TransformMode) -> FreeTransformState {
+        FreeTransformState {
+            transform_mode,
+            mouse_state: FreeTransformMouseState::Up,
+        }
+    }
+
+    pub fn from_transform_mode_and_coords(transform_mode: TransformMode, x: f64, y: f64) -> FreeTransformState {
+        FreeTransformState {
+            transform_mode,
+            mouse_state: FreeTransformMouseState::Down(x, y, TransformationType::ExpandDownRight),
+        }
+    }
+
     pub fn default(canvas: &mut Canvas) -> FreeTransformState {
         canvas.try_consume_selection_to_transformable()
-            .map(|transform_mode| {
-                FreeTransformState {
-                    transform_mode,
-                    mouse_state: FreeTransformMouseState::Up,
-                }
-            })
+            .map(|transform_mode| Self::from_transform_mode(transform_mode))
             .unwrap_or(Self::default_no_canvas())
     }
 

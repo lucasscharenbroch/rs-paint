@@ -52,4 +52,11 @@ impl ShapeType {
             Self::Triangle => Box::new(Triangle),
         }
     }
+
+    pub fn to_boxed_transformable(&self) -> Box<dyn Transformable> {
+        match self {
+            Self::Square => Box::new(Square),
+            Self::Triangle => Box::new(Triangle),
+        }
+    }
 }
