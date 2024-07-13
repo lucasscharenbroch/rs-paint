@@ -950,6 +950,9 @@ impl Canvas {
             self.ui_p.borrow().toolbar_p.borrow_mut()
                 .set_mouse_mode(MouseMode::Cursor(CursorState::default(self)));
             self.update();
+            if self.layered_image().has_unsaved_changes() {
+                self.commit_changes(ActionName::Delete);
+            }
         }
     }
 
@@ -988,6 +991,6 @@ impl Canvas {
 
     pub fn commit_and_scrap_transformable(&mut self) {
         self.commit_transformable_no_update();
-        self.scrap_transformable();
+        let _ = self.scrap_transformable();
     }
 }
