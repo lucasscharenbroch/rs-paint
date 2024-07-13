@@ -3,14 +3,15 @@ use super::{FreeTransformState, MouseModeVariant};
 use crate::icon_file;
 use crate::image::blend::BlendingMode;
 use crate::image::brush::BrushType;
+use crate::transformable::Transformable;
 use crate::ui::form::gadget::{NumberedSliderGadget, ToggleButtonsGadget};
 use crate::ui::form::{DropdownField, Form, FormBuilderIsh, NaturalField, RadioField};
 use crate::ui::UiState;
-use crate::shape::ShapeType;
+use crate::shape::{ShapeType, Shape};
 
-use std::env::var;
 use std::rc::Rc;
 use std::cell::RefCell;
+use gtk::gdk::RGBA;
 use gtk::prelude::*;
 use glib_macros::clone;
 
@@ -198,12 +199,17 @@ fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
                 .height_request(75)
                 .build();
 
+            let black = RGBA::new(0.0, 0.0, 0.0, 1.0);
+            let transparent = RGBA::new(0.0, 0.0, 0.0, 0.0);
+            let mut shape = Shape::new(shape_ty, 1, black, transparent);
+
             area.set_draw_func(move |_, cr, width, height| {
                 cr.set_line_width(0.1);
                 cr.set_source_rgb(0.0, 0.0, 0.0);
                 cr.translate(width as f64 * 0.1, height as f64 * 0.1);
                 cr.scale(width as f64 * 0.8, height as f64 * 0.8);
-                shape_ty.to_shape().draw(cr);
+
+                shape.draw(cr);
             });
 
             area

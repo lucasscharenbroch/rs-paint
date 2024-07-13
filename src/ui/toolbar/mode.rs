@@ -66,7 +66,9 @@ trait MouseModeState {
     /// within a handler (which only allow homogeneous mutation)
     /// (call this after each handler)
     /// Err(()) => don't transfer
-    fn try_transfer(&self) -> Result<MouseMode, ()> { Err(()) }
+    fn try_transfer(&self) -> Result<MouseMode, ()> {
+        Err(())
+    }
 }
 
 impl MouseMode {

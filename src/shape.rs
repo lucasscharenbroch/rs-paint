@@ -1,41 +1,50 @@
 use crate::transformable::Transformable;
 
-use gtk::cairo;
+use gtk::{cairo, gdk::RGBA};
 
-pub trait Shape {
-    /// Draw the untransformed shape within the unit
-    /// square: (0.0, 0.0) (1.0, 1.0)
-    fn draw(&mut self, cr: &cairo::Context);
+pub struct Shape {
+    shape_type: ShapeType,
+    border_thickness: u8,
+    outline_color: RGBA,
+    fill_color: RGBA,
 }
 
-impl<S: Shape> Transformable for S {
+impl Shape {
+    pub fn new(shape_type: ShapeType, border_thickness: u8, outline_color: RGBA, fill_color: RGBA) -> Self {
+        Self {
+            shape_type,
+            border_thickness,
+            outline_color,
+            fill_color,
+        }
+    }
+}
+
+impl Transformable for Shape {
     fn draw(&mut self, cr: &cairo::Context) {
-        Shape::draw(self, cr);
+        cr.set_line_width(0.05);
+
+        cr.set_source_rgba(
+            self.outline_color.red() as f64,
+            self.outline_color.green() as f64,
+            self.outline_color.blue() as f64,
+            self.outline_color.alpha() as f64,
+        );
+
+        self.shape_type.outline(cr);
+
+        cr.set_source_rgba(
+            self.fill_color.red() as f64,
+            self.fill_color.green() as f64,
+            self.fill_color.blue() as f64,
+            self.fill_color.alpha() as f64,
+        );
+
+        self.shape_type.fill(cr);
     }
 
     fn gen_sampleable(&self) -> Box<dyn crate::transformable::Samplable> {
         todo!()
-    }
-}
-
-struct Square;
-
-impl Shape for Square {
-    fn draw(&mut self, cr: &cairo::Context) {
-        cr.rectangle(0.0, 0.0, 1.0, 1.0);
-        let _ = cr.stroke();
-    }
-}
-
-struct Triangle;
-
-impl Shape for Triangle {
-    fn draw(&mut self, cr: &cairo::Context) {
-        cr.move_to(0.5, 0.0);
-        cr.line_to(1.0, 1.0);
-        cr.line_to(0.0, 1.0);
-        cr.close_path();
-        let _ = cr.stroke();
     }
 }
 
@@ -46,17 +55,27 @@ pub enum ShapeType {
 }
 
 impl ShapeType {
-    pub fn to_shape(&self) -> Box<dyn Shape> {
-        match self {
-            Self::Square => Box::new(Square),
-            Self::Triangle => Box::new(Triangle),
-        }
+    fn outline(&self, cr: &cairo::Context) {
+        self.draw(cr);
+        let _ = cr.stroke();
     }
 
-    pub fn to_boxed_transformable(&self) -> Box<dyn Transformable> {
+    fn fill(&self, cr: &cairo::Context) {
+        self.draw(cr);
+        let _ = cr.fill();
+    }
+
+    fn draw(&self, cr: &cairo::Context)  {
         match self {
-            Self::Square => Box::new(Square),
-            Self::Triangle => Box::new(Triangle),
+            Self::Square => {
+                cr.rectangle(0.0, 0.0, 1.0, 1.0);
+            },
+            Self::Triangle => {
+                cr.move_to(0.5, 0.0);
+                cr.line_to(1.0, 1.0);
+                cr.line_to(0.0, 1.0);
+                cr.close_path();
+            },
         }
     }
 }

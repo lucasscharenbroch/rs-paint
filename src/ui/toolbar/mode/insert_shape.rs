@@ -1,4 +1,4 @@
-use crate::shape::ShapeType;
+use crate::shape::{Shape, ShapeType};
 use super::{Canvas, MouseMode, FreeTransformState, TransformMode, Toolbar};
 
 use gtk::gdk::ModifierType;
@@ -25,8 +25,14 @@ impl super::MouseModeState for InsertShapeState {
     fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let (x, y) = canvas.cursor_pos_pix_f();
         let shape_type = toolbar.get_shape_type();
+        let shape = Shape::new(
+            shape_type,
+            5,
+            toolbar.primary_color(),
+            toolbar.secondary_color(),
+        );
 
-        *canvas.transformable().borrow_mut() = Some(shape_type.to_boxed_transformable());
+        *canvas.transformable().borrow_mut() = Some(Box::new(shape));
 
         let mut matrix = cairo::Matrix::identity();
         matrix.translate(x, y);
