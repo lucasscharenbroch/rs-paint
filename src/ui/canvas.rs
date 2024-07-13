@@ -935,10 +935,12 @@ impl Canvas {
     }
 
     pub fn scrap_transformable(&mut self) {
-        *self.transformable.borrow_mut() = None;
-        self.ui_p.borrow().toolbar_p.borrow_mut()
-            .set_mouse_mode(MouseMode::Cursor(CursorState::default(self)));
-        self.update();
+        if self.transformable.borrow_mut().is_some() {
+            *self.transformable.borrow_mut() = None;
+            self.ui_p.borrow().toolbar_p.borrow_mut()
+                .set_mouse_mode(MouseMode::Cursor(CursorState::default(self)));
+            self.update();
+        }
     }
 
     fn commit_transformable_no_update(&mut self) {

@@ -127,11 +127,6 @@ impl Toolbar {
                             };
 
                         toolbar_p.borrow_mut().set_mouse_mode(mode.clone());
-                        for other_button in toolbar_p.borrow().mouse_mode_buttons.iter() {
-                            if other_button.mode.variant() != mode.variant() {
-                                other_button.widget.set_active(false);
-                            }
-                        }
 
                         if let Some(ref f) = toolbar_p.borrow().mode_change_hook {
                             f(&toolbar_p.borrow());
@@ -170,6 +165,10 @@ impl Toolbar {
     }
 
     pub fn set_mouse_mode(&mut self, new_mouse_mode: MouseMode) {
+        for b in self.mouse_mode_buttons.iter() {
+            b.widget.set_active(b.mode.variant() == new_mouse_mode.variant());
+        }
+
         self.mouse_mode = new_mouse_mode;
         self.mode_toolbar.set_to_variant(new_mouse_mode.variant());
     }
