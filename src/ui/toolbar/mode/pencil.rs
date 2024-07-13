@@ -3,7 +3,7 @@ mod spline;
 use super::{Canvas, Toolbar};
 use crate::image::{brush::Brush, ImageLike};
 use crate::image::undo::action::ActionName;
-use spline::{IncrementalSplineSnapshot, SplineSegment3, SplineSegment};
+use spline::{IncrementalSplineSnapshot, SplineSegment3, SplineSegment4, SplineSegment};
 
 use gtk::gdk::ModifierType;
 use gtk::cairo::{Context, LineCap};
@@ -195,10 +195,16 @@ impl PencilState {
             },
             IncrementalSplineSnapshot::Two(last_last, last) => {
                 let cursor_pos = canvas.cursor_pos_pix_i();
-                let segment = SplineSegment3::from_grouped(last_last, last, cursor_pos);
+                let segment = SplineSegment4::from_grouped(last_last, last, cursor_pos, cursor_pos);
                 self.draw_spline_segment(&segment, canvas, toolbar, click_type);
             },
-            IncrementalSplineSnapshot::Three(_, _, _) => self.draw_to_cursor(canvas, toolbar, click_type),
+            IncrementalSplineSnapshot::Three(last_last_last, last_last, last) => {
+                let cursor_pos = canvas.cursor_pos_pix_i();
+                let segment1 = SplineSegment4::from_grouped(last_last_last, last_last, last, cursor_pos);
+                let segment2 = SplineSegment4::from_grouped(last_last, last, cursor_pos, cursor_pos);
+                self.draw_spline_segment(&segment1, canvas, toolbar, click_type);
+                self.draw_spline_segment(&segment2, canvas, toolbar, click_type);
+            },
         }
         self.spline_snapshot = IncrementalSplineSnapshot::NoPoints;
     }

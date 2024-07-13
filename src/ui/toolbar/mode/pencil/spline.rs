@@ -78,7 +78,7 @@ pub struct SplineSegment4 {
 }
 
 impl SplineSegment4 {
-    fn from_grouped(
+    pub fn from_grouped(
         (x0, y0): (i32, i32),
         (x1, y1): (i32, i32),
         (x2, y2): (i32, i32),
