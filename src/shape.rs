@@ -39,6 +39,7 @@ impl Shape for Triangle {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum ShapeType {
     Square,
     Triangle,

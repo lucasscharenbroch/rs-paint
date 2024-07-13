@@ -3,10 +3,12 @@ use super::{FreeTransformState, MouseModeVariant};
 use crate::icon_file;
 use crate::image::blend::BlendingMode;
 use crate::image::brush::BrushType;
-use crate::ui::form::gadget::NumberedSliderGadget;
-use crate::ui::form::{DropdownField, Form, FormBuilderIsh, NaturalField};
+use crate::ui::form::gadget::{NumberedSliderGadget, ToggleButtonsGadget};
+use crate::ui::form::{DropdownField, Form, FormBuilderIsh, NaturalField, RadioField};
 use crate::ui::UiState;
+use crate::shape::ShapeType;
 
+use std::env::var;
 use std::rc::Rc;
 use std::cell::RefCell;
 use gtk::prelude::*;
@@ -182,13 +184,33 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
     (form, Box::new(get))
 }
 
-type InsertShapeSettings = ();
+type InsertShapeSettings = ShapeType;
 fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
+    let shape_types = vec![
+        ShapeType::Square,
+        ShapeType::Triangle,
+    ];
+
+    let dummy = gtk::Label::new(Some("hi"));
+
+    let variants = shape_types.into_iter()
+        .map(|shape_ty| {
+            (&dummy, shape_ty)
+        })
+        .collect::<Vec<_>>();
+
+    let shape_selector_p = ToggleButtonsGadget::new_p(
+        None,
+        variants,
+        0,
+    );
+
     let form = Form::builder()
+        .with_gadget(&*shape_selector_p.borrow())
         .build();
 
     let get = move || {
-        ()
+        *shape_selector_p.borrow().value().unwrap()
     };
 
     (form, Box::new(get))

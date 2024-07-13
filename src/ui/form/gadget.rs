@@ -9,7 +9,7 @@ use glib_macros::clone;
 /// A gadget is a wrapper of FormFeilds that can support
 /// extra state and interconnected behavior
 trait FormGadget {
-    fn add_to_builder<T: FormBuilderIsh>(&self, buider: T) -> T;
+    fn add_to_builder<T: FormBuilderIsh>(&self, builder: T) -> T;
 }
 
 impl FormBuilder {
@@ -170,4 +170,75 @@ impl FormGadget for NumberedSliderGadget {
                 .with_field(&composite_field!(&self.slider_field, &self.label_field))
         }
      }
+}
+
+
+/// Similar to RadioField, but each button gets its own widget
+/// This needs to be a gadget because there needs to be a pointer
+/// to the container to update the buttons' activity.
+pub struct ToggleButtonsGadget<T> {
+    buttons: Vec<gtk::ToggleButton>,
+    wrapper: gtk::Box,
+    variants: Vec<T>,
+}
+
+impl<T: 'static> ToggleButtonsGadget<T> {
+    pub fn new_p(label: Option<&str>, variants: Vec<(&impl IsA<gtk::Widget>, T)>, default: usize) -> Rc<RefCell<Self>> {
+        let buttons = variants.iter().enumerate()
+            .map(|(idx, (child_widget, _x))| {
+            gtk::ToggleButton::builder()
+                .child(*child_widget)
+                .active(idx == default)
+                .build()
+        }).collect::<Vec<_>>();
+
+        let variants = variants.into_iter()
+            .map(|(_, x)| x)
+            .collect::<Vec<_>>();
+
+        let wrapper = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
+            .spacing(4)
+            .build();
+
+        for b in buttons.iter() {
+            wrapper.append(b);
+        }
+
+        label.map(|label_text| wrapper.prepend(&new_label(label_text)));
+
+        buttons[0].set_active(true);
+
+        let self_p = Rc::new(RefCell::new(
+            ToggleButtonsGadget {
+                buttons,
+                wrapper,
+                variants,
+            }
+        ));
+
+        for (i, b) in self_p.borrow().buttons.iter().enumerate() {
+            b.connect_clicked(clone!(@strong self_p => move |b| {
+                for (ip, bp) in self_p.borrow().buttons.iter().enumerate() {
+                    bp.set_active(i == ip);
+                }
+            }));
+        }
+
+        self_p
+    }
+
+    pub fn value(&self) -> Option<&T> {
+        self.buttons.iter()
+            .enumerate()
+            .filter(|(_idx, b)| b.is_active())
+            .next()
+            .map(|(idx, _b)| &self.variants[idx]) // map over the Option
+    }
+}
+
+impl<T> FormGadget for ToggleButtonsGadget<T> {
+    fn add_to_builder<B: FormBuilderIsh>(&self, builder: B) -> B {
+        builder.with_field(&self.wrapper)
+    }
 }
