@@ -59,7 +59,7 @@ impl Pixel {
         Pixel::from_rgba(self.r, self.g, self.b, (self.a as f64 * amount) as u8)
     }
 
-    fn blend(above: &Pixel, below: &Pixel) -> Pixel {
+    pub fn blend(above: &Pixel, below: &Pixel) -> Pixel {
         let o = above.a as f64 / 255.0;
         let t = 1.0 - o;
         Pixel::from_rgba((above.r as f64 * o + below.r as f64 * t) as u8,

@@ -961,7 +961,6 @@ impl Canvas {
                     {
                         self.image_hist.exec_doable_action(commit_struct);
                         std::mem::drop(sampleable);
-                        std::mem::drop(transformable);
                         std::mem::drop(transformable_option);
                         self.save_cursor_pos_after_history_commit();
                     }
