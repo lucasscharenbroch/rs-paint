@@ -173,12 +173,16 @@ impl TransformationType {
         )
     }
 
-    fn update_matrix_with_diff(&self, matrix: &mut cairo::Matrix, dx: f64, dy: f64) {
+    fn update_matrix_with_point_diff(
+        &self, matrix: &mut cairo::Matrix,
+        (x0, y0): (f64, f64),
+        (x1, y1): (f64, f64)
+    ) {
         let (width, height) = matrix_width_height(matrix);
 
         // if there's no inverse, return garbage value - it's bad, but better than crashing
         let inverse = matrix.try_invert().unwrap_or(matrix.clone());
-        let (dx, dy) = inverse.transform_distance(dx, dy);
+        let (dx, dy) = inverse.transform_distance(x1 - x0, y1 - y0);
 
         match self {
             Self::Sterile => (),
@@ -220,14 +224,39 @@ impl TransformationType {
                 matrix.scale(1.0 + dx, 1.0);
             }
             Self::Rotate => {
+                let (x0, y0) = (0.5, 0.0);
+                let (x1, y1) = inverse.transform_point(x1, y1);
+                let (x2, y2) = (0.5, 0.5);
+                // target angle (`a`) is angle between p0@(0.5, 0.0) (the rotation-nub-area),
+                // p2@(0.5, 0.5) (the center of the image), and p1 (the current cursor position)
+
+                /*     | target angle (`a`)
+                       |
+                    p1 v p0
+                      \--|
+                    v1 \ | v0
+                        \|
+                         p2
+                 */
+
+                let v0 = (x0 - x2, y0 - y2);
+                let v1 = (x1 - x2, y1 - y2);
+
+                // dot product
+                let dp = v0.0 * v1.0 + v0.1 * v1.1;
+
+                // magnitude
+                let m0 = (v0.0.powi(2) + v0.1.powi(2)).sqrt();
+                let m1 = (v1.0.powi(2) + v1.1.powi(2)).sqrt();
+
+                let a = (dp / (m0 * m1)).acos();
+
+                // invert the direction, if necessary
+                let a = if x0 >= x1 { -a } else { a };
+
                 matrix.translate(0.5, 0.5);
                 matrix.scale(1.0, width / height);
-                // This formula is totally BS, but it's good enough for now.
-                // Ideally: compute the perimeter of the ellipse (?) that the
-                // rotation nub follows, and adjust a single revolution there to
-                // match 2pi radians. The below doesn't do that, it's just random numbers
-                // that kind of work.
-                matrix.rotate(dx * 3.1415926535 / (9.0 / 5.0) * width / height);
+                matrix.rotate(a);
                 matrix.scale(1.0, height / width);
                 matrix.translate(-0.5, -0.5);
             }
@@ -380,7 +409,7 @@ impl super::MouseModeState for FreeTransformState {
                 let dx = x - x0;
                 let dy = y - y0;
 
-                transform_type.update_matrix_with_diff(matrix, dx, dy);
+                transform_type.update_matrix_with_point_diff(matrix, (x0, y0), (x, y));
                 self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type);
                 canvas.update();
             }
