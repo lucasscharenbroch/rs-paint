@@ -191,11 +191,29 @@ fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
         ShapeType::Triangle,
     ];
 
-    let dummy = gtk::Label::new(Some("hi"));
+    let drawing_areas = shape_types.iter()
+        .map(|&shape_ty| {
+            let area = gtk::DrawingArea::builder()
+                .width_request(75)
+                .height_request(75)
+                .build();
 
-    let variants = shape_types.into_iter()
-        .map(|shape_ty| {
-            (&dummy, shape_ty)
+            area.set_draw_func(move |_, cr, width, height| {
+                cr.set_line_width(0.1);
+                cr.set_source_rgb(0.0, 0.0, 0.0);
+                cr.translate(width as f64 * 0.1, height as f64 * 0.1);
+                cr.scale(width as f64 * 0.8, height as f64 * 0.8);
+                shape_ty.to_shape().draw(cr);
+            });
+
+            area
+        })
+        .collect::<Vec<_>>();
+
+    let variants = shape_types.iter()
+        .zip(drawing_areas.iter())
+        .map(|(shape_ty, drawing_area)| {
+            (drawing_area, *shape_ty)
         })
         .collect::<Vec<_>>();
 

@@ -46,7 +46,7 @@ pub enum ShapeType {
 }
 
 impl ShapeType {
-    fn to_shape(&self) -> Box<dyn Shape> {
+    pub fn to_shape(&self) -> Box<dyn Shape> {
         match self {
             Self::Square => Box::new(Square),
             Self::Triangle => Box::new(Triangle),
