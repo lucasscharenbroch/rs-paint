@@ -1,4 +1,5 @@
-use super::MouseModeVariant;
+use super::{FreeTransformState, MouseModeVariant};
+use crate::icon_file;
 use crate::image::blend::BlendingMode;
 use crate::image::brush::BrushType;
 use crate::ui::form::gadget::NumberedSliderGadget;
@@ -97,6 +98,67 @@ fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
     (form, Box::new(get))
 }
 
+type FreeTransformSettings = ();
+fn mk_free_transform_toolbar() -> (Form, Box<dyn Fn() -> FreeTransformSettings>) {
+    let commit_image = gtk::Image::builder()
+        .file(icon_file!("checkmark"))
+        .vexpand(true)
+        .build();
+
+    let commit_and_keep_image = gtk::Image::builder()
+        .file(icon_file!("dotted-checkmark"))
+        .vexpand(true)
+        .build();
+
+    let scrap_image = gtk::Image::builder()
+        .file(icon_file!("big-red-x"))
+        .vexpand(true)
+        .build();
+
+    let commit_inner = gtk::Box::new(gtk::Orientation::Vertical, 4);
+    commit_inner.append(&commit_image);
+    commit_inner.append(&gtk::Label::new(Some("Commit")));
+
+    let commit_and_keep_inner = gtk::Box::new(gtk::Orientation::Vertical, 4);
+    commit_and_keep_inner.append(&commit_and_keep_image);
+    commit_and_keep_inner.append(&gtk::Label::new(Some("Commit and Keep")));
+
+    let scrap_inner = gtk::Box::new(gtk::Orientation::Vertical, 4);
+    scrap_inner.append(&scrap_image);
+    scrap_inner.append(&gtk::Label::new(Some("Scrap")));
+
+    let commit_button = gtk::Button::builder()
+        .child(&commit_inner)
+        .width_request(75)
+        .height_request(75)
+        .build();
+
+    let commit_and_keep_button = gtk::Button::builder()
+        .child(&commit_and_keep_inner)
+        .width_request(75)
+        .height_request(75)
+        .build();
+
+    let scrap_button = gtk::Button::builder()
+        .child(&scrap_inner)
+        .width_request(75)
+        .height_request(75)
+        .build();
+
+    let form = Form::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .with_field(&commit_and_keep_button)
+        .with_field(&commit_button)
+        .with_field(&scrap_button)
+        .build();
+
+    let get = move || {
+        ()
+    };
+
+    (form, Box::new(get))
+}
+
 pub struct ModeToolbar {
     active_variant: Option<MouseModeVariant>,
     widget_wrapper: gtk::Box,
@@ -107,6 +169,8 @@ pub struct ModeToolbar {
     get_magic_wand_settings_p: Box<dyn Fn() -> MagicWandSettings>,
     fill_form: Form,
     get_fill_settings_p: Box<dyn Fn() -> FillSettings>,
+    free_transform_form: Form,
+    get_free_transform_settings_p: Box<dyn Fn() -> FreeTransformSettings>,
 }
 
 impl ModeToolbar {
@@ -114,6 +178,7 @@ impl ModeToolbar {
         let (pencil_form, get_pencil_settings_p) = mk_pencil_toolbar();
         let (magic_wand_form, get_magic_wand_settings_p) = mk_magic_wand_toolbar();
         let (fill_form, get_fill_settings_p) = mk_fill_toolbar();
+        let (free_transform_form, get_free_transform_settings_p) = mk_free_transform_toolbar();
 
         let mut res = ModeToolbar {
             active_variant: None,
@@ -125,6 +190,8 @@ impl ModeToolbar {
             get_magic_wand_settings_p,
             fill_form,
             get_fill_settings_p,
+            free_transform_form,
+            get_free_transform_settings_p,
         };
 
         active_variant.map(|v| res.set_to_variant(v));
@@ -139,7 +206,7 @@ impl ModeToolbar {
             MouseModeVariant::Pencil => &self.pencil_form,
             MouseModeVariant::RectangleSelect => &self.empty_form,
             MouseModeVariant::Fill => &self.fill_form,
-            MouseModeVariant::FreeTransform => &self.empty_form,
+            MouseModeVariant::FreeTransform => &self.free_transform_form,
         }
     }
 
@@ -168,5 +235,9 @@ impl ModeToolbar {
 
     pub fn get_fill_settings(&self) -> MagicWandSettings {
         (self.get_fill_settings_p)()
+    }
+
+    pub fn get_free_transform_settings(&self) -> FreeTransformSettings {
+        (self.get_free_transform_settings_p)()
     }
 }

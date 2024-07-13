@@ -378,6 +378,13 @@ impl FormField for LabelField {
     }
 }
 
+
+impl<T: IsA<gtk::Widget>> FormField for T {
+    fn outer_widget(&self) -> &impl IsA<gtk::Widget> {
+        self
+    }
+}
+
 pub struct ExpandJustificationField {
     buttons: Rc<RefCell<Vec<gtk::ToggleButton>>>,
     wrapper: gtk::Box,
