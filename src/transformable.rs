@@ -5,7 +5,7 @@ use gtk::cairo;
 pub trait Transformable {
     /// Draw the untransformed thing within the unit
     /// square: (0.0, 0.0) (1.0, 1.0)
-    fn draw(&mut self, cr: &cairo::Context);
+    fn draw(&mut self, cr: &cairo::Context, pixel_width: f64, pixel_height: f64);
     // TODO: avoid the generation/make an accessor (?)
     fn gen_sampleable(&self) -> Box<dyn Samplable>;
 }
@@ -33,7 +33,7 @@ impl TransformableImage {
 }
 
 impl Transformable for TransformableImage {
-    fn draw(&mut self, cr: &cairo::Context) {
+    fn draw(&mut self, cr: &cairo::Context, _pixel_width: f64, _pixel_height: f64) {
         let img_width = self.image.width() as f64;
         let img_height = self.image.height() as f64;
 

@@ -242,6 +242,10 @@ impl Toolbar {
     }
 
     fn get_shape_type(&self) -> ShapeType {
-        self.mode_toolbar.get_insert_shape_settings().clone()
+        self.mode_toolbar.get_insert_shape_settings().0.clone()
+    }
+
+    fn get_shape_border_width(&self) -> u8 {
+        self.mode_toolbar.get_insert_shape_settings().1
     }
 }

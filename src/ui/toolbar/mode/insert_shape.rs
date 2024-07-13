@@ -25,9 +25,10 @@ impl super::MouseModeState for InsertShapeState {
     fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let (x, y) = canvas.cursor_pos_pix_f();
         let shape_type = toolbar.get_shape_type();
+        let border_width = toolbar.get_shape_border_width();
         let shape = Shape::new(
             shape_type,
-            5,
+            border_width,
             toolbar.primary_color(),
             toolbar.secondary_color(),
         );

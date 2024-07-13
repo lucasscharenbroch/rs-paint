@@ -395,7 +395,8 @@ impl super::MouseModeState for FreeTransformState {
                 let _ = cr.save();
                 {
                     cr.set_matrix(cairo::Matrix::multiply(matrix, &cr.matrix()));
-                    transformable.draw(cr);
+                    let (w, h) = matrix_width_height(matrix);
+                    transformable.draw(cr, w, h);
 
                     let (width, height) = matrix_width_height(matrix);
                     Self::draw_transform_overlay(cr, *canvas.zoom(), width, height);

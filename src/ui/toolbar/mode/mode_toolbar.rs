@@ -185,7 +185,7 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
     (form, Box::new(get))
 }
 
-type InsertShapeSettings = ShapeType;
+type InsertShapeSettings = (ShapeType, u8);
 fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
     let shape_types = vec![
         ShapeType::Square,
@@ -194,9 +194,12 @@ fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
 
     let drawing_areas = shape_types.iter()
         .map(|&shape_ty| {
+            const HEIGHT: i32 = 75;
+            const WIDTH: i32 = 75;
+
             let area = gtk::DrawingArea::builder()
-                .width_request(75)
-                .height_request(75)
+                .width_request(HEIGHT)
+                .height_request(WIDTH)
                 .build();
 
             let black = RGBA::new(0.0, 0.0, 0.0, 1.0);
@@ -209,7 +212,7 @@ fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
                 cr.translate(width as f64 * 0.1, height as f64 * 0.1);
                 cr.scale(width as f64 * 0.8, height as f64 * 0.8);
 
-                shape.draw(cr);
+                shape.draw(cr, WIDTH as f64, HEIGHT as f64);
             });
 
             area
@@ -229,12 +232,19 @@ fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
         0,
     );
 
+    let border_width_field = NaturalField::new(Some("Border Width"), 1, 255, 1, 5);
+
     let form = Form::builder()
         .with_gadget(&*shape_selector_p.borrow())
+        .with_field(&border_width_field)
+        .orientation(gtk::Orientation::Horizontal)
         .build();
 
     let get = move || {
-        *shape_selector_p.borrow().value().unwrap()
+        (
+            *shape_selector_p.borrow().value().unwrap(),
+            border_width_field.value() as u8
+        )
     };
 
     (form, Box::new(get))
