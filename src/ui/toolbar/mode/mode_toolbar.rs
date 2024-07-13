@@ -1,3 +1,4 @@
+use super::insert_shape::InsertShapeState;
 use super::{FreeTransformState, MouseModeVariant};
 use crate::icon_file;
 use crate::image::blend::BlendingMode;
@@ -181,6 +182,18 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
     (form, Box::new(get))
 }
 
+type InsertShapeSettings = ();
+fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
+    let form = Form::builder()
+        .build();
+
+    let get = move || {
+        ()
+    };
+
+    (form, Box::new(get))
+}
+
 /// Contains members of `ModeToolbars` whose construction
 /// must be deferred until there's access to a `ui_p`
 struct DeferredFormsAndSettings {
@@ -198,6 +211,8 @@ pub struct ModeToolbar {
     get_magic_wand_settings_p: Box<dyn Fn() -> MagicWandSettings>,
     fill_form: Form,
     get_fill_settings_p: Box<dyn Fn() -> FillSettings>,
+    insert_shape_form: Form,
+    get_insert_shape_settings_p: Box<dyn Fn() -> InsertShapeSettings>,
     deferred: Option<DeferredFormsAndSettings>,
 }
 
@@ -206,6 +221,7 @@ impl ModeToolbar {
         let (pencil_form, get_pencil_settings_p) = mk_pencil_toolbar();
         let (magic_wand_form, get_magic_wand_settings_p) = mk_magic_wand_toolbar();
         let (fill_form, get_fill_settings_p) = mk_fill_toolbar();
+        let (insert_shape_form, get_insert_shape_settings_p) = mk_insert_shape_toolbar();
 
         let mut res = ModeToolbar {
             active_variant: None,
@@ -217,6 +233,8 @@ impl ModeToolbar {
             get_magic_wand_settings_p,
             fill_form,
             get_fill_settings_p,
+            insert_shape_form,
+            get_insert_shape_settings_p,
             deferred: None,
         };
 
@@ -233,6 +251,7 @@ impl ModeToolbar {
             MouseModeVariant::RectangleSelect => &self.empty_form,
             MouseModeVariant::Fill => &self.fill_form,
             MouseModeVariant::FreeTransform => &self.deferred.as_ref().unwrap().free_transform_form,
+            MouseModeVariant::InsertShape => &self.insert_shape_form,
         }
     }
 
@@ -265,6 +284,10 @@ impl ModeToolbar {
 
     pub fn get_free_transform_settings(&self) -> FreeTransformSettings {
         (self.deferred.as_ref().unwrap().get_free_transform_settings_p)()
+    }
+
+    pub fn get_insert_shape_settings(&self) -> InsertShapeSettings {
+        (self.get_insert_shape_settings_p)()
     }
 
     pub fn init_ui_hooks(&mut self, ui_p: &Rc<RefCell<UiState>>) {

@@ -102,6 +102,7 @@ impl Toolbar {
             ("magic-wand", "Magic Wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
             ("fill", "Fill", MouseMode::fill, MouseMode::fill_default),
             ("free-transform", "Free Transform", MouseMode::free_transform, MouseMode::free_transform_default),
+            ("insert-shape", "Insert Shape", MouseMode::insert_shape, MouseMode::insert_shape_default),
         ];
 
         toolbar_p.borrow_mut().mouse_mode_buttons = button_info.into_iter()

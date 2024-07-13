@@ -6,6 +6,7 @@ mod eyedropper;
 mod magic_wand;
 mod fill;
 mod free_transform;
+mod insert_shape;
 
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};
 pub use mode_toolbar::ModeToolbar;
@@ -17,6 +18,7 @@ use fill::FillState;
 use self::eyedropper::EyedropperState;
 pub use self::rectangle_select::{RectangleSelectState, RectangleSelectMode};
 pub use free_transform::{FreeTransformState, TransformMode};
+use insert_shape::InsertShapeState;
 
 use gtk::cairo::Context;
 use gtk::gdk::ModifierType;
@@ -30,6 +32,7 @@ pub enum MouseMode {
     MagicWand(MagicWandState),
     Fill(FillState),
     FreeTransform(FreeTransformState),
+    InsertShape(InsertShapeState),
 }
 
 #[derive(PartialEq)]
@@ -41,6 +44,7 @@ pub enum MouseModeVariant {
     MagicWand,
     Fill,
     FreeTransform,
+    InsertShape,
 }
 
 trait MouseModeState {
@@ -116,6 +120,14 @@ impl MouseMode {
         MouseMode::FreeTransform(FreeTransformState::default_no_canvas())
     }
 
+    pub fn insert_shape(canvas: &mut Canvas) -> MouseMode {
+        MouseMode::InsertShape(InsertShapeState::default(canvas))
+    }
+
+    pub fn insert_shape_default() -> MouseMode {
+        MouseMode::InsertShape(InsertShapeState::default_no_canvas())
+    }
+
     fn get_state(&mut self) -> &mut dyn MouseModeState {
         match self {
             MouseMode::Cursor(ref mut s) => s,
@@ -125,6 +137,7 @@ impl MouseMode {
             MouseMode::MagicWand(ref mut s) => s,
             MouseMode::Fill(ref mut s) => s,
             MouseMode::FreeTransform(ref mut s) => s,
+            MouseMode::InsertShape(ref mut s) => s,
         }
     }
 
@@ -137,6 +150,7 @@ impl MouseMode {
             MouseMode::MagicWand(ref s) => s,
             MouseMode::Fill(ref s) => s,
             MouseMode::FreeTransform(ref s) => s,
+            MouseMode::InsertShape(ref s) => s,
         }
     }
 
@@ -185,6 +199,7 @@ impl MouseMode {
             MouseMode::MagicWand(_) => MouseModeVariant::MagicWand,
             MouseMode::Fill(_) => MouseModeVariant::Fill,
             MouseMode::FreeTransform(_) => MouseModeVariant::FreeTransform,
+            MouseMode::InsertShape(_) => MouseModeVariant::InsertShape,
         }
     }
 
@@ -197,6 +212,7 @@ impl MouseMode {
             MouseMode::MagicWand(_) => false,
             MouseMode::Fill(_) => true,
             MouseMode::FreeTransform(_) => true,
+            MouseMode::InsertShape(_) => true,
         }
     }
 }
