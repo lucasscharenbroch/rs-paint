@@ -88,9 +88,14 @@ pub enum ShapeType {
     TriangleI,
     Circle,
     Arrow,
-    Star,
-    Pentagon,
+    Star5,
+    Hexagon,
+    Diamond,
     TriangleE,
+    Heart,
+    SpeachBubble,
+    Star4,
+    Pentagon,
 }
 
 impl ShapeType {
@@ -100,8 +105,13 @@ impl ShapeType {
             Self::TriangleI,
             Self::Circle,
             Self::Arrow,
-            Self::Star,
+            Self::Star5,
+            Self::Hexagon,
+            Self::Diamond,
             Self::TriangleE,
+            Self::Heart,
+            Self::SpeachBubble,
+            Self::Star4,
             Self::Pentagon,
         ].iter().map(|x| x.clone())
     }
@@ -125,12 +135,15 @@ impl ShapeType {
         let (x0, y0) = calc_matrix.transform_point(0.0, 0.0);
         let (dx1, dy1) =  calc_matrix.transform_distance(1.0, 1.0);
         let (x1, y1) = calc_matrix.transform_point(1.0, 1.0);
-        let (x02, y02) = calc_matrix.transform_point(0.25, 0.25);
-        let (x03, y03) = calc_matrix.transform_point(0.333, 0.333);
+        let (x01, y01) = calc_matrix.transform_point(0.1, 0.1);
+        let (x02, y02) = calc_matrix.transform_point(0.2, 0.2);
+        let (x025, y025) = calc_matrix.transform_point(0.25, 0.25);
+        let (x033, y033) = calc_matrix.transform_point(0.333, 0.333);
         let (x04, y04) = calc_matrix.transform_point(0.4, 0.4);
         let (x05, y05) = calc_matrix.transform_point(0.5, 0.5);
-        let (x06, y06) = calc_matrix.transform_point(0.666, 0.666);
-        let (x07, y07) = calc_matrix.transform_point(0.75, 0.75);
+        let (x066, y066) = calc_matrix.transform_point(0.666, 0.666);
+        let (x06, y06) = calc_matrix.transform_point(0.6, 0.6);
+        let (x075, y075) = calc_matrix.transform_point(0.75, 0.75);
 
         match self {
             Self::Square => {
@@ -160,33 +173,82 @@ impl ShapeType {
                 cr.move_to(x05, y0);
                 cr.line_to(x1, y05);
                 cr.line_to(x05, y1);
-                cr.line_to(x05, y06);
-                cr.line_to(x0, y06);
-                cr.line_to(x0, y03);
-                cr.line_to(x05, y03);
+                cr.line_to(x05, y066);
+                cr.line_to(x0, y066);
+                cr.line_to(x0, y033);
+                cr.line_to(x05, y033);
                 cr.close_path();
             },
-            Self::Star => {
+            Self::Star5 => {
                 // draw the star like a human would (winding fill should work with this)
-                cr.move_to(x02, y1);
+                // not because it's better, but because it's more scuffed (and easier, of course)
+                // nobody uses the shape tool seriously anyway
+                cr.move_to(x025, y1);
                 cr.line_to(x05, y0);
-                cr.line_to(x07, y1);
-                cr.line_to(x0, y03);
-                cr.line_to(x1, y03);
+                cr.line_to(x075, y1);
+                cr.line_to(x0, y033);
+                cr.line_to(x1, y033);
                 cr.close_path();
             },
-            Self::Pentagon => {
-                cr.move_to(x0, y04);
-                cr.line_to(x05, y0);
-                cr.line_to(x1, y04);
-                cr.line_to(x07, y1);
-                cr.line_to(x02, y1);
+            Self::Hexagon => {
+                cr.move_to(x025, y0);
+                cr.line_to(x075, y0);
+                cr.line_to(x1, y05);
+                cr.line_to(x075, y1);
+                cr.line_to(x025, y1);
+                cr.line_to(x0, y05);
+                cr.close_path();
+            },
+            Self::Diamond => {
+                cr.move_to(x05, y0);
+                cr.line_to(x1, y05);
+                cr.line_to(x05, y1);
+                cr.line_to(x0, y05);
                 cr.close_path();
             },
             Self::TriangleE => {
                 cr.move_to(x0, y0);
                 cr.line_to(x1, y1);
                 cr.line_to(x0, y1);
+                cr.close_path();
+            },
+            Self::Heart => {
+                let (x0125, y0125) = calc_matrix.transform_point(0.125, 0.125);
+
+                cr.move_to(x05, y1);
+                cr.line_to(x0125, y05);
+                cr.arc(x025, y025, dx1 / 4.0, -1.2 * 3.14, -0.15 * 3.14);
+                cr.line_to(x05, y02);
+                cr.arc(x075, y025, dx1 / 4.0, 1.2 * 3.14, 0.15 * 3.14);
+                cr.close_path();
+            },
+            Self::SpeachBubble => {
+                cr.move_to(x0, y0);
+                cr.line_to(x1, y0);
+                cr.line_to(x1, y075);
+                cr.line_to(x04, y075);
+                cr.line_to(x033, y1);
+                cr.line_to(x025, y075);
+                cr.line_to(x0, y075);
+                cr.close_path();
+            },
+            Self::Star4 => {
+                cr.move_to(x05, y0);
+                cr.line_to(x06, y04);
+                cr.line_to(x1, y05);
+                cr.line_to(x06, y06);
+                cr.line_to(x05, y1);
+                cr.line_to(x04, y06);
+                cr.line_to(x0, y05);
+                cr.line_to(x04, y04);
+                cr.close_path();
+            },
+            Self::Pentagon => {
+                cr.move_to(x0, y04);
+                cr.line_to(x05, y0);
+                cr.line_to(x1, y04);
+                cr.line_to(x075, y1);
+                cr.line_to(x025, y1);
                 cr.close_path();
             },
         }
