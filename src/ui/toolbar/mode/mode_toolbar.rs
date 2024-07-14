@@ -187,10 +187,7 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
 
 type InsertShapeSettings = (ShapeType, u8);
 fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
-    let shape_types = vec![
-        ShapeType::Square,
-        ShapeType::Triangle,
-    ];
+    let shape_types = ShapeType::iter_variants().collect::<Vec<_>>();
 
     let drawing_areas = shape_types.iter()
         .map(|&shape_ty| {
