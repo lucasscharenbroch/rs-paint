@@ -180,8 +180,7 @@ impl TransformationType {
     ) {
         let (width, height) = matrix_width_height(matrix);
 
-        // if there's no inverse, return garbage value - it's bad, but better than crashing
-        let inverse = matrix.try_invert().unwrap_or(matrix.clone());
+        let inverse = matrix.try_invert().unwrap();
         let (dx, dy) = inverse.transform_distance(x1 - x0, y1 - y0);
 
         match self {
@@ -224,9 +223,9 @@ impl TransformationType {
                 matrix.scale(1.0 + dx, 1.0);
             }
             Self::Rotate => {
-                let (x0, y0) = (0.5, 0.0);
-                let (x1, y1) = inverse.transform_point(x1, y1);
-                let (x2, y2) = (0.5, 0.5);
+                let (x0, y0) = matrix.transform_point(0.5, 0.0);
+                let (x2, y2) = matrix.transform_point(0.5, 0.5);
+
                 // target angle (`a`) is angle between p0@(0.5, 0.0) (the rotation-nub-area),
                 // p2@(0.5, 0.5) (the center of the image), and p1 (the current cursor position)
 
@@ -245,6 +244,9 @@ impl TransformationType {
                 // dot product
                 let dp = v0.0 * v1.0 + v0.1 * v1.1;
 
+                // cross product
+                let cp = v0.0 * v1.1 - v0.1 * v1.0;
+
                 // magnitude
                 let m0 = (v0.0.powi(2) + v0.1.powi(2)).sqrt();
                 let m1 = (v1.0.powi(2) + v1.1.powi(2)).sqrt();
@@ -252,7 +254,7 @@ impl TransformationType {
                 let a = (dp / (m0 * m1)).acos();
 
                 // invert the direction, if necessary
-                let a = if x0 >= x1 { -a } else { a };
+                let a = if cp < 0.0 { -a } else { a };
 
                 matrix.translate(0.5, 0.5);
                 matrix.scale(1.0, width / height);
