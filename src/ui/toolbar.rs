@@ -2,7 +2,7 @@ pub mod mode;
 mod palette;
 
 use gtk::gdk::RGBA;
-use mode::MouseMode;
+use mode::{MouseMode, MouseModeVariant};
 use super::canvas::Canvas;
 use super::UiState;
 use palette::Palette;
@@ -30,6 +30,9 @@ pub struct Toolbar {
     /// One-pixel brush to use for the eyedropper,
     /// solely for the visual of highlighting one pixel
     eyedropper_brush: Brush,
+    /// Used by self-closing modes (free transform) to recover
+    /// the previous mode
+    last_two_mode_variants: (MouseModeVariant, MouseModeVariant),
 }
 
 struct MouseModeButton {
@@ -87,6 +90,7 @@ impl Toolbar {
             primary_brush,
             secondary_brush,
             eyedropper_brush,
+            last_two_mode_variants: (MouseModeVariant::Cursor, MouseModeVariant::Cursor),
         }));
 
         toolbar_p
@@ -166,7 +170,19 @@ impl Toolbar {
         &mut self.mouse_mode
     }
 
+    pub fn last_two_mouse_mode_variants(&self) -> (MouseModeVariant, MouseModeVariant) {
+        self.last_two_mode_variants
+    }
+
     pub fn set_mouse_mode(&mut self, new_mouse_mode: MouseMode) {
+        let current_variant = self.mouse_mode.variant();
+        if self.last_two_mode_variants.1 != current_variant {
+            self.last_two_mode_variants = (
+                self.last_two_mode_variants.1,
+                current_variant
+            );
+        }
+
         for b in self.mouse_mode_buttons.iter() {
             b.widget.set_active(b.mode.variant() == new_mouse_mode.variant());
         }

@@ -35,7 +35,7 @@ pub enum MouseMode {
     InsertShape(InsertShapeState),
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum MouseModeVariant {
     Cursor,
     Pencil,
@@ -224,6 +224,18 @@ impl MouseMode {
         }
     }
 
+    pub fn from_variant(variant: MouseModeVariant, canvas: &mut Canvas) -> Self {
+        match variant {
+            MouseModeVariant::Cursor => Self::cursor(canvas),
+            MouseModeVariant::Pencil => Self::pencil(canvas),
+            MouseModeVariant::RectangleSelect => Self::rectangle_select(canvas),
+            MouseModeVariant::Eyedropper => Self::eyedropper(canvas),
+            MouseModeVariant::MagicWand => Self::magic_wand(canvas),
+            MouseModeVariant::Fill => Self::fill(canvas),
+            MouseModeVariant::FreeTransform => Self::free_transform(canvas),
+            MouseModeVariant::InsertShape => Self::insert_shape(canvas),
+        }
+    }
     pub fn updated_after_hook(self) -> Self {
         match self.get_state_immutable().try_transfer() {
             Ok(new_mode) => new_mode,

@@ -977,8 +977,9 @@ impl Canvas {
     pub fn scrap_transformable(&mut self) {
         if self.transformable_and_culprit.borrow_mut().is_some() {
             *self.transformable_and_culprit.borrow_mut() = None;
-            self.ui_p.borrow().toolbar_p.borrow_mut()
-                .set_mouse_mode(MouseMode::Cursor(CursorState::default(self)));
+            let last_variant = self.ui_p.borrow().toolbar_p.borrow().last_two_mouse_mode_variants().0;
+            let last_mode = MouseMode::from_variant(last_variant, self);
+            self.ui_p.borrow().toolbar_p.borrow_mut().set_mouse_mode(last_mode);
             self.update();
             if self.layered_image().has_unsaved_changes() {
                 self.commit_changes(ActionName::Delete);
