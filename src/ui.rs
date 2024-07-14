@@ -305,7 +305,7 @@ impl UiState {
         }
 
         if let gdk::Key::Delete = key {
-            Self::delete_selection(ui_p.clone());
+            Self::delete_all_selections(ui_p.clone());
         }
 
         if let Some(mod_keys) = Self::try_update_mod_keys(key, mod_keys, true) {
@@ -486,9 +486,10 @@ impl UiState {
         );
     }
 
-    pub fn delete_selection(ui_p: Rc<RefCell<Self>>) {
+    pub fn delete_all_selections(ui_p: Rc<RefCell<Self>>) {
         if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
             canvas_p.borrow_mut().delete_selection();
+            canvas_p.borrow_mut().scrap_transformable();
         }
     }
 
