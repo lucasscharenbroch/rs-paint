@@ -85,16 +85,24 @@ impl Transformable for Shape {
 #[derive(Clone, Copy)]
 pub enum ShapeType {
     Square,
-    Triangle,
+    TriangleI,
     Circle,
+    Arrow,
+    Star,
+    Pentagon,
+    TriangleE,
 }
 
 impl ShapeType {
     pub fn iter_variants() -> impl Iterator<Item = Self> {
         [
             Self::Square,
-            Self::Triangle,
+            Self::TriangleI,
             Self::Circle,
+            Self::Arrow,
+            Self::Star,
+            Self::TriangleE,
+            Self::Pentagon,
         ].iter().map(|x| x.clone())
     }
 
@@ -112,16 +120,23 @@ impl ShapeType {
         let line_width_y_scale = (1.0 - line_width / aspect_ratio).max(0.001);
         calc_matrix.scale(line_width_x_scale, line_width_y_scale);
 
+        // ideally we could lazily compute these; perhaps that is automatically optimized (?)
+        // an alternative is to make them inline functions
         let (x0, y0) = calc_matrix.transform_point(0.0, 0.0);
         let (dx1, dy1) =  calc_matrix.transform_distance(1.0, 1.0);
         let (x1, y1) = calc_matrix.transform_point(1.0, 1.0);
+        let (x02, y02) = calc_matrix.transform_point(0.25, 0.25);
+        let (x03, y03) = calc_matrix.transform_point(0.333, 0.333);
+        let (x04, y04) = calc_matrix.transform_point(0.4, 0.4);
         let (x05, y05) = calc_matrix.transform_point(0.5, 0.5);
+        let (x06, y06) = calc_matrix.transform_point(0.666, 0.666);
+        let (x07, y07) = calc_matrix.transform_point(0.75, 0.75);
 
         match self {
             Self::Square => {
                 cr.rectangle(x0, y0, dx1, dy1);
             },
-            Self::Triangle => {
+            Self::TriangleI => {
                 cr.move_to(x05, y0);
                 cr.line_to(x1, y1);
                 cr.line_to(x0, y1);
@@ -140,7 +155,40 @@ impl ShapeType {
                     cr.arc(x05, y05p, dx1 / 2.0, 0.0, 2.0 * 3.141592);
                 }
                 let _ = cr.restore();
-            }
+            },
+            Self::Arrow => {
+                cr.move_to(x05, y0);
+                cr.line_to(x1, y05);
+                cr.line_to(x05, y1);
+                cr.line_to(x05, y06);
+                cr.line_to(x0, y06);
+                cr.line_to(x0, y03);
+                cr.line_to(x05, y03);
+                cr.close_path();
+            },
+            Self::Star => {
+                // draw the star like a human would (winding fill should work with this)
+                cr.move_to(x02, y1);
+                cr.line_to(x05, y0);
+                cr.line_to(x07, y1);
+                cr.line_to(x0, y03);
+                cr.line_to(x1, y03);
+                cr.close_path();
+            },
+            Self::Pentagon => {
+                cr.move_to(x0, y04);
+                cr.line_to(x05, y0);
+                cr.line_to(x1, y04);
+                cr.line_to(x07, y1);
+                cr.line_to(x02, y1);
+                cr.close_path();
+            },
+            Self::TriangleE => {
+                cr.move_to(x0, y0);
+                cr.line_to(x1, y1);
+                cr.line_to(x0, y1);
+                cr.close_path();
+            },
         }
     }
 }
