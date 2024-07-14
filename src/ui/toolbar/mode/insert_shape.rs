@@ -1,6 +1,6 @@
 use crate::image::undo::action::ActionName;
 use crate::shape::{Shape, ShapeType};
-use super::{Canvas, MouseMode, FreeTransformState, TransformMode, Toolbar};
+use super::{Canvas, MouseMode, FreeTransformState, Toolbar};
 
 use gtk::gdk::ModifierType;
 use gtk::cairo;
@@ -49,7 +49,7 @@ impl super::MouseModeState for InsertShapeState {
     fn try_transfer(&self) -> Result<MouseMode, ()> {
         if let Self::TransferToFreeTransform(x, y) = self {
             Ok(MouseMode::FreeTransform(
-                FreeTransformState::from_transform_mode_and_coords(TransformMode::Transforming, *x, *y)
+                FreeTransformState::from_coords(*x, *y)
             ))
         } else {
             Err(())

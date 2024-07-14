@@ -11,7 +11,7 @@ use super::selection::Selection;
 use super::tab::Tab;
 use super::UiState;
 use super::toolbar::Toolbar;
-use super::toolbar::mode::{CursorState, FreeTransformState, MouseMode, TransformMode, TransformationSelection};
+use super::toolbar::mode::{CursorState, FreeTransformState, MouseMode, TransformationSelection};
 use crate::image::{ImageLike, blend::BlendingMode};
 use super::layer_window::LayerWindow;
 use super::dialog::modal_ok_dialog_str;
@@ -919,7 +919,7 @@ impl Canvas {
     /// Deletes the current selection (both `self.selection`, and actually
     /// clears the pixels on the image, without committing that change),
     /// switching the mouse mode to free-transform
-    pub fn try_consume_selection_to_transformable(&mut self) -> Option<TransformMode> {
+    pub fn try_consume_selection_to_transformable(&mut self) -> Result<(), ()> {
         fn xywh_to_matrix(x: usize, y: usize, w: usize, h: usize) -> cairo::Matrix {
             let mut matrix = cairo::Matrix::identity();
             matrix.translate(x as f64, y as f64);
@@ -936,13 +936,13 @@ impl Canvas {
                     ActionName::Transform,
                 ));
 
-                Some(TransformMode::Transforming)
+                Ok(())
             },
             Selection::Bitmask(ref bitmask) => {
                 let (x, y, w, h) = bitmask.bounding_box();
 
                 if w == 0 || h == 0 {
-                    None
+                    Err(())
                 } else {
                     let subimage = self.active_image().subimage(x, y, w, h);
                     let submask = bitmask.submask(x, y, w, h);
@@ -961,10 +961,10 @@ impl Canvas {
                         ActionName::Transform,
                     ));
 
-                    Some(TransformMode::Transforming)
+                    Ok(())
                 }
-            }
-            _ => None,
+            },
+            _ => Err(()),
         };
 
         let selection = std::mem::replace(&mut self.selection, Selection::NoSelection);

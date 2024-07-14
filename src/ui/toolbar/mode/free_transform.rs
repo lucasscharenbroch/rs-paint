@@ -22,14 +22,6 @@ impl TransformationSelection {
 }
 
 #[derive(Clone, Copy)]
-pub enum TransformMode {
-    /// Nothing selected, don't do anything
-    NotTransforming,
-    /// Refer to the canvas for the `Transformable` and `Matrix`
-    Transforming,
-}
-
-#[derive(Clone, Copy)]
 enum TransformationType {
     /// Do nothing
     Sterile,
@@ -280,41 +272,31 @@ enum FreeTransformMouseState {
 
 #[derive(Clone, Copy)]
 pub struct FreeTransformState {
-    transform_mode: TransformMode,
     mouse_state: FreeTransformMouseState,
 }
 
 impl FreeTransformState {
-    pub fn from_transform_mode(transform_mode: TransformMode) -> FreeTransformState {
+    pub fn from_coords(x: f64, y: f64) -> FreeTransformState {
         FreeTransformState {
-            transform_mode,
-            mouse_state: FreeTransformMouseState::Up,
-        }
-    }
-
-    pub fn from_transform_mode_and_coords(transform_mode: TransformMode, x: f64, y: f64) -> FreeTransformState {
-        FreeTransformState {
-            transform_mode,
             mouse_state: FreeTransformMouseState::Down(x, y, TransformationType::ExpandDownRight),
         }
     }
 
     pub fn default(canvas: &mut Canvas) -> FreeTransformState {
         if canvas.transformation_selection().borrow().is_some() {
-            FreeTransformState {
-                transform_mode: TransformMode::Transforming,
-                mouse_state: FreeTransformMouseState::Up,
-            }
+            // we've got a selection - no state to retrive,
+            // because it's fetched on-demand from the `Canvas` anyway
         } else {
-            canvas.try_consume_selection_to_transformable()
-                .map(|transform_mode| Self::from_transform_mode(transform_mode))
-                .unwrap_or(Self::default_no_canvas())
+            let _ = canvas.try_consume_selection_to_transformable();
+            // if this fails, we continue anyway, but the mode
+            // will be useless (but harmless)
         }
+
+        Self::default_no_canvas()
     }
 
     pub const fn default_no_canvas() -> FreeTransformState {
         FreeTransformState {
-            transform_mode: TransformMode::NotTransforming,
             mouse_state: FreeTransformMouseState::Up,
         }
     }
