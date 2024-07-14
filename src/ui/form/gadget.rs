@@ -1,4 +1,4 @@
-use crate::composite_field;
+use crate::{composite_field, vertical_composite_field};
 
 use super::*;
 
@@ -159,13 +159,12 @@ impl NumberedSliderGadget {
 
 impl FormGadget for NumberedSliderGadget {
      fn add_to_builder<T: FormBuilderIsh>(&self, builder: T) -> T {
+        // ensure the label-slider and number are aligned correctly
+        // by binding the two into a composite
         if self.use_vertical_layout {
             builder
-                .with_field(&self.slider_field)
-                .with_field(&self.label_field)
+                .with_field(&vertical_composite_field!(&self.slider_field, &self.label_field))
         } else {
-            // ensure the label-slider and number are all on the same line by binding
-            // the two into a composite
             builder
                 .with_field(&composite_field!(&self.slider_field, &self.label_field))
         }
