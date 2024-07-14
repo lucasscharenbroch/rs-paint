@@ -109,7 +109,6 @@ impl ShapeType {
         calc_matrix.translate(line_width_x_offset, line_width_y_offset);
 
         let line_width_x_scale = (1.0 - line_width).max(0.001);
-
         let line_width_y_scale = (1.0 - line_width / aspect_ratio).max(0.001);
         calc_matrix.scale(line_width_x_scale, line_width_y_scale);
 
@@ -129,7 +128,18 @@ impl ShapeType {
                 cr.close_path();
             },
             Self::Circle => {
-                cr.arc(x05, y05, dx1 / 2.0, 0.0, 2.0 * 3.141592);
+                // this gets mangled in extreme dimensions: not sure if
+                // it's possible to prevent this; this entire tool is
+                // pretty scuffed in the first place, though, so it's okay
+
+                let _ = cr.save();
+                {
+                    let y_factor = dy1 / dx1;
+                    cr.scale(1.0, y_factor);
+                    let y05p = y05 / y_factor;
+                    cr.arc(x05, y05p, dx1 / 2.0, 0.0, 2.0 * 3.141592);
+                }
+                let _ = cr.restore();
             }
         }
     }
