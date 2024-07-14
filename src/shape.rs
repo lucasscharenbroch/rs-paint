@@ -24,7 +24,7 @@ impl Transformable for Shape {
     fn draw(&mut self, cr: &cairo::Context, pixel_width: f64, pixel_height: f64) {
         let line_width = (self.border_thickness as f64 / pixel_width).min(1.0).min(pixel_height / pixel_width);
         cr.set_line_width(line_width);
-        cr.set_line_join(cairo::LineJoin::Miter);
+        cr.set_line_join(cairo::LineJoin::Round);
         let aspect_ratio = pixel_height / pixel_width;
 
         let _ = cr.save();

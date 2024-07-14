@@ -14,7 +14,7 @@ A lightweight image editor, written in Rust using GTK4.
     - Magic Wand
     - Fill
     - Free Transform (Translate, Scale, Rotate)
-    - [ ] Shapes
+    - Shapes
     - [ ] Lasso Select
     - [ ] Text
 - Color Palette
