@@ -231,6 +231,11 @@ impl ImageHistory {
     }
 
     pub fn exec_multi_undoable_action<D: 'static>(&mut self, action: Box<dyn MultiLayerAction<LayerData = D>>) {
+        if self.now.img.has_unsaved_changes() {
+            // if self is modified in any way, push the sate with Anon
+            self.push_current_state(ActionName::Anonymous);
+        }
+
         let culprit = action.name();
         let wrapper_struct = MultiLayerActionWrapper::from_action(action);
         let diff = ImageDiff::MultiLayerManualUndo(wrapper_struct);
