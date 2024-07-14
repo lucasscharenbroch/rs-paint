@@ -1,6 +1,7 @@
 use crate::image::undo::action::{AutoDiffAction, MultiLayerAction, SingleLayerAction};
 use crate::image::{ImageLikeUnchecked, LayerIndex, Pixel};
 use crate::transformable::{Transformable, SampleableCommit, TransformableImage};
+use crate::geometry::matrix_width_height;
 
 use super::super::image::{Image, FusedLayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::bitmask::DeletePix;
@@ -983,9 +984,9 @@ impl Canvas {
 
     fn commit_transformable_no_update(&mut self) {
         {
-            let transformable_option = self.transformable.borrow_mut();
+            let mut transformable_option = self.transformable.borrow_mut();
 
-            if let Some(transformable) = transformable_option.as_ref() {
+            if let Some(transformable) = transformable_option.as_mut() {
                 let matrix_option = if let MouseMode::FreeTransform(transform_state) = self.ui_p.borrow().toolbar_p.borrow().mouse_mode() {
                     transform_state.matrix()
                 } else {
@@ -993,7 +994,8 @@ impl Canvas {
                 };
 
                 if let Some(matrix) = matrix_option {
-                    let sampleable = transformable.gen_sampleable();
+                    let (width, height) = matrix_width_height(&matrix);
+                    let sampleable = transformable.gen_sampleable(width, height);
                     let commit_struct = SampleableCommit::new(&sampleable, matrix);
 
                     // self.exec_auto_diff_action(commit_struct);

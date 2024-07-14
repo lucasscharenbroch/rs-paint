@@ -1,4 +1,4 @@
-use crate::image::{undo::action::{ActionName, AutoDiffAction}, DrawableImage, Image, ImageLike, ImageLikeUnchecked, Pixel};
+use crate::image::{undo::action::{ActionName, AutoDiffAction}, DrawableImage, DrawablePixel, Image, ImageLike, ImageLikeUnchecked, Pixel};
 
 use gtk::cairo;
 
@@ -7,7 +7,7 @@ pub trait Transformable {
     /// square: (0.0, 0.0) (1.0, 1.0)
     fn draw(&mut self, cr: &cairo::Context, pixel_width: f64, pixel_height: f64);
     // TODO: avoid the generation/make an accessor (?)
-    fn gen_sampleable(&self) -> Box<dyn Samplable>;
+    fn gen_sampleable(&mut self, pixel_width: f64, pixel_height: f64) -> Box<dyn Samplable>;
 }
 
 pub trait Samplable {
@@ -47,7 +47,7 @@ impl Transformable for TransformableImage {
         let _ = cr.restore();
     }
 
-    fn gen_sampleable(&self) -> Box<dyn Samplable> {
+    fn gen_sampleable(&mut self, _pixel_width: f64, _pixel_height: f64) -> Box<dyn Samplable> {
         self.image.clone()
     }
 }
@@ -61,6 +61,28 @@ impl Samplable for Image {
             (y * h).floor().min(h - 1.0).max(0.0) as usize,
             (x * w).floor().min(w - 1.0).max(0.0) as usize,
         ).clone()
+    }
+}
+
+// This is only used for shapes (which ride off the back
+// of cairo's drawing, using the context to retrive a DrawableImage).
+// Pixel colors might be slightly off because of the lossy inversion
+// from pre-multiplied alpha.
+impl Samplable for DrawableImage {
+    fn sample(&self, x: f64, y: f64) -> Pixel {
+        #[inline]
+        fn pix_at(drawable: &DrawableImage, i: usize, j: usize) -> &DrawablePixel {
+            &drawable.pixels()[i * drawable.width() + j]
+        }
+
+        let h = self.height() as f64;
+        let w = self.width() as f64;
+
+        pix_at(
+            self,
+            (y * h).floor().min(h - 1.0).max(0.0) as usize,
+            (x * w).floor().min(w - 1.0).max(0.0) as usize,
+        ).to_pixel_lossy()
     }
 }
 

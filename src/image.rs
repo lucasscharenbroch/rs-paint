@@ -233,7 +233,7 @@ impl ImageLikeUncheckedMut for Image {
 /// in cairo)
 #[derive(Clone)]
 #[allow(dead_code)]
-struct DrawablePixel {
+pub struct DrawablePixel {
     // order of the fields corresponds to cairo::Format::ARgb32
     // (this struct is used for directly rendering the cairo pattern)
     b: u8,
@@ -261,6 +261,18 @@ impl DrawablePixel {
             g: (self.g as f64 + (below.g as f64) * alpha_mult) as u8,
             b: (self.b as f64 + (below.b as f64) * alpha_mult) as u8,
             a: self.a.max(below.a), // ???
+        }
+    }
+
+    /// Potentially tweaks color information, as u8 is inprecise,
+    /// and alpha must be un-multiplied
+    pub fn to_pixel_lossy(&self) -> Pixel {
+        let af = self.a as f64 / 255.0;
+        Pixel {
+            r: (self.r as f64 / af) as u8,
+            g: (self.g as f64 / af) as u8,
+            b: (self.b as f64 / af) as u8,
+            a: self.a,
         }
     }
 }
@@ -316,10 +328,47 @@ impl DrawableImage {
         }
     }
 
+    pub fn from_raw_data(width: usize, height: usize, data: impl core::ops::Deref<Target = [u8]>) -> Self {
+        assert!(data.len() % 4 == 0);
+        assert!(data.len() / 4 == width * height);
+
+        let mut pixels = Vec::with_capacity(width * height);
+
+        for i in 0..(width * height) {
+            pixels.push(DrawablePixel::from_rgba(
+                data[4 * i + 2],
+                data[4 * i + 1],
+                data[4 * i + 0],
+                data[4 * i + 3]
+            ))
+        }
+
+        DrawableImage {
+            width,
+            height,
+            pixels,
+        }
+    }
+
     pub fn to_repeated_surface_pattern(&mut self) -> cairo::SurfacePattern {
         let res = self.to_surface_pattern();
         res.set_extend(cairo::Extend::Repeat);
         res
+    }
+
+    #[inline]
+    pub fn pixels(&self) -> &Vec<DrawablePixel> {
+        &self.pixels
+    }
+
+    #[inline]
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    #[inline]
+    pub fn height(&self) -> usize {
+        self.height
     }
 }
 

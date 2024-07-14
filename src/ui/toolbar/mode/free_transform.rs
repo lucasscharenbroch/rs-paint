@@ -1,5 +1,6 @@
 use super::{Canvas, Toolbar};
 use gtk::{prelude::*, cairo, gdk};
+use crate::geometry::*;
 
 #[derive(Clone, Copy)]
 pub enum TransformMode {
@@ -27,10 +28,6 @@ enum TransformationType {
 /// Returns the stub length w/r/t the height of the unit square
 fn rotation_stub_length(width: f64, height: f64) -> f64 {
     0.05 * width.max(height) / height
-}
-
-fn point_tuple_dist((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
-    ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt()
 }
 
 impl TransformationType {
@@ -313,20 +310,6 @@ impl FreeTransformState {
             None
         }
     }
-}
-
-/// The effective width and height of a matrix's
-/// unit square
-fn matrix_width_height(matrix: &cairo::Matrix) -> (f64, f64) {
-    // actual coordinates of the unit square's corners
-    let p00 = matrix.transform_point(0.0, 0.0);
-    let p10 = matrix.transform_point(1.0, 0.0);
-    let p01 = matrix.transform_point(0.0, 1.0);
-
-    (
-        point_tuple_dist(p00, p10),
-        point_tuple_dist(p00, p01),
-    )
 }
 
 impl FreeTransformState {
