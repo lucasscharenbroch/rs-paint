@@ -22,8 +22,8 @@ impl Shape {
 
 impl Transformable for Shape {
     fn draw(&mut self, cr: &cairo::Context, pixel_width: f64, pixel_height: f64) {
-        let line_width = self.border_thickness as f64 / pixel_width;
-        cr.set_line_width(line_width.min(pixel_width / 2.0).min(pixel_height / 2.0));
+        let line_width = (self.border_thickness as f64 / pixel_width).min(1.0).min(pixel_height / pixel_width);
+        cr.set_line_width(line_width);
         cr.set_line_join(cairo::LineJoin::Miter);
         let aspect_ratio = pixel_height / pixel_width;
 
@@ -73,12 +73,12 @@ impl ShapeType {
         let mut calc_matrix = cairo::Matrix::identity();
         calc_matrix.scale(1.0, aspect_ratio); // invert the scale done to `cr`
 
-        let line_width_x_offet = line_width / 2.0;
+        let line_width_x_offset = line_width / 2.0;
         let line_width_y_offset = line_width / 2.0 / aspect_ratio;
-        calc_matrix.translate(line_width_x_offet, line_width_y_offset);
+        calc_matrix.translate(line_width_x_offset, line_width_y_offset);
 
-        let line_width_x_scale = (1.0 - line_width).max(0.0);
-        let line_width_y_scale = ((1.0 - line_width / aspect_ratio)).max(0.0);
+        let line_width_x_scale = (1.0 - line_width).max(0.001);
+        let line_width_y_scale = (1.0 - line_width / aspect_ratio).max(0.001);
         calc_matrix.scale(line_width_x_scale, line_width_y_scale);
 
         let (x0, y0) = calc_matrix.transform_point(0.0, 0.0);
