@@ -1,3 +1,4 @@
+use crate::image::undo::action::ActionName;
 use crate::shape::{Shape, ShapeType};
 use super::{Canvas, MouseMode, FreeTransformState, TransformMode, Toolbar};
 
@@ -33,7 +34,7 @@ impl super::MouseModeState for InsertShapeState {
             toolbar.secondary_color(),
         );
 
-        *canvas.transformable().borrow_mut() = Some(Box::new(shape));
+        *canvas.transformable_and_culprit().borrow_mut() = Some((Box::new(shape), ActionName::InsertShape));
 
         let mut matrix = cairo::Matrix::identity();
         matrix.translate(x, y);

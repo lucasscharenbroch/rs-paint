@@ -89,20 +89,22 @@ impl Samplable for DrawableImage {
 pub struct SampleableCommit<'s> {
     matrix: cairo::Matrix,
     sampleable: &'s Box<dyn Samplable>,
+    culprit: ActionName,
 }
 
 impl<'s> SampleableCommit<'s> {
-    pub fn new(sampleable: &'s Box<dyn Samplable>, matrix: cairo::Matrix) -> Self {
+    pub fn new(sampleable: &'s Box<dyn Samplable>, matrix: cairo::Matrix, culprit: ActionName) -> Self {
         SampleableCommit {
             matrix,
             sampleable,
+            culprit,
         }
     }
 }
 
 impl<'s> AutoDiffAction for SampleableCommit<'s> {
     fn name(&self) -> ActionName {
-        ActionName::Transform
+        self.culprit
     }
 
     fn exec(self, image: &mut impl crate::image::TrackedLayeredImage) {

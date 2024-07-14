@@ -5,6 +5,7 @@ use std::any::Any;
 
 // The algorithm that causes an undo commit:
 // solely used for display
+#[derive(Clone, Copy)]
 pub enum ActionName {
     Anonymous, // Caused by non-commited image writes, probably
                // due to an internal error, or gtk invariant issue
@@ -22,6 +23,7 @@ pub enum ActionName {
     RearrangeLayers,
     MergeLayers,
     Transform,
+    InsertShape,
 }
 
 impl ActionName {
@@ -42,6 +44,7 @@ impl ActionName {
             Self::RearrangeLayers => "Rearrange Layers",
             Self::MergeLayers => "Merge Layers",
             Self::Transform => "Transform",
+            Self::InsertShape => "Insert Shape",
         }
     }
 }

@@ -352,7 +352,7 @@ impl FreeTransformState {
 impl super::MouseModeState for FreeTransformState {
     fn handle_motion(&mut self, _mod_keys: &gdk::ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
         if let TransformMode::Transforming(matrix) = &self.transform_mode {
-            if let Some(transformable) = canvas.transformable().borrow_mut().as_mut() {
+            if let Some(transformable) = canvas.transformable_and_culprit().borrow_mut().as_mut() {
                     // cursor
                     let cursor_pos = canvas.cursor_pos_pix_f();
                     canvas.drawing_area().set_cursor(
@@ -365,7 +365,7 @@ impl super::MouseModeState for FreeTransformState {
 
     fn draw(&self, canvas: &Canvas, cr: &cairo::Context, _toolbar: &mut Toolbar) {
         if let TransformMode::Transforming(matrix) = &self.transform_mode {
-            if let Some(transformable) = canvas.transformable().borrow_mut().as_mut() {
+            if let Some((transformable, _culprit)) = canvas.transformable_and_culprit().borrow_mut().as_mut() {
                 let _ = cr.save();
                 {
                     cr.set_matrix(cairo::Matrix::multiply(matrix, &cr.matrix()));
