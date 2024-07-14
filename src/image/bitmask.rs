@@ -45,7 +45,13 @@ impl ImageBitmask {
 
     /// Generic function to flood-fill a `Canvas`'s `Image` to obtain
     /// a bitmask; used for both magic wand and fill
-    pub fn from_flood_fill(image: &impl ImageLike, tolerance: f64, or: usize, oc: usize) -> Self {
+    pub fn from_flood_fill(
+        image: &impl ImageLike,
+        tolerance: f64,
+        or: usize,
+        oc: usize,
+        tolerance_reference: Option<&Pixel>, // pixel to use in tolerance computation
+    ) -> Self {
         let w = image.width();
         let h = image.height();
         let mut res = ImageBitmask::new(h, w);
@@ -55,13 +61,16 @@ impl ImageBitmask {
         q.push_back((or, oc));
 
         while let Some((r, c)) = q.pop_front() {
+            // the pixel which we're computing the tolerance test with
+            let reference = tolerance_reference.unwrap_or(image.try_pix_at(r, c).unwrap());
+
             for (nr, nc) in in_bounds_4d_neighbors(r, c, w, h).into_iter() {
                 if *res.flat_index(nr, nc) {
                     continue; // already visited, continue
                 }
 
                 if fulfills_tolerance(
-                    image.try_pix_at(r, c).unwrap(),
+                    reference,
                     image.try_pix_at(nr, nc).unwrap(),
                     tolerance,
                 ) {

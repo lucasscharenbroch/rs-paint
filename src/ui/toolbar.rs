@@ -234,11 +234,19 @@ impl Toolbar {
     }
 
     fn get_magic_wand_tolerance(&self) -> f64 {
-        self.mode_toolbar.get_magic_wand_settings()
+        self.mode_toolbar.get_magic_wand_settings().0
     }
 
     fn get_fill_tolerance(&self) -> f64 {
-        self.mode_toolbar.get_fill_settings()
+        self.mode_toolbar.get_fill_settings().0
+    }
+
+    fn get_magic_wand_relativity(&self) -> bool {
+        self.mode_toolbar.get_magic_wand_settings().1
+    }
+
+    fn get_fill_relativity(&self) -> bool {
+        self.mode_toolbar.get_fill_settings().1
     }
 
     fn get_shape_type(&self) -> ShapeType {

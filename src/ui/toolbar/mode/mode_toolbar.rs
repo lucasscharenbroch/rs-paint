@@ -5,7 +5,7 @@ use crate::image::blend::BlendingMode;
 use crate::image::brush::BrushType;
 use crate::transformable::Transformable;
 use crate::ui::form::gadget::{NumberedSliderGadget, ToggleButtonsGadget};
-use crate::ui::form::{DropdownField, Form, FormBuilderIsh, NaturalField, RadioField};
+use crate::ui::form::{CheckboxField, DropdownField, Form, FormBuilderIsh, NaturalField, RadioField};
 use crate::ui::UiState;
 use crate::shape::{ShapeType, Shape};
 
@@ -58,7 +58,7 @@ fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
     (form, Box::new(get))
 }
 
-type MagicWandSettings = f64;
+type MagicWandSettings = (f64, bool);
 fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
     let threshold_slider_gadget_p = NumberedSliderGadget::new_p(
         Some("Tolerance"),
@@ -71,18 +71,25 @@ fn mk_magic_wand_toolbar() -> (Form, Box<dyn Fn() -> MagicWandSettings>) {
         String::from("%"),
     );
 
+    let relative_tolerance = CheckboxField::new(Some("Relative Tolerance"), false);
+
     let form = Form::builder()
+        .orientation(gtk::Orientation::Horizontal)
         .with_gadget(&*threshold_slider_gadget_p.borrow())
+        .with_field(&relative_tolerance)
         .build();
 
     let get = move || {
-        threshold_slider_gadget_p.borrow().value() as f64 / 100.0
+        (
+            threshold_slider_gadget_p.borrow().value() as f64 / 100.0,
+            relative_tolerance.value(),
+        )
     };
 
     (form, Box::new(get))
 }
 
-type FillSettings = f64;
+type FillSettings = (f64, bool);
 fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
     let threshold_slider_gadget_p = NumberedSliderGadget::new_p(
         Some("Tolerance"),
@@ -95,12 +102,19 @@ fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
         String::from("%"),
     );
 
+    let relative_tolerance = CheckboxField::new(Some("Relative Tolerance"), false);
+
     let form = Form::builder()
+        .orientation(gtk::Orientation::Horizontal)
         .with_gadget(&*threshold_slider_gadget_p.borrow())
+        .with_field(&relative_tolerance)
         .build();
 
     let get = move || {
-        threshold_slider_gadget_p.borrow().value() as f64 / 100.0
+        (
+            threshold_slider_gadget_p.borrow().value() as f64 / 100.0,
+            relative_tolerance.value(),
+        )
     };
 
     (form, Box::new(get))
