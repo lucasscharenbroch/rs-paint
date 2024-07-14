@@ -23,12 +23,15 @@ impl Shape {
 impl Transformable for Shape {
     fn draw(&mut self, cr: &cairo::Context, pixel_width: f64, pixel_height: f64) {
         let line_width = self.border_thickness as f64 / pixel_width;
-        cr.set_line_width(line_width);
+        cr.set_line_width(line_width.min(pixel_width / 2.0).min(pixel_height / 2.0));
+        cr.set_line_join(cairo::LineJoin::Miter);
         let aspect_ratio = pixel_height / pixel_width;
 
         let _ = cr.save();
         {
             cr.scale(1.0, 1.0 / aspect_ratio);
+
+            self.shape_type.draw(cr, line_width, pixel_width, pixel_height);
 
             cr.set_source_rgba(
                 self.outline_color.red() as f64,
@@ -37,7 +40,7 @@ impl Transformable for Shape {
                 self.outline_color.alpha() as f64,
             );
 
-            self.shape_type.outline(cr, line_width, pixel_width, pixel_height);
+            let _ = cr.stroke_preserve();
 
             cr.set_source_rgba(
                 self.fill_color.red() as f64,
@@ -46,7 +49,7 @@ impl Transformable for Shape {
                 self.fill_color.alpha() as f64,
             );
 
-            self.shape_type.fill(cr, line_width, pixel_width, pixel_height);
+            let _ = cr.fill();
         }
         let _ = cr.restore();
     }
@@ -63,30 +66,20 @@ pub enum ShapeType {
 }
 
 impl ShapeType {
-    fn outline(&self, cr: &cairo::Context, line_width: f64, pixel_width: f64, pixel_height: f64) {
-        self.draw(cr, line_width, pixel_width , pixel_height);
-        let _ = cr.stroke();
-    }
-
-    fn fill(&self, cr: &cairo::Context, line_width: f64, pixel_width: f64, pixel_height: f64) {
-        self.draw(cr, line_width, pixel_width, pixel_height);
-        let _ = cr.fill();
-    }
-
     fn draw(&self, cr: &cairo::Context, line_width: f64, pixel_width: f64, pixel_height: f64) {
         let aspect_ratio = pixel_height / pixel_width;
         // a utility matrix to more easily calculate where
         // adjusted control points go
         let mut calc_matrix = cairo::Matrix::identity();
-        calc_matrix.scale(1.0, aspect_ratio); // invert the scale done to the context
+        calc_matrix.scale(1.0, aspect_ratio); // invert the scale done to `cr`
 
-        /*
-        let line_width_tr = line_width / pixel_width;
-        calc_matrix.translate(line_width_tr, line_width_tr);
+        let line_width_x_offet = line_width / 2.0;
+        let line_width_y_offset = line_width / 2.0 / aspect_ratio;
+        calc_matrix.translate(line_width_x_offet, line_width_y_offset);
 
-        let line_width_scale = ((pixel_width - (line_width * 2.0)) / pixel_width).max(0.0);
-        calc_matrix.scale(line_width_scale, line_width_scale);
-        */
+        let line_width_x_scale = (1.0 - line_width).max(0.0);
+        let line_width_y_scale = ((1.0 - line_width / aspect_ratio)).max(0.0);
+        calc_matrix.scale(line_width_x_scale, line_width_y_scale);
 
         let (x0, y0) = calc_matrix.transform_point(0.0, 0.0);
         let (dx1, dy1) =  calc_matrix.transform_distance(1.0, 1.0);

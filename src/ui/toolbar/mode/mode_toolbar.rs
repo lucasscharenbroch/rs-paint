@@ -204,7 +204,7 @@ fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
 
             let black = RGBA::new(0.0, 0.0, 0.0, 1.0);
             let transparent = RGBA::new(0.0, 0.0, 0.0, 0.0);
-            let mut shape = Shape::new(shape_ty, 1, black, transparent);
+            let mut shape = Shape::new(shape_ty, 5, black, transparent);
 
             area.set_draw_func(move |_, cr, width, height| {
                 cr.set_line_width(0.1);
