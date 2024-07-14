@@ -183,7 +183,14 @@ pub struct ToggleButtonsGadget<T> {
 }
 
 impl<T: 'static> ToggleButtonsGadget<T> {
-    pub fn new_p(label: Option<&str>, variants: Vec<(&impl IsA<gtk::Widget>, T)>, default: usize) -> Rc<RefCell<Self>> {
+    pub fn new_p(
+        label: Option<&str>,
+        variants: Vec<(&impl IsA<gtk::Widget>, T)>,
+        default: usize,
+        overall_orientation: gtk::Orientation,
+        num_per_group: usize,
+        group_orientation: gtk::Orientation,
+    ) -> Rc<RefCell<Self>> {
         let buttons = variants.iter().enumerate()
             .map(|(idx, (child_widget, _x))| {
             gtk::ToggleButton::builder()
@@ -197,12 +204,28 @@ impl<T: 'static> ToggleButtonsGadget<T> {
             .collect::<Vec<_>>();
 
         let wrapper = gtk::Box::builder()
-            .orientation(gtk::Orientation::Horizontal)
+            .orientation(overall_orientation)
             .spacing(4)
             .build();
 
-        for b in buttons.iter() {
-            wrapper.append(b);
+        let num_groups = if buttons.len() % num_per_group != 0 {
+            1 + (buttons.len() / num_per_group)
+        } else {
+            buttons.len() / num_per_group
+        };
+
+        let mut groups = Vec::with_capacity(num_groups);
+
+        for _ in 0..num_groups { // can't use vec! macro (need a loop)
+            groups.push(gtk::Box::new(group_orientation, 4));
+        }
+
+        for (i, b) in buttons.iter().enumerate() {
+            groups[i / num_per_group].append(b);
+        }
+
+        for g in groups.iter() {
+            wrapper.append(g);
         }
 
         label.map(|label_text| wrapper.prepend(&new_label(label_text)));

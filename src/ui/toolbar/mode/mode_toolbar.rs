@@ -191,8 +191,8 @@ fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
 
     let drawing_areas = shape_types.iter()
         .map(|&shape_ty| {
-            const HEIGHT: i32 = 75;
-            const WIDTH: i32 = 75;
+            const HEIGHT: i32 = 30;
+            const WIDTH: i32 = 30;
 
             let area = gtk::DrawingArea::builder()
                 .width_request(HEIGHT)
@@ -201,7 +201,7 @@ fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
 
             let black = RGBA::new(0.0, 0.0, 0.0, 1.0);
             let transparent = RGBA::new(0.0, 0.0, 0.0, 0.0);
-            let mut shape = Shape::new(shape_ty, 5, black, transparent);
+            let mut shape = Shape::new(shape_ty, 3, black, transparent);
 
             area.set_draw_func(move |_, cr, width, height| {
                 cr.set_line_width(0.1);
@@ -227,6 +227,9 @@ fn mk_insert_shape_toolbar() -> (Form, Box<dyn Fn() -> InsertShapeSettings>) {
         None,
         variants,
         0,
+        gtk::Orientation::Vertical,
+        6,
+        gtk::Orientation::Horizontal,
     );
 
     let border_width_field = NaturalField::new(Some("Border Width"), 1, 255, 1, 5);
