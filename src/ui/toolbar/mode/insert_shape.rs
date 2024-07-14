@@ -9,7 +9,7 @@ use gtk::cairo;
 pub enum InsertShapeState {
     Neutral,
     /// Transfer ASAP
-    TransferToFreeTransform(f64, f64, cairo::Matrix),
+    TransferToFreeTransform(f64, f64),
 }
 
 impl InsertShapeState {
@@ -34,17 +34,22 @@ impl super::MouseModeState for InsertShapeState {
             toolbar.secondary_color(),
         );
 
-        *canvas.transformable_and_culprit().borrow_mut() = Some((Box::new(shape), ActionName::InsertShape));
-
         let mut matrix = cairo::Matrix::identity();
         matrix.translate(x, y);
-        *self = Self::TransferToFreeTransform(x, y, matrix);
+
+        *canvas.transformation_selection().borrow_mut() = Some(super::TransformationSelection::new(
+            Box::new(shape),
+            matrix,
+            ActionName::InsertShape,
+        ));
+
+        *self = Self::TransferToFreeTransform(x, y);
     }
 
     fn try_transfer(&self) -> Result<MouseMode, ()> {
-        if let Self::TransferToFreeTransform(x, y, matrix) = self {
+        if let Self::TransferToFreeTransform(x, y) = self {
             Ok(MouseMode::FreeTransform(
-                FreeTransformState::from_transform_mode_and_coords(TransformMode::Transforming(matrix.clone()), *x, *y)
+                FreeTransformState::from_transform_mode_and_coords(TransformMode::Transforming, *x, *y)
             ))
         } else {
             Err(())

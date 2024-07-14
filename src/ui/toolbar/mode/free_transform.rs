@@ -1,12 +1,32 @@
 use super::{Canvas, Toolbar};
 use gtk::{prelude::*, cairo, gdk};
 use crate::geometry::*;
+use crate::image::undo::action::ActionName;
+use crate::transformable::Transformable;
+
+/// Canvas-held data associated with a free-transform
+pub struct TransformationSelection {
+    pub transformable: Box<dyn Transformable>,
+    pub matrix: cairo::Matrix,
+    pub culprit: ActionName,
+}
+
+impl TransformationSelection {
+    pub fn new(transformable: Box<dyn Transformable>, matrix: cairo::Matrix, culprit: ActionName) -> Self {
+        TransformationSelection {
+            transformable,
+            matrix,
+            culprit,
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 pub enum TransformMode {
     /// Nothing selected, don't do anything
     NotTransforming,
-    Transforming(cairo::Matrix),
+    /// Refer to the canvas for the `Transformable` and `Matrix`
+    Transforming,
 }
 
 #[derive(Clone, Copy)]
@@ -280,23 +300,22 @@ impl FreeTransformState {
     }
 
     pub fn default(canvas: &mut Canvas) -> FreeTransformState {
-        canvas.try_consume_selection_to_transformable()
-            .map(|transform_mode| Self::from_transform_mode(transform_mode))
-            .unwrap_or(Self::default_no_canvas())
+        if canvas.transformation_selection().borrow().is_some() {
+            FreeTransformState {
+                transform_mode: TransformMode::Transforming,
+                mouse_state: FreeTransformMouseState::Up,
+            }
+        } else {
+            canvas.try_consume_selection_to_transformable()
+                .map(|transform_mode| Self::from_transform_mode(transform_mode))
+                .unwrap_or(Self::default_no_canvas())
+        }
     }
 
     pub const fn default_no_canvas() -> FreeTransformState {
         FreeTransformState {
             transform_mode: TransformMode::NotTransforming,
             mouse_state: FreeTransformMouseState::Up,
-        }
-    }
-
-    pub fn matrix(&self) -> Option<cairo::Matrix> {
-        if let TransformMode::Transforming(matrix) = self.transform_mode {
-            Some(matrix)
-        } else {
-            None
         }
     }
 }
@@ -351,60 +370,57 @@ impl FreeTransformState {
 
 impl super::MouseModeState for FreeTransformState {
     fn handle_motion(&mut self, _mod_keys: &gdk::ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-        if let TransformMode::Transforming(matrix) = &self.transform_mode {
-            if let Some(transformable) = canvas.transformable_and_culprit().borrow_mut().as_mut() {
-                    // cursor
-                    let cursor_pos = canvas.cursor_pos_pix_f();
-                    canvas.drawing_area().set_cursor(
-                        TransformationType::from_matrix_and_point(matrix, cursor_pos, *canvas.zoom())
-                            .cursor(matrix).as_ref()
-                    );
-            }
+        if let Some(selection) = canvas.transformation_selection().borrow_mut().as_mut() {
+                // cursor
+                let cursor_pos = canvas.cursor_pos_pix_f();
+                canvas.drawing_area().set_cursor(
+                    TransformationType::from_matrix_and_point(&selection.matrix, cursor_pos, *canvas.zoom())
+                        .cursor(&selection.matrix).as_ref()
+                );
         }
     }
 
     fn draw(&self, canvas: &Canvas, cr: &cairo::Context, _toolbar: &mut Toolbar) {
-        if let TransformMode::Transforming(matrix) = &self.transform_mode {
-            if let Some((transformable, _culprit)) = canvas.transformable_and_culprit().borrow_mut().as_mut() {
-                let _ = cr.save();
-                {
-                    cr.set_matrix(cairo::Matrix::multiply(matrix, &cr.matrix()));
-                    let (w, h) = matrix_width_height(matrix);
-                    transformable.draw(cr, w, h);
+        if let Some(selection) = canvas.transformation_selection().borrow_mut().as_mut() {
+            let _ = cr.save();
+            {
+                cr.set_matrix(cairo::Matrix::multiply(&selection.matrix, &cr.matrix()));
+                let (w, h) = matrix_width_height(&selection.matrix);
+                selection.transformable.draw(cr, w, h);
 
-                    let (width, height) = matrix_width_height(matrix);
-                    Self::draw_transform_overlay(cr, *canvas.zoom(), width, height);
-                }
-                let _ = cr.restore();
-            } else {
-                // `canvas.transformable` is gone - it must have been scrapped;
-                // do nothing for now (the current mode isn't accurate, but it
-                // can't be recovered; ideally we could change it here, but we
-                // don't have mutable access, and this headache is less than
-                // the one from changing all the functions to allow that)
+                let (width, height) = matrix_width_height(&selection.matrix);
+                Self::draw_transform_overlay(cr, *canvas.zoom(), width, height);
             }
+            let _ = cr.restore();
         }
     }
 
     fn handle_drag_start(&mut self, _mod_keys: &gtk::gdk::ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-        if let TransformMode::Transforming(matrix) = self.transform_mode {
+        if let Some(selection) = canvas.transformation_selection().borrow_mut().as_mut() {
             let (x, y) = canvas.cursor_pos_pix_f();
-
             self.mouse_state = FreeTransformMouseState::Down(x, y,
-                TransformationType::from_matrix_and_point(&matrix, (x, y), *canvas.zoom())
+                TransformationType::from_matrix_and_point(&selection.matrix, (x, y), *canvas.zoom())
             )
         }
     }
 
     fn handle_drag_update(&mut self, _mod_keys: &gtk::gdk::ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-        if let TransformMode::Transforming(ref mut matrix) = &mut self.transform_mode {
+        let should_update = if let Some(selection) = canvas.transformation_selection().borrow_mut().as_mut() {
             if let FreeTransformMouseState::Down(x0, y0, transform_type) = self.mouse_state {
                 let (x, y) = canvas.cursor_pos_pix_f();
 
-                transform_type.update_matrix_with_point_diff(matrix, (x0, y0), (x, y));
+                transform_type.update_matrix_with_point_diff(&mut selection.matrix, (x0, y0), (x, y));
                 self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type);
-                canvas.update();
+                true
+            } else {
+                false
             }
+        } else {
+            false
+        };
+
+        if should_update {
+            canvas.update();
         }
     }
 

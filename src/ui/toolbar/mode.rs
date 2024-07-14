@@ -17,7 +17,7 @@ use pencil::PencilState;
 use fill::FillState;
 use self::eyedropper::EyedropperState;
 pub use self::rectangle_select::{RectangleSelectState, RectangleSelectMode};
-pub use free_transform::{FreeTransformState, TransformMode};
+pub use free_transform::{FreeTransformState, TransformMode, TransformationSelection};
 use insert_shape::InsertShapeState;
 
 use gtk::cairo::Context;

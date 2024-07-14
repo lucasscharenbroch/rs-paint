@@ -11,7 +11,7 @@ use super::selection::Selection;
 use super::tab::Tab;
 use super::UiState;
 use super::toolbar::Toolbar;
-use super::toolbar::mode::{CursorState, FreeTransformState, MouseMode, TransformMode};
+use super::toolbar::mode::{CursorState, FreeTransformState, MouseMode, TransformMode, TransformationSelection};
 use crate::image::{ImageLike, blend::BlendingMode};
 use super::layer_window::LayerWindow;
 use super::dialog::modal_ok_dialog_str;
@@ -56,7 +56,7 @@ pub struct Canvas {
     layer_window_p: Rc<RefCell<LayerWindow>>,
     lock_dialog_open: Rc<RefCell<bool>>,
     tab_thumbnail_p: Option<Rc<RefCell<gtk::DrawingArea>>>,
-    transformable_and_culprit: RefCell<Option<(Box<dyn Transformable>, ActionName)>>,
+    transformation_selection: RefCell<Option<TransformationSelection>>,
 }
 
 macro_rules! run_lockable_mouse_mode_hook {
@@ -128,7 +128,7 @@ impl Canvas {
             layer_window_p: Rc::new(RefCell::new(LayerWindow::new())),
             lock_dialog_open: Rc::new(RefCell::new(false)),
             tab_thumbnail_p: None,
-            transformable_and_culprit: RefCell::new(None),
+            transformation_selection: RefCell::new(None),
         }));
 
         let mod_hist = Rc::new(clone!(@strong canvas_p => move |f: Box<dyn Fn(&mut ImageHistory)>| {
@@ -912,8 +912,8 @@ impl Canvas {
         &mut self.selection
     }
 
-    pub fn transformable_and_culprit(&self) -> &RefCell<Option<(Box<dyn Transformable>, ActionName)>> {
-        &self.transformable_and_culprit
+    pub fn transformation_selection(&self) -> &RefCell<Option<TransformationSelection>> {
+        &self.transformation_selection
     }
 
     /// Deletes the current selection (both `self.selection`, and actually
@@ -930,12 +930,13 @@ impl Canvas {
 
         let res = match self.selection {
             Selection::Rectangle(x, y, w, h) => {
-                *self.transformable_and_culprit.borrow_mut() = Some((
+                *self.transformation_selection.borrow_mut() = Some(TransformationSelection::new(
                     Box::new(TransformableImage::from_image(self.active_image().subimage(x, y, w, h))),
+                    xywh_to_matrix(x, y, w, h),
                     ActionName::Transform,
                 ));
 
-                Some(TransformMode::Transforming(xywh_to_matrix(x, y, w, h)))
+                Some(TransformMode::Transforming)
             },
             Selection::Bitmask(ref bitmask) => {
                 let (x, y, w, h) = bitmask.bounding_box();
@@ -954,12 +955,13 @@ impl Canvas {
 
                     let masked_image = Image::new(pixels, w, h);
 
-                    *self.transformable_and_culprit.borrow_mut() = Some((
+                    *self.transformation_selection.borrow_mut() = Some(TransformationSelection::new(
                         Box::new(TransformableImage::from_image(masked_image)),
+                        xywh_to_matrix(x, y, w, h),
                         ActionName::Transform,
                     ));
 
-                    Some(TransformMode::Transforming(xywh_to_matrix(x, y, w, h)))
+                    Some(TransformMode::Transforming)
                 }
             }
             _ => None,
@@ -975,8 +977,8 @@ impl Canvas {
     }
 
     pub fn scrap_transformable(&mut self) {
-        if self.transformable_and_culprit.borrow_mut().is_some() {
-            *self.transformable_and_culprit.borrow_mut() = None;
+        if self.transformation_selection.borrow_mut().is_some() {
+            *self.transformation_selection.borrow_mut() = None;
             let last_variant = self.ui_p.borrow().toolbar_p.borrow().last_two_mouse_mode_variants().0;
             let last_mode = MouseMode::from_variant(last_variant, self);
             self.ui_p.borrow().toolbar_p.borrow_mut().set_mouse_mode(last_mode);
@@ -988,28 +990,20 @@ impl Canvas {
     }
 
     fn commit_transformable_no_update(&mut self) {
-        let mut transformable_option = self.transformable_and_culprit.borrow_mut();
+        let mut transformable_option = self.transformation_selection.borrow_mut();
 
-        if let Some((transformable, culprit)) = transformable_option.as_mut() {
-            let matrix_option = if let MouseMode::FreeTransform(transform_state) = self.ui_p.borrow().toolbar_p.borrow().mouse_mode() {
-                transform_state.matrix()
-            } else {
-                None
-            };
+        if let Some(selection) = transformable_option.as_mut() {
+            let (width, height) = matrix_width_height(&selection.matrix);
+            let sampleable = selection.transformable.gen_sampleable(width, height);
+            let commit_struct = SampleableCommit::new(&sampleable, selection.matrix, selection.culprit.clone());
 
-            if let Some(matrix) = matrix_option {
-                let (width, height) = matrix_width_height(&matrix);
-                let sampleable = transformable.gen_sampleable(width, height);
-                let commit_struct = SampleableCommit::new(&sampleable, matrix, culprit.clone());
-
-                // self.exec_auto_diff_action(commit_struct);
-                // can't call because of ownership: work-around:
-                {
-                    self.image_hist.exec_doable_action_taking_blame(commit_struct);
-                    std::mem::drop(sampleable);
-                    std::mem::drop(transformable_option);
-                    self.save_cursor_pos_after_history_commit();
-                }
+            // self.exec_auto_diff_action(commit_struct);
+            // can't call because of ownership: work-around:
+            {
+                self.image_hist.exec_doable_action_taking_blame(commit_struct);
+                std::mem::drop(sampleable);
+                std::mem::drop(transformable_option);
+                self.save_cursor_pos_after_history_commit();
             }
         }
     }
