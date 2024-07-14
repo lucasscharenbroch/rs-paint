@@ -141,14 +141,6 @@ impl TransformationType {
         // the vector formed by the two points
         let vec = (pts.1.0 - pts.0.0, pts.1.1 - pts.0.1);
 
-        fn vec_magnitude((x, y): (f64, f64)) -> f64 {
-            (x.powi(2) + y.powi(2)).sqrt()
-        }
-
-        fn cross_product((dx0, dy0): (f64, f64), (dx1, dy1): (f64, f64)) -> f64 {
-            dx0 * dy1 - dx1 * dy0
-        }
-
         fn vecs_to_sin(v0: (f64, f64), v1: (f64, f64)) -> f64 {
             cross_product(v0, v1) / vec_magnitude(v0) / vec_magnitude(v1)
         }
@@ -238,15 +230,12 @@ impl TransformationType {
                 let v0 = (x0 - x2, y0 - y2);
                 let v1 = (x1 - x2, y1 - y2);
 
-                // dot product
-                let dp = v0.0 * v1.0 + v0.1 * v1.1;
-
-                // cross product
-                let cp = v0.0 * v1.1 - v0.1 * v1.0;
+                let dp = dot_product(v0, v1);
+                let cp = cross_product(v0, v1);
 
                 // magnitude
-                let m0 = (v0.0.powi(2) + v0.1.powi(2)).sqrt();
-                let m1 = (v1.0.powi(2) + v1.1.powi(2)).sqrt();
+                let m0 = vec_magnitude(v0);
+                let m1 = vec_magnitude(v1);
 
                 let a = (dp / (m0 * m1)).acos();
 
@@ -411,8 +400,6 @@ impl super::MouseModeState for FreeTransformState {
         if let TransformMode::Transforming(ref mut matrix) = &mut self.transform_mode {
             if let FreeTransformMouseState::Down(x0, y0, transform_type) = self.mouse_state {
                 let (x, y) = canvas.cursor_pos_pix_f();
-                let dx = x - x0;
-                let dy = y - y0;
 
                 transform_type.update_matrix_with_point_diff(matrix, (x0, y0), (x, y));
                 self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type);

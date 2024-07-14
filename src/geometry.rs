@@ -17,3 +17,15 @@ pub fn matrix_width_height(matrix: &cairo::Matrix) -> (f64, f64) {
         point_tuple_dist(p00, p01),
     )
 }
+
+pub fn vec_magnitude((x, y): (f64, f64)) -> f64 {
+    (x.powi(2) + y.powi(2)).sqrt()
+}
+
+pub fn cross_product((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
+    x0 * y1 - x1 * y0
+}
+
+pub fn dot_product((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
+    x0 * x1 + y0 * y1
+}
