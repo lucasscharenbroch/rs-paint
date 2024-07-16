@@ -409,4 +409,8 @@ impl super::MouseModeState for FreeTransformState {
     fn handle_drag_end(&mut self, _mod_keys: &gtk::gdk::ModifierType, _canvas: &mut Canvas, _toolbar: &mut Toolbar) {
         self.mouse_state = FreeTransformMouseState::Up;
     }
+
+    fn handle_close(&self, canvas: &mut Canvas, _toolbar: &Toolbar) {
+        canvas.drawing_area().set_cursor(gdk::Cursor::from_name("default", None).as_ref());
+    }
 }
