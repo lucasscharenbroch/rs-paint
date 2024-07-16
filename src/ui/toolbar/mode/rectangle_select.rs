@@ -64,8 +64,8 @@ impl RectangleSelectState {
             let yp = y.max(0.0).min(max_y);
             (yp, (h - (y - yp).abs()).max(0.0))
         } else { (y, h) };
-        let w = w.min(max_x - x);
-        let h = h.min(max_y - y);
+        let w = w.min(max_x - x + 1.0);
+        let h = h.min(max_y - y + 1.0);
 
         (x, y, w, h)
     }

@@ -718,7 +718,7 @@ impl Canvas {
         let img_width = self.image_width() as usize;
         let img_height = self.image_height() as usize;
 
-        if w == 0 || h == 0 || x + w >= img_width || y + h >= img_height {
+        if w == 0 || h == 0 || x + w > img_width || y + h > img_height {
             panic!("Out of bounds crop: x={x} y={y} w={w} h={h} img_width={img_width} img_height={img_height}");
         }
 
