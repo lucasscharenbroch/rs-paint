@@ -744,8 +744,8 @@ impl Canvas {
         let is_valid = match self.selection {
             Selection::NoSelection => true,
             Selection::Rectangle(x, y, w, h) => {
-                x + w < self.image_width() as usize &&
-                y + h < self.image_height() as usize
+                x + w <= self.image_width() as usize &&
+                y + h <= self.image_height() as usize
             },
             Selection::Bitmask(ref bitmask) => {
                 bitmask.width() == self.image_width() as usize &&
