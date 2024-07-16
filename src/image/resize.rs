@@ -119,7 +119,7 @@ fn bilinear(image: &Image, x: f32, y: f32) -> Pixel {
     // -----------
     // |p00 | p10|
     // ---- . ----
-    // |p01   p11|
+    // |p01 | p11|
     // -----------
 
     let p00 = (x.floor() as usize, y.floor() as usize);

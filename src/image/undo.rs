@@ -164,6 +164,7 @@ enum ImageDiff {
     Diff(Vec<(usize, Pixel, Pixel)>, LayerIndex), // [(pos, old_pix, new_pix)], layer#
     SingleLayerManualUndo(Box<dyn SingleLayerAction<Image>>, LayerIndex),
     AppendLayer(gtk::gdk::RGBA, LayerIndex),
+    CloneLayer(LayerIndex, LayerIndex),
     RemoveLayer(Layer, LayerIndex),
     SwapLayers(LayerIndex, LayerIndex),
     MergeLayers(Layer, LayerIndex, Layer, LayerIndex), /// (save_top_layer, top_index, save_bottom_layer, bottom_index)
@@ -199,6 +200,10 @@ impl ImageDiff {
             },
             ImageDiff::AppendLayer(color, idx) => {
                 image.append_new_layer(*color, *idx);
+                drawables_to_update.append_layer(*idx);
+            },
+            ImageDiff::CloneLayer(idx_to_clone, idx) => {
+                image.append_layer_with_image(image.layer_at_index(idx_to_clone.clone()).unfused(), *idx);
                 drawables_to_update.append_layer(*idx);
             },
             ImageDiff::RemoveLayer(_deleted_image, idx) => {
@@ -242,6 +247,11 @@ impl ImageDiff {
                 image.remove_layer(*idx);
                 drawables_to_update.add_the_main_drawable();
                 drawables_to_update.remove_layer(*idx);
+            },
+            ImageDiff::CloneLayer(layer_to_clone_idx, clone_idx) => {
+                image.remove_layer(*clone_idx);
+                drawables_to_update.add_the_main_drawable();
+                drawables_to_update.remove_layer(*clone_idx);
             },
             ImageDiff::RemoveLayer(removed_layer, idx) => {
                 image.append_layer_with_image(removed_layer.clone(), *idx);
@@ -418,6 +428,11 @@ impl ImageHistory {
     pub fn append_layer(&mut self, fill_color: gtk::gdk::RGBA, layer_index: LayerIndex) {
         let image_diff = ImageDiff::AppendLayer(fill_color, layer_index);
         self.apply_and_push_diff(image_diff, ActionName::AppendLayer);
+    }
+
+    pub fn clone_layer(&mut self, index_to_clone: LayerIndex, target_index: LayerIndex) {
+        let image_diff = ImageDiff::CloneLayer(index_to_clone, target_index);
+        self.apply_and_push_diff(image_diff, ActionName::CloneLayer);
     }
 
     fn commit_any_changes_on_active_layer(&mut self) {

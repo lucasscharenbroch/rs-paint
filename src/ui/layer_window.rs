@@ -298,10 +298,21 @@ impl LayerWindow {
             }
         }));
 
+        let clone_button = gtk::Button::builder()
+            .label("Clone")
+            .tooltip_text("Clone Active Layer")
+            .build();
+
+        clone_button.connect_clicked(clone!(@strong canvas_p => move |_button| {
+            let cloned_layer_idx = canvas_p.borrow_mut().clone_active_layer() ;
+            canvas_p.borrow_mut().focus_layer(cloned_layer_idx);
+        }));
+
         button_container.append(&new_button);
         button_container.append(&up_button);
         button_container.append(&down_button);
         button_container.append(&merge_button);
+        button_container.append(&clone_button);
 
         self.outer_wrapper.append(&button_container);
     }

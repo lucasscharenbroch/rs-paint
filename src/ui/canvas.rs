@@ -835,6 +835,15 @@ impl Canvas {
         target_idx
     }
 
+
+    pub fn clone_active_layer(&mut self) -> LayerIndex {
+        let active_layer_idx = self.layered_image().active_layer_index().clone();
+        let target_idx = LayerIndex::from_usize(active_layer_idx.to_usize() + 1);
+        self.image_hist.clone_layer(active_layer_idx, target_idx);
+        self.update();
+        target_idx
+    }
+
     /// Set the layer at the given index to active
     pub fn focus_layer(&mut self, layer_index: LayerIndex) {
         self.image_hist.focus_layer(layer_index);
