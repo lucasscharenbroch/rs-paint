@@ -241,8 +241,12 @@ impl LayerWindow {
             .halign(gtk::Align::Center)
             .build();
 
+        let new_icon = gtk::Image::builder()
+            .file(crate::icon_file!("plus"))
+            .build();
+
         let new_button = gtk::Button::builder()
-            .label("New")
+            .child(&new_icon)
             .tooltip_text("Create New Layer")
             .build();
 
