@@ -69,6 +69,10 @@ trait MouseModeState {
     fn try_transfer(&self) -> Result<MouseMode, ()> {
         Err(())
     }
+
+    /// Called when the mode is changed away (useful for cleaning up
+    /// any changes to the canvas state, e.g. the cursor visual)
+    fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar) {}
 }
 
 impl MouseMode {
@@ -236,10 +240,15 @@ impl MouseMode {
             MouseModeVariant::InsertShape => Self::insert_shape(canvas),
         }
     }
+
     pub fn updated_after_hook(self) -> Self {
         match self.get_state_immutable().try_transfer() {
             Ok(new_mode) => new_mode,
             _ => self,
         }
+    }
+
+    pub fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar) {
+        self.get_state_immutable().handle_close(canvas, toolbar);
     }
 }

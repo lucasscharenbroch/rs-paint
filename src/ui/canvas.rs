@@ -74,7 +74,9 @@ macro_rules! run_lockable_mouse_mode_hook {
         }
 
         mouse_mode.$hook_name(&$controller.current_event_state(), &mut $canvas_p.borrow_mut(), &mut toolbar);
-        toolbar.set_mouse_mode(mouse_mode.updated_after_hook());
+        if let Some(scrapped_mode) = toolbar.set_mouse_mode(mouse_mode.updated_after_hook()) {
+            scrapped_mode.handle_close(&mut $canvas_p.borrow_mut(), &toolbar);
+        }
     };
 }
 
@@ -84,7 +86,10 @@ macro_rules! run_non_lockable_mouse_mode_hook {
         let mut toolbar = ui.toolbar_p.borrow_mut();
         let mut mouse_mode = toolbar.mouse_mode().clone();
         mouse_mode.$hook_name(&$controller.current_event_state(), &mut $canvas_p.borrow_mut(), &mut toolbar);
-        toolbar.set_mouse_mode(mouse_mode.updated_after_hook());
+
+        if let Some(scrapped_mode) = toolbar.set_mouse_mode(mouse_mode.updated_after_hook()) {
+            scrapped_mode.handle_close(&mut $canvas_p.borrow_mut(), &toolbar);
+        }
     };
 }
 
@@ -286,7 +291,8 @@ impl Canvas {
 
         // mouse-mode-change
 
-        ui_p.borrow_mut().toolbar_p.borrow_mut().set_mode_change_hook(Box::new(clone!(@strong ui_p, @strong canvas_p => move |_toolbar: &Toolbar| {
+        ui_p.borrow_mut().toolbar_p.borrow_mut().set_mode_change_hook(Box::new(clone!(@strong ui_p, @strong canvas_p => move |toolbar: &Toolbar, scrapped_mode_option: Option<MouseMode>| {
+            scrapped_mode_option.map(|scrapped_mode| scrapped_mode.handle_close(&mut canvas_p.borrow_mut(), toolbar));
             canvas_p.borrow_mut().update();
         })));
     }
@@ -990,7 +996,11 @@ impl Canvas {
             *self.transformation_selection.borrow_mut() = None;
             let last_variant = self.ui_p.borrow().toolbar_p.borrow().last_two_mouse_mode_variants().0;
             let last_mode = MouseMode::from_variant(last_variant, self);
-            self.ui_p.borrow().toolbar_p.borrow_mut().set_mouse_mode(last_mode);
+            let toolbar_p = self.ui_p.borrow().toolbar_p.clone();
+            let scrapped_mode_option = toolbar_p.borrow_mut().set_mouse_mode(last_mode);
+            if let Some(scrapped_mode) = scrapped_mode_option {
+                scrapped_mode.handle_close(self, &toolbar_p.borrow());
+            }
             self.update();
             if self.layered_image().has_unsaved_changes() {
                 self.commit_changes(ActionName::Delete);
