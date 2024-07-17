@@ -26,14 +26,14 @@ enum TransformationType {
     /// Do nothing
     Sterile,
     Translate,
-    ExpandUpLeft,
-    ExpandUpRight,
-    ExpandDownLeft,
-    ExpandDownRight,
-    ExpandUp,
-    ExpandDown,
-    ExpandLeft,
-    ExpandRight,
+    ScaleUpLeft,
+    ScaleUpRight,
+    ScaleDownLeft,
+    ScaleDownRight,
+    ScaleUp,
+    ScaleDown,
+    ScaleLeft,
+    ScaleRight,
     Rotate,
 }
 
@@ -94,21 +94,21 @@ impl TransformationType {
         } else if x >= x0i && x <= x1i && y >= y0i && y <= y1i {
             TransformationType::Translate
         } else if close_ish_to_top && close_ish_to_left {
-            TransformationType::ExpandUpLeft
+            TransformationType::ScaleUpLeft
         } else if close_ish_to_top && close_ish_to_right {
-            TransformationType::ExpandUpRight
+            TransformationType::ScaleUpRight
         } else if close_ish_to_bot && close_ish_to_left {
-            TransformationType::ExpandDownLeft
+            TransformationType::ScaleDownLeft
         } else if close_ish_to_bot && close_ish_to_right {
-            TransformationType::ExpandDownRight
+            TransformationType::ScaleDownRight
         } else if close_to_left && in_vert_bounds {
-            TransformationType::ExpandLeft
+            TransformationType::ScaleLeft
         } else if close_to_right && in_vert_bounds {
-            TransformationType::ExpandRight
+            TransformationType::ScaleRight
         } else if close_to_top && in_horz_bounds {
-            TransformationType::ExpandUp
+            TransformationType::ScaleUp
         } else if close_to_bot && in_horz_bounds {
-            TransformationType::ExpandDown
+            TransformationType::ScaleDown
         } else {
             TransformationType::Sterile
         }
@@ -127,14 +127,14 @@ impl TransformationType {
             TransformationType::Sterile => return "default",
             TransformationType::Translate => return "move",
             TransformationType::Rotate => return "grab", // this one isn't great...
-            TransformationType::ExpandUpLeft => (p11, p00),
-            TransformationType::ExpandUpRight => (p10, p01),
-            TransformationType::ExpandDownLeft => (p10, p01),
-            TransformationType::ExpandDownRight => (p00, p11),
-            TransformationType::ExpandUp => (p10, p00),
-            TransformationType::ExpandDown => (p10, p00),
-            TransformationType::ExpandLeft => (p01, p00),
-            TransformationType::ExpandRight => (p01, p00),
+            TransformationType::ScaleUpLeft => (p11, p00),
+            TransformationType::ScaleUpRight => (p10, p01),
+            TransformationType::ScaleDownLeft => (p10, p01),
+            TransformationType::ScaleDownRight => (p00, p11),
+            TransformationType::ScaleUp => (p10, p00),
+            TransformationType::ScaleDown => (p10, p00),
+            TransformationType::ScaleLeft => (p01, p00),
+            TransformationType::ScaleRight => (p01, p00),
         };
 
         let directional_cursors = vec![
@@ -176,14 +176,14 @@ impl TransformationType {
 
     fn is_scale(&self) -> bool {
         match self {
-            Self::ExpandUpLeft |
-            Self::ExpandUp |
-            Self::ExpandUpRight |
-            Self::ExpandLeft |
-            Self::ExpandRight |
-            Self::ExpandDownLeft |
-            Self::ExpandDown |
-            Self::ExpandDownRight => true,
+            Self::ScaleUpLeft |
+            Self::ScaleUp |
+            Self::ScaleUpRight |
+            Self::ScaleLeft |
+            Self::ScaleRight |
+            Self::ScaleDownLeft |
+            Self::ScaleDown |
+            Self::ScaleDownRight => true,
             _ => false,
         }
     }
@@ -204,22 +204,22 @@ impl TransformationType {
             Self::Translate => {
                 matrix.translate(dx, dy);
             },
-            Self::ExpandUpLeft => {
+            Self::ScaleUpLeft => {
                 let (sx, sy) = (1.0 - dx, 1.0 - dy);
                 matrix.translate(1.0 - sx, 1.0 - sy);
                 matrix.scale(sx, sy);
             },
-            Self::ExpandUpRight => {
+            Self::ScaleUpRight => {
                 let (sx, sy) = (1.0 + dx, 1.0 - dy);
                 matrix.translate(0.0, 1.0 - sy);
                 matrix.scale(sx, sy);
             }
-            Self::ExpandDownLeft => {
+            Self::ScaleDownLeft => {
                 let (sx, sy) = (1.0 - dx, 1.0 + dy);
                 matrix.translate(1.0 - sx, 0.0);
                 matrix.scale(sx, sy);
             }
-            Self::ExpandDownRight => {
+            Self::ScaleDownRight => {
                 let (dx, dy) = if maintain_aspect_ratio {
                     // trig that's really hard to explain concisely in comments...
                     let dist_to_scale = dot_product((dx, dy), (width, height)) / vec_magnitude((width, height));
@@ -231,7 +231,7 @@ impl TransformationType {
 
                 matrix.scale(1.0 + dx, 1.0 + dy);
             },
-            Self::ExpandUp => {
+            Self::ScaleUp => {
                 let sy = 1.0 - dy;
 
                 if maintain_aspect_ratio {
@@ -244,15 +244,15 @@ impl TransformationType {
                     matrix.scale(1.0, sy);
                 }
             }
-            Self::ExpandDown => {
+            Self::ScaleDown => {
                 matrix.scale(1.0, 1.0 + dy);
             }
-            Self::ExpandLeft => {
+            Self::ScaleLeft => {
                 let sx = 1.0 - dx;
                 matrix.translate(1.0 - sx, 0.0);
                 matrix.scale(sx, 1.0);
             }
-            Self::ExpandRight => {
+            Self::ScaleRight => {
                 matrix.scale(1.0 + dx, 1.0);
             }
             Self::Rotate => {
@@ -310,7 +310,7 @@ pub struct FreeTransformState {
 impl FreeTransformState {
     pub fn from_coords(x: f64, y: f64) -> FreeTransformState {
         FreeTransformState {
-            mouse_state: FreeTransformMouseState::Down(x, y, TransformationType::ExpandDownRight),
+            mouse_state: FreeTransformMouseState::Down(x, y, TransformationType::ScaleDownRight),
         }
     }
 
