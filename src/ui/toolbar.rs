@@ -276,4 +276,16 @@ impl Toolbar {
     fn get_shape_border_width(&self) -> u8 {
         self.mode_toolbar.get_insert_shape_settings().1
     }
+
+    fn get_clamp_translate(&self) -> bool {
+        self.mode_toolbar.get_free_transform_settings().0
+    }
+
+    fn get_clamp_scale(&self) -> bool {
+        self.mode_toolbar.get_free_transform_settings().1
+    }
+
+    fn get_clamp_rotate(&self) -> bool {
+        self.mode_toolbar.get_free_transform_settings().2
+    }
 }

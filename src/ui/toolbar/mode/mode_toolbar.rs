@@ -1,6 +1,6 @@
 use super::insert_shape::InsertShapeState;
 use super::{FreeTransformState, MouseModeVariant};
-use crate::icon_file;
+use crate::{icon_file, vertical_composite_field};
 use crate::image::blend::BlendingMode;
 use crate::image::brush::BrushType;
 use crate::transformable::Transformable;
@@ -120,7 +120,7 @@ fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
     (form, Box::new(get))
 }
 
-type FreeTransformSettings = ();
+type FreeTransformSettings = (bool, bool, bool);
 fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() -> FreeTransformSettings>) {
     let commit_image = gtk::Image::builder()
         .file(icon_file!("checkmark"))
@@ -185,15 +185,27 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
         }
     }));
 
+    let clamp_translate = CheckboxField::new(Some("Clamp Translate"), true);
+    let clamp_scale = CheckboxField::new(Some("Clamp Scale"), true);
+    let clamp_rotate = CheckboxField::new(Some("Clamp Rotate"), true);
+
     let form = Form::builder()
         .orientation(gtk::Orientation::Horizontal)
         .with_field(&commit_and_keep_button)
         .with_field(&commit_button)
         .with_field(&scrap_button)
+        .with_field(&vertical_composite_field!(
+            &clamp_translate,
+            &clamp_scale,
+            &clamp_rotate))
         .build();
 
     let get = move || {
-        ()
+        (
+            clamp_translate.value(),
+            clamp_scale.value(),
+            clamp_rotate.value(),
+        )
     };
 
     (form, Box::new(get))
@@ -348,7 +360,7 @@ impl ModeToolbar {
         (self.get_magic_wand_settings_p)()
     }
 
-    pub fn get_fill_settings(&self) -> MagicWandSettings {
+    pub fn get_fill_settings(&self) -> FillSettings {
         (self.get_fill_settings_p)()
     }
 

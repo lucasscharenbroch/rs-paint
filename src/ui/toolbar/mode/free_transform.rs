@@ -1,6 +1,6 @@
 use super::{Canvas, Toolbar};
 use gtk::{prelude::*, cairo, gdk};
-use crate::{geometry::*, main};
+use crate::geometry::*;
 use crate::image::undo::action::ActionName;
 use crate::transformable::Transformable;
 
