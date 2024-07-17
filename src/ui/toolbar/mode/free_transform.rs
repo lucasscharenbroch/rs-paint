@@ -1,6 +1,6 @@
 use super::{Canvas, Toolbar};
 use gtk::{prelude::*, cairo, gdk};
-use crate::geometry::*;
+use crate::{geometry::*, main};
 use crate::image::undo::action::ActionName;
 use crate::transformable::Transformable;
 
@@ -174,10 +174,25 @@ impl TransformationType {
         )
     }
 
+    fn is_scale(&self) -> bool {
+        match self {
+            Self::ExpandUpLeft |
+            Self::ExpandUp |
+            Self::ExpandUpRight |
+            Self::ExpandLeft |
+            Self::ExpandRight |
+            Self::ExpandDownLeft |
+            Self::ExpandDown |
+            Self::ExpandDownRight => true,
+            _ => false,
+        }
+    }
+
     fn update_matrix_with_point_diff(
         &self, matrix: &mut cairo::Matrix,
         (x0, y0): (f64, f64),
-        (x1, y1): (f64, f64)
+        (x1, y1): (f64, f64),
+        maintain_aspect_ratio: bool,
     ) {
         let (width, height) = matrix_width_height(matrix);
 
@@ -205,12 +220,29 @@ impl TransformationType {
                 matrix.scale(sx, sy);
             }
             Self::ExpandDownRight => {
+                let (dx, dy) = if maintain_aspect_ratio {
+                    // trig that's really hard to explain concisely in comments...
+                    let dist_to_scale = dot_product((dx, dy), (width, height)) / vec_magnitude((width, height));
+                    let d = dist_to_scale / 2.0f64.sqrt();
+                    (d, d)
+                } else {
+                    (dx, dy)
+                };
+
                 matrix.scale(1.0 + dx, 1.0 + dy);
             },
             Self::ExpandUp => {
                 let sy = 1.0 - dy;
-                matrix.translate(0.0, 1.0 - sy);
-                matrix.scale(1.0, sy);
+
+                if maintain_aspect_ratio {
+                    let added_height = (sy - 1.0) * height;
+                    let sx = added_height / height + 1.0;
+                    matrix.translate((1.0 - sx) / 2.0, 1.0 - sy);
+                    matrix.scale(sx, sy);
+                } else {
+                    matrix.translate(0.0, 1.0 - sy);
+                    matrix.scale(1.0, sy);
+                }
             }
             Self::ExpandDown => {
                 matrix.scale(1.0, 1.0 + dy);
@@ -386,12 +418,19 @@ impl super::MouseModeState for FreeTransformState {
         }
     }
 
-    fn handle_drag_update(&mut self, _mod_keys: &gtk::gdk::ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+    fn handle_drag_update(&mut self, mod_keys: &gtk::gdk::ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
         let should_update = if let Some(selection) = canvas.transformation_selection().borrow_mut().as_mut() {
             if let FreeTransformMouseState::Down(x0, y0, transform_type) = self.mouse_state {
                 let (x, y) = canvas.cursor_pos_pix_f();
 
-                transform_type.update_matrix_with_point_diff(&mut selection.matrix, (x0, y0), (x, y));
+                let maintain_aspect_ratio = mod_keys.intersects(gtk::gdk::ModifierType::SHIFT_MASK);
+
+                transform_type.update_matrix_with_point_diff(
+                    &mut selection.matrix,
+                    (x0, y0),
+                    (x, y),
+                    maintain_aspect_ratio,
+                );
                 self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type);
                 true
             } else {
