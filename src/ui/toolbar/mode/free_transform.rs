@@ -188,36 +188,65 @@ impl TransformationType {
         }
     }
 
+    fn is_translate(&self) -> bool {
+        match self {
+            Self::Translate => true,
+            _ => false,
+        }
+    }
+
+    fn is_rotate(&self) -> bool {
+        match self {
+            Self::Rotate => true,
+            _ => false,
+        }
+    }
+
+    fn should_clamp(&self, clamp_translate: bool, clamp_scale: bool, clamp_rotate: bool) -> bool {
+        self.is_translate() && clamp_translate ||
+        self.is_scale() && clamp_scale ||
+        self.is_rotate() && clamp_rotate
+    }
+
     fn update_matrix_with_point_diff(
         &self, matrix: &mut cairo::Matrix,
         (x0, y0): (f64, f64),
         (x1, y1): (f64, f64),
         maintain_aspect_ratio: bool,
-    ) {
+        clamp_translate: bool,
+        clamp_scale: bool,
+        clamp_rotate: bool,
+    ) -> (f64, f64) {
         let (width, height) = matrix_width_height(matrix);
 
         let inverse = matrix.try_invert().unwrap();
         let (dx, dy) = inverse.transform_distance(x1 - x0, y1 - y0);
 
+        let should_clamp = self.should_clamp(clamp_translate, clamp_scale, clamp_rotate);
+
         match self {
-            Self::Sterile => (),
+            Self::Sterile => (0.0, 0.0),
             Self::Translate => {
                 matrix.translate(dx, dy);
+                (0.0, 0.0) // TODO
             },
             Self::ScaleUpLeft => {
                 let (sx, sy) = (1.0 - dx, 1.0 - dy);
                 matrix.translate(1.0 - sx, 1.0 - sy);
                 matrix.scale(sx, sy);
+                (0.0, 0.0) // TODO
             },
             Self::ScaleUpRight => {
                 let (sx, sy) = (1.0 + dx, 1.0 - dy);
                 matrix.translate(0.0, 1.0 - sy);
                 matrix.scale(sx, sy);
+                (0.0, 0.0) // TODO
             }
             Self::ScaleDownLeft => {
                 let (sx, sy) = (1.0 - dx, 1.0 + dy);
                 matrix.translate(1.0 - sx, 0.0);
                 matrix.scale(sx, sy);
+                (0.0, 0.0) // TODO
             }
             Self::ScaleDownRight => {
                 let (dx, dy) = if maintain_aspect_ratio {
@@ -229,7 +258,12 @@ impl TransformationType {
                     (dx, dy)
                 };
 
-                matrix.scale(1.0 + dx, 1.0 + dy);
+                let (sx, sy) = (1.0 + dx, 1.0 + dy);
+                let (fx, fy) = ((sx * width).round() / width, (sy * height).round() / height);
+                let (sx, sy, rx, ry) = (fx, fy, sx - fx, sy - fy);
+
+                matrix.scale(sx, sy);
+                (rx * width, ry * height)
             },
             Self::ScaleUp => {
                 let sy = 1.0 - dy;
@@ -243,17 +277,21 @@ impl TransformationType {
                     matrix.translate(0.0, 1.0 - sy);
                     matrix.scale(1.0, sy);
                 }
+                (0.0, 0.0) // TODO
             }
             Self::ScaleDown => {
                 matrix.scale(1.0, 1.0 + dy);
+                (0.0, 0.0) // TODO
             }
             Self::ScaleLeft => {
                 let sx = 1.0 - dx;
                 matrix.translate(1.0 - sx, 0.0);
                 matrix.scale(sx, 1.0);
+                (0.0, 0.0) // TODO
             }
             Self::ScaleRight => {
                 matrix.scale(1.0 + dx, 1.0);
+                (0.0, 0.0) // TODO
             }
             Self::Rotate => {
                 let (x0, y0) = matrix.transform_point(0.5, 0.0);
@@ -291,6 +329,7 @@ impl TransformationType {
                 matrix.rotate(a);
                 matrix.scale(1.0, height / width);
                 matrix.translate(-0.5, -0.5);
+                (0.0, 0.0) // TODO
             }
         }
     }
@@ -299,7 +338,7 @@ impl TransformationType {
 #[derive(Clone, Copy)]
 enum FreeTransformMouseState {
     Up,
-    Down(f64, f64, TransformationType),
+    Down(f64, f64, TransformationType, f64, f64), // x, y, type, extra_dx, extra_dy
 }
 
 #[derive(Clone, Copy)]
@@ -310,7 +349,7 @@ pub struct FreeTransformState {
 impl FreeTransformState {
     pub fn from_coords(x: f64, y: f64) -> FreeTransformState {
         FreeTransformState {
-            mouse_state: FreeTransformMouseState::Down(x, y, TransformationType::ScaleDownRight),
+            mouse_state: FreeTransformMouseState::Down(x, y, TransformationType::ScaleDownRight, 0.0, 0.0),
         }
     }
 
@@ -413,25 +452,30 @@ impl super::MouseModeState for FreeTransformState {
         if let Some(selection) = canvas.transformation_selection().borrow_mut().as_mut() {
             let (x, y) = canvas.cursor_pos_pix_f();
             self.mouse_state = FreeTransformMouseState::Down(x, y,
-                TransformationType::from_matrix_and_point(&selection.matrix, (x, y), *canvas.zoom())
+                TransformationType::from_matrix_and_point(&selection.matrix, (x, y), *canvas.zoom()),
+                0.0, 0.0,
             )
         }
     }
 
-    fn handle_drag_update(&mut self, mod_keys: &gtk::gdk::ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+    fn handle_drag_update(&mut self, mod_keys: &gtk::gdk::ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let should_update = if let Some(selection) = canvas.transformation_selection().borrow_mut().as_mut() {
-            if let FreeTransformMouseState::Down(x0, y0, transform_type) = self.mouse_state {
+            if let FreeTransformMouseState::Down(x0, y0, transform_type, extra_x, extra_y) = self.mouse_state {
                 let (x, y) = canvas.cursor_pos_pix_f();
 
                 let maintain_aspect_ratio = mod_keys.intersects(gtk::gdk::ModifierType::SHIFT_MASK);
 
-                transform_type.update_matrix_with_point_diff(
+                let (extra_x, extra_y) = transform_type.update_matrix_with_point_diff(
                     &mut selection.matrix,
                     (x0, y0),
-                    (x, y),
+                    (x + extra_x, y + extra_y),
                     maintain_aspect_ratio,
+                    toolbar.get_clamp_translate(),
+                    toolbar.get_clamp_scale(),
+                    toolbar.get_clamp_rotate(),
                 );
-                self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type);
+
+                self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type, extra_x, extra_y);
                 true
             } else {
                 false
