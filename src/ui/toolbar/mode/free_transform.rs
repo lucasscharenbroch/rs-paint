@@ -9,14 +9,23 @@ pub struct TransformationSelection {
     pub transformable: Box<dyn Transformable>,
     pub matrix: cairo::Matrix,
     pub culprit: ActionName,
+    /// (height/width); the "lossless" ratio, which is
+    /// calculated upon instantiation and not modified
+    /// when the aspect ratio is locked. This will likely
+    /// not exactly match the aspect ratio of the matrix.
+    true_aspect_ratio: f64,
 }
 
 impl TransformationSelection {
     pub fn new(transformable: Box<dyn Transformable>, matrix: cairo::Matrix, culprit: ActionName) -> Self {
+        let (width, height) = matrix_width_height(&matrix);
+        let true_aspect_ratio = height / width;
+
         TransformationSelection {
             transformable,
             matrix,
             culprit,
+            true_aspect_ratio,
         }
     }
 }
@@ -209,7 +218,9 @@ impl TransformationType {
     }
 
     fn update_matrix_with_point_diff(
-        &self, matrix: &mut cairo::Matrix,
+        &self,
+        matrix: &mut cairo::Matrix,
+        true_aspect_ratio: f64,
         (x0, y0): (f64, f64),
         (x1, y1): (f64, f64),
         maintain_aspect_ratio: bool,
@@ -251,16 +262,26 @@ impl TransformationType {
             Self::ScaleDownRight => {
                 let (dx, dy) = if maintain_aspect_ratio {
                     // trig that's really hard to explain concisely in comments...
-                    let dist_to_scale = dot_product((dx, dy), (width, height)) / vec_magnitude((width, height));
+                    let ar_vec = (1.0, true_aspect_ratio);
+                    let dist_to_scale = dot_product((dx, dy), ar_vec) / vec_magnitude(ar_vec);
                     let d = dist_to_scale / 2.0f64.sqrt();
-                    (d, d)
+
+                    // ideally we scale by (d, d), but the aspect ratio probably isn't equal to the
+                    // true aspect ratio (but we want it to be), so adjust accordingly
+
+                    let dy_over_dx = true_aspect_ratio * (width / height);
+                    (d, dy_over_dx * d)
                 } else {
                     (dx, dy)
                 };
 
                 let (sx, sy) = (1.0 + dx, 1.0 + dy);
-                let (fx, fy) = ((sx * width).round() / width, (sy * height).round() / height);
-                let (sx, sy, rx, ry) = (fx, fy, sx - fx, sy - fy);
+                let (sx, sy, rx, ry) = if should_clamp {
+                    let (fx, fy) = ((sx * width).round() / width, (sy * height).round() / height);
+                    (fx, fy, sx - fx, sy - fy)
+                } else {
+                    (sx, sy, 0.0, 0.0)
+                };
 
                 matrix.scale(sx, sy);
                 (rx * width, ry * height)
@@ -467,6 +488,7 @@ impl super::MouseModeState for FreeTransformState {
 
                 let (extra_x, extra_y) = transform_type.update_matrix_with_point_diff(
                     &mut selection.matrix,
+                    selection.true_aspect_ratio,
                     (x0, y0),
                     (x + extra_x, y + extra_y),
                     maintain_aspect_ratio,
@@ -474,6 +496,13 @@ impl super::MouseModeState for FreeTransformState {
                     toolbar.get_clamp_scale(),
                     toolbar.get_clamp_rotate(),
                 );
+
+                selection.true_aspect_ratio = if maintain_aspect_ratio {
+                    selection.true_aspect_ratio
+                } else {
+                    let (w, h) = matrix_width_height(&selection.matrix);
+                    h / w
+                };
 
                 self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type, extra_x, extra_y);
                 true
