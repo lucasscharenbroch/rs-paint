@@ -236,7 +236,7 @@ impl TransformationType {
             // trig that's really hard to explain concisely in comments...
             let ar_vec = (1.0 * -left, true_aspect_ratio * -up);
             let dist_to_scale = dot_product((dx, dy), ar_vec) / vec_magnitude(ar_vec);
-            let d = dist_to_scale / 2.0f64.sqrt();
+            let d = dist_to_scale / (up.abs() + left.abs()).sqrt();
 
             // ideally we scale by (d, d), but the aspect ratio probably isn't equal to the
             // true aspect ratio (but we want it to be), so adjust accordingly
