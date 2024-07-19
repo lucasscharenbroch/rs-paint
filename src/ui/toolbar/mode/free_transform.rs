@@ -217,6 +217,67 @@ impl TransformationType {
         self.is_rotate() && clamp_rotate
     }
 
+    fn do_scale(
+        matrix: &mut cairo::Matrix,
+        maintain_aspect_ratio: bool,
+        true_aspect_ratio: f64,
+        should_clamp: bool,
+        width: f64,
+        height: f64,
+        dx: f64,
+        dy: f64,
+        up: f64, // how much up? (1.0, 0.0, or -1.0)
+        left: f64, // how much left?
+    ) -> (f64, f64) {
+        let (dx, dy) = (dx * -left, dy * -up);
+
+        // handle aspect-ratio-locking
+        let (dx, dy) = if maintain_aspect_ratio {
+            // trig that's really hard to explain concisely in comments...
+            let ar_vec = (1.0, true_aspect_ratio);
+            let dist_to_scale = dot_product((dx, dy), ar_vec) / vec_magnitude(ar_vec);
+            let d = dist_to_scale / 2.0f64.sqrt();
+
+            // ideally we scale by (d, d), but the aspect ratio probably isn't equal to the
+            // true aspect ratio (but we want it to be), so adjust accordingly
+
+            let dy_over_dx = true_aspect_ratio * (width / height);
+            (d, dy_over_dx * d)
+        } else {
+            (dx, dy)
+        };
+
+        let (dx, dy) = (dx * -left, dy * -up);
+
+        // before-clamp scale
+        let (sx, sy) = (
+            1.0 + -left * dx,
+            1.0 + -up * dy
+        );
+
+        // after-clamp scale
+        let (sx, sy, rx, ry) = if should_clamp {
+            let (fx, fy) = ((sx * width).round() / width, (sy * height).round() / height);
+            (fx, fy, sx - fx, sy - fy)
+        } else {
+            (sx, sy, 0.0, 0.0)
+        };
+
+        let (tx, ty) = (
+            left.max(0.0) * (1.0 - sx),
+            up.max(0.0) * (1.0 - sy),
+        );
+
+        matrix.translate(tx, ty);
+        matrix.scale(sx, sy);
+
+        // remainder
+        (
+            rx * width,
+            ry * height,
+        )
+    }
+
     fn update_matrix_with_point_diff(
         &self,
         matrix: &mut cairo::Matrix,
@@ -242,49 +303,36 @@ impl TransformationType {
                 (0.0, 0.0) // TODO
             },
             Self::ScaleUpLeft => {
-                let (sx, sy) = (1.0 - dx, 1.0 - dy);
-                matrix.translate(1.0 - sx, 1.0 - sy);
-                matrix.scale(sx, sy);
-                (0.0, 0.0) // TODO
+                Self::do_scale(
+                    matrix,
+                    maintain_aspect_ratio, true_aspect_ratio, should_clamp,
+                    width, height, dx, dy,
+                    1.0, 1.0,
+                )
             },
             Self::ScaleUpRight => {
-                let (sx, sy) = (1.0 + dx, 1.0 - dy);
-                matrix.translate(0.0, 1.0 - sy);
-                matrix.scale(sx, sy);
-                (0.0, 0.0) // TODO
+                Self::do_scale(
+                    matrix,
+                    maintain_aspect_ratio, true_aspect_ratio, should_clamp,
+                    width, height, dx, dy,
+                    1.0, -1.0,
+                )
             }
             Self::ScaleDownLeft => {
-                let (sx, sy) = (1.0 - dx, 1.0 + dy);
-                matrix.translate(1.0 - sx, 0.0);
-                matrix.scale(sx, sy);
-                (0.0, 0.0) // TODO
+               Self::do_scale(
+                    matrix,
+                    maintain_aspect_ratio, true_aspect_ratio, should_clamp,
+                    width, height, dx, dy,
+                    -1.0, 1.0,
+                )
             }
             Self::ScaleDownRight => {
-                let (dx, dy) = if maintain_aspect_ratio {
-                    // trig that's really hard to explain concisely in comments...
-                    let ar_vec = (1.0, true_aspect_ratio);
-                    let dist_to_scale = dot_product((dx, dy), ar_vec) / vec_magnitude(ar_vec);
-                    let d = dist_to_scale / 2.0f64.sqrt();
-
-                    // ideally we scale by (d, d), but the aspect ratio probably isn't equal to the
-                    // true aspect ratio (but we want it to be), so adjust accordingly
-
-                    let dy_over_dx = true_aspect_ratio * (width / height);
-                    (d, dy_over_dx * d)
-                } else {
-                    (dx, dy)
-                };
-
-                let (sx, sy) = (1.0 + dx, 1.0 + dy);
-                let (sx, sy, rx, ry) = if should_clamp {
-                    let (fx, fy) = ((sx * width).round() / width, (sy * height).round() / height);
-                    (fx, fy, sx - fx, sy - fy)
-                } else {
-                    (sx, sy, 0.0, 0.0)
-                };
-
-                matrix.scale(sx, sy);
-                (rx * width, ry * height)
+                Self::do_scale(
+                    matrix,
+                    maintain_aspect_ratio, true_aspect_ratio, should_clamp,
+                    width, height, dx, dy,
+                    -1.0, -1.0,
+                )
             },
             Self::ScaleUp => {
                 let sy = 1.0 - dy;
