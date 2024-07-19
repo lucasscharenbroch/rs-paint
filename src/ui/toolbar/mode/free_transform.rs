@@ -255,7 +255,10 @@ impl TransformationType {
 
         // after-clamp scale
         let (sx, sy, rx, ry) = if should_clamp {
-            let (rsx, rsy) = ((sx * width).round() / width, (sy * height).round() / height);
+            let (rsx, rsy) = (
+                (sx * width).round().max(1.0 / width) / width,
+                (sy * height).round().max(1.0 / height) / height,
+            );
             (rsx, rsy, sx - rsx, sy - rsy)
         } else {
             (sx, sy, 0.0, 0.0)
