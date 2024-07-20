@@ -304,6 +304,7 @@ impl UiState {
                 gdk::Key::q => Self::quit(ui_p.clone()),
                 gdk::Key::v => Self::paste(ui_p.clone()),
                 gdk::Key::c => Self::copy(ui_p.clone()),
+                gdk::Key::o => Self::import_onto(ui_p.clone()),
                 // Remember to add any new shortcuts to `dialog::info::keyboard_shortcuts_dialog`
                 _ => (),
             }

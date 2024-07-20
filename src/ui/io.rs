@@ -2,6 +2,7 @@ use super::dialog::new_image_dialog;
 use super::{dialog::{choose_file_dialog, ok_dialog_str_}, UiState};
 use crate::image::io::LayeredImage;
 use crate::image::{Image, generate::generate};
+use crate::ui::MouseMode;
 
 use gtk::prelude::*;
 use gtk::gio::ListStore;
@@ -83,6 +84,36 @@ impl UiState {
                 match Image::from_path(path) {
                     Ok(img) => {
                         UiState::new_tab(&ui_p, img, name);
+                    },
+                    Err(mesg) => {
+                        ok_dialog_str_(
+                            ui_p.borrow().window(),
+                            "Import Error",
+                            format!("Error during import: {}", mesg).as_str()
+                        );
+                    }
+                }
+            }
+        }))
+    }
+
+    /// Prompt user for image file, load that image, then
+    /// place it as a selection onto the current canvas
+    pub fn import_onto(ui_p: Rc<RefCell<UiState>>) {
+        let valid_filetypes = mk_file_filter_list(image_import_formats());
+
+        choose_file_dialog(&ui_p.borrow().window, "Choose an image to import",
+                    "Import", &valid_filetypes, false,
+                    clone!(@strong ui_p => move |res| {
+            if let Ok(res) = res {
+                let path = res.path().unwrap();
+                let path = path.as_path();
+                match Image::from_path(path) {
+                    Ok(img) => {
+                        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+                            canvas_p.borrow_mut().place_image(img);
+                            ui_p.borrow().toolbar_p.borrow_mut().set_mouse_mode(MouseMode::free_transform(&mut canvas_p.borrow_mut()));
+                        }
                     },
                     Err(mesg) => {
                         ok_dialog_str_(

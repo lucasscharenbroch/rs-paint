@@ -57,6 +57,7 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (gio::Menu, Vec<gio::SimpleAct
     let file_menu = MenuBuilder::new()
         .item_with_keybind("<Ctrl>n", "New", "new", Box::new(clone!(@strong ui_state => move || UiState::new(ui_state.clone()))))
         .item_with_keybind("<Ctrl>i", "Import", "import", Box::new(clone!(@strong ui_state => move || UiState::import(ui_state.clone()))))
+        .item_with_keybind("<Ctrl>o", "Import Onto Canvas", "import-onto", Box::new(clone!(@strong ui_state => move || UiState::import_onto(ui_state.clone()))))
         .item_with_keybind("<Ctrl>e", "Export", "export", Box::new(clone!(@strong ui_state => move || UiState::export(ui_state.clone()))))
         .item_with_keybind("<Ctrl><Shift>l", "Load Project File", "load-project", Box::new(clone!(@strong ui_state => move || UiState::load_project(ui_state.clone()))))
         .item_with_keybind("<Ctrl><Shift>s", "Save Project As", "save-project-as", Box::new(clone!(@strong ui_state => move || UiState::save_project_as(ui_state.clone()))))
