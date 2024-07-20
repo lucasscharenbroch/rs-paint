@@ -8,10 +8,9 @@ pub trait Transformable {
     /// square: (0.0, 0.0) (1.0, 1.0)
     fn draw(&mut self, cr: &cairo::Context, pixel_width: f64, pixel_height: f64);
     fn gen_sampleable(&mut self, pixel_width: f64, pixel_height: f64) -> Box<dyn Samplable>;
-    /// returns Some((width, height)) if the underlying samplable is
-    /// made up of discrete units (like an image), otherwise None
-    /// (this is used for interpolation)
-    fn try_size(&self) -> Option<(usize, usize)>;
+    /// yeilds a reference to the underlying image (if that's what's begin encapsulated) -
+    /// this allows for point-wise interpolation (in commits) and transformation-selection-copying
+    fn try_image_ref(&self) -> Option<&Image>;
 }
 
 pub trait Samplable {
@@ -55,8 +54,8 @@ impl Transformable for TransformableImage {
         self.image.clone()
     }
 
-    fn try_size(&self) -> Option<(usize, usize)> {
-        Some((self.image.width(), self.image.height()))
+    fn try_image_ref(&self) -> Option<&Image> {
+        Some(&*self.image)
     }
 }
 
@@ -94,111 +93,33 @@ impl Samplable for DrawableImage {
     }
 }
 
-/// A wrapper for a Samplable (reference) with
-/// an underlying size, allowing for pixel accesses
-/// (and therefore interpolation)
-struct SizedSampleable<'s> {
-    sampleable: &'s dyn Samplable,
-    // the width/height are used to determine the interpolation
-    // points (still within the unit square)
-    width: usize,
-    height: usize,
-    /// hack to allow `pix_at()` to return a reference (even though
-    /// an owned `Pixel` is produced) -- this is necessary because the
-    /// `Samplealbe` abstracts away the ability to reference the underlying
-    /// pixel vector
-    // TODO refactor by removing a little generality (in Sampleable, then here)?
-    memo_table: UnsafeCell<Vec<Pixel>>,
-    memo_mask: RefCell<Vec<bool>>,
-}
-
-impl<'s> SizedSampleable<'s> {
-    fn new(sampleable: &'s dyn Samplable, width: usize, height: usize) -> SizedSampleable<'s> {
-        let memo_table = UnsafeCell::new(Vec::with_capacity(width * height));
-        unsafe {
-            (*memo_table.get()).set_len(width * height);
-        }
-        let memo_mask = RefCell::new(vec![false; width * height]);
-
-        SizedSampleable {
-            sampleable,
-            width,
-            height,
-            memo_table,
-            memo_mask,
-        }
-    }
-}
-
-impl<'s> ImageLike for SizedSampleable<'s> {
-    fn height(&self) -> usize {
-        self.height
-    }
-
-    fn width(&self) -> usize {
-        self.width
-    }
-
-    fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel> {
-        if r < self.height && c < self.width {
-            Some(self.pix_at(r, c))
-        } else {
-            None
-        }
-    }
-}
-
-impl<'s> ImageLikeUnchecked for SizedSampleable<'s> {
-    fn pix_at(&self, r: usize, c: usize) -> &Pixel {
-        let i = r * self.width + c;
-        let x = (c as f64 + 0.5) / self.width as f64;
-        let y = (r as f64 + 0.5) / self.height as f64;
-
-        unsafe {
-            let mut mask = self.memo_mask.borrow_mut();
-            let table = &mut *self.memo_table.get();
-
-            if !mask[i] {
-                table[i] = self.sampleable.sample(x, y);
-                mask[i] = true;
-            }
-
-            &table[i]
-        }
-    }
-
-    fn pix_at_flat(&self, i:usize) -> &Pixel {
-        self.pix_at(i / self.width, i % self.width)
-    }
-}
-
-pub struct SampleableCommit<'s> {
+pub struct SampleableCommit<'s, 'i> {
     matrix: cairo::Matrix,
     sampleable: &'s dyn Samplable,
     scale_method: ScaleMethod,
-    size_option: Option<(usize, usize)>,
+    image_option: Option<&'i Image>,
     culprit: ActionName,
 }
 
-impl<'s> SampleableCommit<'s> {
+impl<'s, 'i> SampleableCommit<'s, 'i> {
     pub fn new(
         sampleable: &'s dyn Samplable,
         matrix: cairo::Matrix,
         scale_method: ScaleMethod,
-        size_option: Option<(usize, usize)>,
+        image_option: Option<&'i Image>,
         culprit: ActionName
     ) -> Self {
         SampleableCommit {
             matrix,
             sampleable,
             scale_method,
-            size_option,
+            image_option,
             culprit,
         }
     }
 }
 
-impl<'s> AutoDiffAction for SampleableCommit<'s> {
+impl<'s, 'i> AutoDiffAction for SampleableCommit<'s, 'i> {
     fn name(&self) -> ActionName {
         self.culprit
     }
@@ -226,10 +147,11 @@ impl<'s> AutoDiffAction for SampleableCommit<'s> {
         let min_y = (min_y.floor() as usize).max(0);
         let max_y = (max_y.ceil() as usize).min(image.height() as usize - 1);
 
-        let sample_fn: Box<dyn Fn(f64, f64) -> Pixel> = if let Some((width, height)) = self.size_option {
-            let sized_samplable = SizedSampleable::new(self.sampleable, width, height);
-            let interpolation_fn = self.scale_method.interpolation_fn::<SizedSampleable>();
-            Box::new(move |x, y| interpolation_fn(&sized_samplable, x as f32 * width as f32, y as f32 * height as f32))
+        let sample_fn: Box<dyn Fn(f64, f64) -> Pixel> = if let Some(image) = self.image_option {
+            let interpolation_fn = self.scale_method.interpolation_fn::<Image>();
+            let width = image.width() as f32;
+            let height = image.height() as f32;
+            Box::new(move |x, y| interpolation_fn(image, x as f32 * width, y as f32 * height))
         } else {
             Box::new(|x, y| self.sampleable.sample(x, y))
         };

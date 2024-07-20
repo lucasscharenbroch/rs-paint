@@ -81,7 +81,7 @@ impl Transformable for Shape {
         Box::new(drawable_image)
     }
 
-    fn try_size(&self) -> Option<(usize, usize)> {
+    fn try_image_ref(&self) -> Option<&crate::image::Image> {
         None
     }
 }

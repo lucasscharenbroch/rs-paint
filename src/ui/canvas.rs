@@ -999,7 +999,7 @@ impl Canvas {
                 &*sampleable,
                 selection.matrix,
                 self.ui_p.borrow().toolbar_p.borrow().get_free_transform_scale_method(),
-                selection.transformable.try_size(),
+                selection.transformable.try_image_ref(),
                 selection.culprit.clone(),
             );
 
