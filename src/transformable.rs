@@ -140,7 +140,7 @@ impl<'s> ImageLike for SizedSampleable<'s> {
     }
 
     fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel> {
-        if r  < self.height && c < self.height {
+        if r < self.height && c < self.width {
             Some(self.pix_at(r, c))
         } else {
             None
