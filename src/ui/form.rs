@@ -527,11 +527,10 @@ macro_rules! composite_field {
     ($first:expr, $second:expr $(, $another:expr)*) => {
         crate::ui::form::CompositeField::from2($first, $second)
         $(
-            .append($another);
+            .append($another)
         )*
     };
 }
-
 
 #[macro_export]
 macro_rules! vertical_composite_field {

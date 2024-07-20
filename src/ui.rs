@@ -16,6 +16,7 @@ use crate::image::{generate::{generate, NewImageProps}, Image, FusedLayeredImage
 use crate::image::resize::Crop;
 use tab::{Tab, Tabbar};
 use toolbar::mode::{MouseMode, RectangleSelectMode};
+use crate::clipboard::Clipboard;
 
 use gtk::{gdk::RGBA, prelude::*};
 use gtk::gdk;
@@ -47,6 +48,7 @@ pub struct UiState {
     grid: gtk::Grid,
     window: gtk::ApplicationWindow,
     application: gtk::Application,
+    clipboard: Clipboard,
 }
 
 impl UiState {
@@ -210,6 +212,7 @@ impl UiState {
                 .title("RS-Paint")
                 .build(),
             application,
+            clipboard: Clipboard::new(),
         }));
 
         Toolbar::init_ui_hooks(&ui_p);
@@ -299,6 +302,7 @@ impl UiState {
                 gdk::Key::i => Self::import(ui_p.clone()),
                 gdk::Key::e => Self::export(ui_p.clone()),
                 gdk::Key::q => Self::quit(ui_p.clone()),
+                gdk::Key::v => Self::paste(ui_p.clone()),
                 // Remember to add any new shortcuts to `dialog::info::keyboard_shortcuts_dialog`
                 _ => (),
             }
@@ -560,6 +564,19 @@ impl UiState {
                     }
                 }),
             );
+        }
+    }
+
+    fn paste(ui_p: Rc<RefCell<Self>>) {
+        let image_to_paste = if let Some(image_to_paste) = ui_p.borrow_mut().clipboard.get_image() {
+            image_to_paste
+        } else {
+            return;
+        };
+
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().place_image(image_to_paste);
+            ui_p.borrow().toolbar_p.borrow_mut().set_mouse_mode(MouseMode::free_transform(&mut canvas_p.borrow_mut()));
         }
     }
 }

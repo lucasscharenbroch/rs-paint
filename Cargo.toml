@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+arboard = "3.4.0"
 glib-macros = "0.19.2"
 gtk = { version = "0.8.1", package = "gtk4", features = ["v4_14"] }
 image = { version = "0.25.1", features = ["png", "jpeg", "gif", "ico", "webp", "bmp"] }

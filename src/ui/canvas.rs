@@ -1,7 +1,7 @@
 use crate::image::undo::action::{AutoDiffAction, MultiLayerAction, SingleLayerAction};
 use crate::image::{ImageLikeUnchecked, LayerIndex, Pixel};
 use crate::transformable::{Transformable, SampleableCommit, TransformableImage};
-use crate::geometry::matrix_width_height;
+use crate::geometry::{matrix_width_height, xywh_to_matrix};
 
 use super::super::image::{Image, FusedLayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::bitmask::DeletePix;
@@ -955,14 +955,6 @@ impl Canvas {
             return Err(());
         }
 
-        fn xywh_to_matrix(x: usize, y: usize, w: usize, h: usize) -> cairo::Matrix {
-            let mut matrix = cairo::Matrix::identity();
-            matrix.translate(x as f64, y as f64);
-            matrix.scale(w as f64, h as f64);
-
-            matrix
-        }
-
         let res = match self.selection {
             Selection::Rectangle(x, y, w, h) => {
                 *self.transformation_selection.borrow_mut() = Some(TransformationSelection::new(
@@ -1071,5 +1063,21 @@ impl Canvas {
 
         self.commit_transformable_no_update();
         let _ = self.scrap_transformable();
+    }
+
+    pub fn place_image(&mut self, image: Image) {
+        if self.active_layer_locked() {
+            self.alert_user_of_lock("Can't place: active layer locked");
+            return;
+        }
+
+        let matrix = xywh_to_matrix(0, 0, image.width(), image.height());
+
+        *self.transformation_selection.borrow_mut() = Some(TransformationSelection::new(
+            Box::new(TransformableImage::from_image(image)),
+            matrix,
+            ActionName::Transform,
+        ));
+        self.update();
     }
 }

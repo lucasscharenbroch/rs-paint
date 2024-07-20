@@ -5,6 +5,14 @@ pub fn point_tuple_dist((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
     ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt()
 }
 
+pub fn xywh_to_matrix(x: usize, y: usize, w: usize, h: usize) -> cairo::Matrix {
+    let mut matrix = cairo::Matrix::identity();
+    matrix.translate(x as f64, y as f64);
+    matrix.scale(w as f64, h as f64);
+
+    matrix
+}
+
 /// The effective width and height of a matrix's
 /// unit square
 pub fn matrix_width_height(matrix: &cairo::Matrix) -> (f64, f64) {
