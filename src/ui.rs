@@ -218,6 +218,14 @@ impl UiState {
         ui_p.borrow().grid.attach(ui_p.borrow().toolbar_p.borrow().widget(), 0, 1, 1, 1);
         ui_p.borrow().grid.attach(&gtk::Separator::new(gtk::Orientation::Horizontal), 0, 2, 1, 1);
 
+        // makes the background the right color (darker gray)
+        // when all tabs are deleted
+        let dummy_grid = gtk::Grid::builder()
+            .hexpand(true)
+            .vexpand(true)
+            .build();
+        ui_p.borrow().grid.attach(&dummy_grid, 0, 2, 1, 1);
+
         ui_p.borrow().window.set_child(Some(&ui_p.borrow().grid));
 
         Self::init_internal_connections(&ui_p);
