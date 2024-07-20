@@ -164,4 +164,8 @@ impl super::MouseModeState for RectangleSelectState {
         canvas.set_selection(Selection::NoSelection);
         canvas.update();
     }
+
+    fn handle_selection_deleted(&mut self) {
+        self.mode = RectangleSelectMode::Unselected;
+    }
 }

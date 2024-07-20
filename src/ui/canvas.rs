@@ -321,6 +321,7 @@ impl Canvas {
 
     pub fn set_selection(&mut self, selection: Selection) {
         self.selection = selection;
+        *self.transformation_selection.borrow_mut() = None;
     }
 
     pub fn selection(&self) -> &Selection {

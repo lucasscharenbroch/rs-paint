@@ -73,6 +73,7 @@ trait MouseModeState {
     /// Called when the mode is changed away (useful for cleaning up
     /// any changes to the canvas state, e.g. the cursor visual)
     fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar) {}
+    fn handle_selection_deleted(&mut self) {}
 }
 
 impl MouseMode {
@@ -250,5 +251,9 @@ impl MouseMode {
 
     pub fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar) {
         self.get_state_immutable().handle_close(canvas, toolbar);
+    }
+
+    pub fn handle_selection_deleted(&mut self) {
+        self.get_state().handle_selection_deleted();
     }
 }

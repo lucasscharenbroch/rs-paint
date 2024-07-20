@@ -499,6 +499,7 @@ impl UiState {
         if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
             canvas_p.borrow_mut().delete_selection();
             canvas_p.borrow_mut().scrap_transformable();
+            ui_p.borrow().toolbar_p.borrow_mut().mouse_mode_mut().handle_selection_deleted();
         }
     }
 
