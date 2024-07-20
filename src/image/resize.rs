@@ -86,7 +86,10 @@ impl MultiLayerAction for Scale {
 
 #[inline]
 fn nearest_neighbor<I: ImageLikeUnchecked>(image: &I, x: f32, y: f32) -> Pixel {
-    image.pix_at(y.floor() as usize, x.floor() as usize).clone()
+    image.pix_at(
+        (y.floor() as usize).min(image.height() - 1),
+        (x.floor() as usize).min(image.width() - 1)
+    ).clone()
 }
 
 impl Pixel {
@@ -136,7 +139,11 @@ fn bilinear<I: ImageLikeUnchecked>(image: &I, x: f32, y: f32) -> Pixel {
     // |p01 | p11|
     // -----------
 
-    let p00 = (x.floor() as usize, y.floor() as usize);
+    let p00 = (
+        (x.floor() as usize).min(image.width() - 1),
+        (y.floor() as usize).min(image.height() - 1),
+    );
+
     let p01 = (p00.0, p00.1 + 1);
     let p10 = (p00.0 + 1, p00.1);
     let p11 = (p00.0 + 1, p00.1 + 1);
