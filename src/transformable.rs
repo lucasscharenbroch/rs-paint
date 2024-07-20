@@ -1,7 +1,7 @@
 use crate::image::{resize::ScaleMethod, undo::action::{ActionName, AutoDiffAction}, DrawableImage, DrawablePixel, Image, ImageLike, ImageLikeUnchecked, Pixel};
 
 use gtk::cairo;
-use std::cell::UnsafeCell;
+use std::cell::{RefCell, UnsafeCell};
 
 pub trait Transformable {
     /// Draw the untransformed thing within the unit
@@ -104,17 +104,28 @@ struct SizedSampleable<'s> {
     width: usize,
     height: usize,
     /// hack to allow `pix_at()` to return a reference (even though
-    /// an owned `Pixel` is produced)
-    return_pixel_cell: UnsafeCell<Pixel>,
+    /// an owned `Pixel` is produced) -- this is necessary because the
+    /// `Samplealbe` abstracts away the ability to reference the underlying
+    /// pixel vector
+    // TODO refactor by removing a little generality (in Sampleable, then here)?
+    memo_table: UnsafeCell<Vec<Pixel>>,
+    memo_mask: RefCell<Vec<bool>>,
 }
 
 impl<'s> SizedSampleable<'s> {
     fn new(sampleable: &'s dyn Samplable, width: usize, height: usize) -> SizedSampleable<'s> {
+        let memo_table = UnsafeCell::new(Vec::with_capacity(width * height));
+        unsafe {
+            (*memo_table.get()).set_len(width * height);
+        }
+        let memo_mask = RefCell::new(vec![false; width * height]);
+
         SizedSampleable {
             sampleable,
             width,
             height,
-            return_pixel_cell: UnsafeCell::new(Pixel::from_rgb(0, 0, 0)),
+            memo_table,
+            memo_mask,
         }
     }
 }
@@ -129,19 +140,30 @@ impl<'s> ImageLike for SizedSampleable<'s> {
     }
 
     fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel> {
-        Some(self.pix_at(r, c))
+        if r  < self.height && c < self.height {
+            Some(self.pix_at(r, c))
+        } else {
+            None
+        }
     }
 }
 
 impl<'s> ImageLikeUnchecked for SizedSampleable<'s> {
     fn pix_at(&self, r: usize, c: usize) -> &Pixel {
+        let i = r * self.width + c;
         let x = (c as f64 + 0.5) / self.width as f64;
         let y = (r as f64 + 0.5) / self.height as f64;
 
         unsafe {
-            // Surely there's a better way to do this.
-            *self.return_pixel_cell.get() = self.sampleable.sample(x, y);
-            &*self.return_pixel_cell.get()
+            let mut mask = self.memo_mask.borrow_mut();
+            let table = &mut *self.memo_table.get();
+
+            if !mask[i] {
+                table[i] = self.sampleable.sample(x, y);
+                mask[i] = true;
+            }
+
+            &table[i]
         }
     }
 
@@ -204,8 +226,13 @@ impl<'s> AutoDiffAction for SampleableCommit<'s> {
         let min_y = (min_y.floor() as usize).max(0);
         let max_y = (max_y.ceil() as usize).max(image.height() as usize - 1);
 
-        // TODO actually use interpolation
-        // let interpolation_fn = self.scale_method.interpolation_fn();
+        let sample_fn: Box<dyn Fn(f64, f64) -> Pixel> = if let Some((width, height)) = self.size_option {
+            let sized_samplable = SizedSampleable::new(self.sampleable, width, height);
+            let interpolation_fn = self.scale_method.interpolation_fn::<SizedSampleable>();
+            Box::new(move |x, y| interpolation_fn(&sized_samplable, x as f32 * width as f32, y as f32 * height as f32))
+        } else {
+            Box::new(|x, y| self.sampleable.sample(x, y))
+        };
 
         // iterate all pixels in the bounding box
         for y in min_y..=max_y {
@@ -215,7 +242,7 @@ impl<'s> AutoDiffAction for SampleableCommit<'s> {
                     continue; // skip if out of selection
                 }
 
-                let s = self.sampleable.sample(xp, yp);
+                let s = sample_fn(xp, yp);
                 let p = image.pix_at_mut(y as i32, x as i32);
 
                 *p = Pixel::blend(&s, p);

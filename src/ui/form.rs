@@ -260,6 +260,7 @@ impl<T> DropdownField<T> {
         let dropdown = gtk::DropDown::builder()
             .model(&variant_str_list)
             .valign(gtk::Align::Center)
+            .selected(default as u32)
             .build();
 
         let variants = variants.into_iter()

@@ -192,7 +192,13 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
     let scale_method = DropdownField::new(
         Some("Scaling Algorithm"),
         ScaleMethod::labeled_variants().collect::<Vec<_>>(),
-        0,
+        ScaleMethod::labeled_variants()
+            .map(|(_label, var)| var)
+            .enumerate()
+            .filter(|(_i, var)| *var == ScaleMethod::NearestNeighbor)
+            .map(|(i, _var)| i)
+            .next()
+            .unwrap(), // index of NearestNeighbor (admittedly overkill)
     );
 
     let form = Form::builder()

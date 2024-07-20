@@ -4,7 +4,7 @@ use super::{FusedLayer, Image, ImageLike, ImageLikeUnchecked, TrackedLayeredImag
 use gtk::gdk::RGBA;
 use itertools::{Itertools, Either};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum ScaleMethod {
     NearestNeighbor,
     Bilinear,
