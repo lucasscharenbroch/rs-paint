@@ -1,7 +1,7 @@
 use crate::image::undo::action::{AutoDiffAction, MultiLayerAction, SingleLayerAction};
 use crate::image::{ImageLikeUnchecked, LayerIndex, Pixel};
 use crate::transformable::{Transformable, SampleableCommit, TransformableImage};
-use crate::geometry::{matrix_width_height, xywh_to_matrix};
+use crate::geometry::{matrix_width_height, xywh_to_matrix, xywh_to_matrix_f};
 
 use super::super::image::{Image, FusedLayeredImage, TrackedLayeredImage, DrawableImage, mk_transparent_checkerboard};
 use super::super::image::bitmask::DeletePix;
@@ -1040,7 +1040,10 @@ impl Canvas {
             return;
         }
 
-        let matrix = xywh_to_matrix(0, 0, image.width(), image.height());
+        let (x, y) = self.cursor_pos_pix_f();
+        let (width, height) = (image.width() as f64, image.height() as f64);
+
+        let matrix = xywh_to_matrix_f(x - width / 2.0, y - height / 2.0, width, height);
 
         *self.transformation_selection.borrow_mut() = Some(TransformationSelection::new(
             Box::new(TransformableImage::from_image(image)),

@@ -13,6 +13,14 @@ pub fn xywh_to_matrix(x: usize, y: usize, w: usize, h: usize) -> cairo::Matrix {
     matrix
 }
 
+pub fn xywh_to_matrix_f(x: f64, y: f64, w: f64, h: f64) -> cairo::Matrix {
+    let mut matrix = cairo::Matrix::identity();
+    matrix.translate(x, y);
+    matrix.scale(w, h);
+
+    matrix
+}
+
 /// The effective width and height of a matrix's
 /// unit square
 pub fn matrix_width_height(matrix: &cairo::Matrix) -> (f64, f64) {

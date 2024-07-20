@@ -1,7 +1,6 @@
 use crate::image::{resize::ScaleMethod, undo::action::{ActionName, AutoDiffAction}, DrawableImage, DrawablePixel, Image, ImageLike, ImageLikeUnchecked, Pixel};
 
 use gtk::cairo;
-use std::cell::{RefCell, UnsafeCell};
 
 pub trait Transformable {
     /// Draw the untransformed thing within the unit
