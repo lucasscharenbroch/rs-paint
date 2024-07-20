@@ -4,6 +4,8 @@ use crate::geometry::*;
 use crate::image::undo::action::ActionName;
 use crate::transformable::Transformable;
 
+use std::f64::consts::PI;
+
 /// Canvas-held data associated with a free-transform
 pub struct TransformationSelection {
     pub transformable: Box<dyn Transformable>,
@@ -403,6 +405,8 @@ impl TransformationType {
                 let m0 = vec_magnitude(v0);
                 let m1 = vec_magnitude(v1);
 
+                let matrix_angle = matrix_rotation_angle(matrix);
+
                 let a = (dp / (m0 * m1)).acos();
 
                 // invert the direction, if necessary
@@ -410,10 +414,35 @@ impl TransformationType {
 
                 matrix.translate(0.5, 0.5);
                 matrix.scale(1.0, width / height);
-                matrix.rotate(a);
+
+                #[inline]
+                fn clamped_to_right_angle(angle: f64) -> Option<f64> {
+                    const THRESHOLD: f64 = 0.1;
+
+                    [0.0, PI / 2.0, PI, PI, 3.0 * PI / 2.0, 2.0 * PI].iter()
+                        .map(|target| (angle - target, target))
+                        .filter(|(diff, _target)| diff.abs() < THRESHOLD)
+                        .map(|(_diff, target)| *target)
+                        .next()
+                }
+
+                let res = if should_clamp {
+                    let ap = a + matrix_angle;
+                    if let Some(angle)  = clamped_to_right_angle(ap) {
+                        matrix.rotate(angle - matrix_angle);
+                        (dx, dy)
+                    } else {
+                        matrix.rotate(a);
+                        (0.0, 0.0)
+                    }
+                } else {
+                    matrix.rotate(a);
+                    (0.0, 0.0)
+                };
+
                 matrix.scale(1.0, height / width);
                 matrix.translate(-0.5, -0.5);
-                (0.0, 0.0) // TODO
+                res
             }
         }
     }

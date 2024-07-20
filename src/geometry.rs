@@ -1,3 +1,4 @@
+use std::f64::consts::PI;
 use gtk::cairo;
 
 pub fn point_tuple_dist((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
@@ -16,6 +17,29 @@ pub fn matrix_width_height(matrix: &cairo::Matrix) -> (f64, f64) {
         point_tuple_dist(p00, p10),
         point_tuple_dist(p00, p01),
     )
+}
+
+/// The angle of rotation of the matrix
+pub fn matrix_rotation_angle(matrix: &cairo::Matrix) -> f64 {
+    let up_vec = (0.0, 1.0);
+    let matrix_up_vec = normalized_vec(matrix.transform_distance(0.0, 1.0));
+
+    let res = f64::atan2(
+        cross_product(up_vec, matrix_up_vec),
+        dot_product(up_vec, matrix_up_vec),
+    );
+
+    // fix flipped sign
+    if res < 0.0 {
+        2.0 * PI + res
+    } else {
+        res
+    }
+}
+
+pub fn normalized_vec(vec@(x, y): (f64, f64)) -> (f64, f64) {
+    let magnitude = vec_magnitude(vec);
+    (x / magnitude, y / magnitude)
 }
 
 pub fn vec_magnitude((x, y): (f64, f64)) -> f64 {
