@@ -949,6 +949,11 @@ impl Canvas {
     /// clears the pixels on the image, without committing that change),
     /// switching the mouse mode to free-transform
     pub fn try_consume_selection_to_transformable(&mut self) -> Result<(), ()> {
+        if self.active_layer_locked() {
+            self.alert_user_of_lock("Can't transform: active layer locked");
+            return Err(());
+        }
+
         fn xywh_to_matrix(x: usize, y: usize, w: usize, h: usize) -> cairo::Matrix {
             let mut matrix = cairo::Matrix::identity();
             matrix.translate(x as f64, y as f64);
@@ -1048,11 +1053,21 @@ impl Canvas {
     }
 
     pub fn commit_transformable(&mut self) {
+        if self.active_layer_locked() {
+            self.alert_user_of_lock("Can't commit: active layer locked");
+            return;
+        }
+
         self.commit_transformable_no_update();
         self.update();
     }
 
     pub fn commit_and_scrap_transformable(&mut self) {
+        if self.active_layer_locked() {
+            self.alert_user_of_lock("Can't commit: active layer locked");
+            return;
+        }
+
         self.commit_transformable_no_update();
         let _ = self.scrap_transformable();
     }
