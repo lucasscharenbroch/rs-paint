@@ -1,5 +1,6 @@
 use super::insert_shape::InsertShapeState;
 use super::{FreeTransformState, MouseModeVariant};
+use crate::image::resize::ScaleMethod;
 use crate::{icon_file, vertical_composite_field};
 use crate::image::blend::BlendingMode;
 use crate::image::brush::BrushType;
@@ -120,7 +121,7 @@ fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
     (form, Box::new(get))
 }
 
-type FreeTransformSettings = (bool, bool, bool);
+type FreeTransformSettings = (bool, bool, bool, ScaleMethod);
 fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() -> FreeTransformSettings>) {
     let commit_image = gtk::Image::builder()
         .file(icon_file!("checkmark"))
@@ -188,6 +189,11 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
     let clamp_translate = CheckboxField::new(Some("Clamp Translate"), true);
     let clamp_scale = CheckboxField::new(Some("Clamp Scale"), true);
     let clamp_rotate = CheckboxField::new(Some("Clamp Rotate"), true);
+    let scale_method = DropdownField::new(
+        Some("Scaling Algorithm"),
+        ScaleMethod::labeled_variants().collect::<Vec<_>>(),
+        0,
+    );
 
     let form = Form::builder()
         .orientation(gtk::Orientation::Horizontal)
@@ -198,6 +204,7 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
             &clamp_translate,
             &clamp_scale,
             &clamp_rotate))
+        .with_field(&scale_method)
         .build();
 
     let get = move || {
@@ -205,6 +212,7 @@ fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() 
             clamp_translate.value(),
             clamp_scale.value(),
             clamp_rotate.value(),
+            scale_method.value().clone(),
         )
     };
 

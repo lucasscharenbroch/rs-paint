@@ -1,13 +1,17 @@
-use crate::image::{undo::action::{ActionName, AutoDiffAction}, DrawableImage, DrawablePixel, Image, ImageLike, ImageLikeUnchecked, Pixel};
+use crate::image::{resize::ScaleMethod, undo::action::{ActionName, AutoDiffAction}, DrawableImage, DrawablePixel, Image, ImageLike, ImageLikeUnchecked, Pixel};
 
 use gtk::cairo;
+use std::cell::UnsafeCell;
 
 pub trait Transformable {
     /// Draw the untransformed thing within the unit
     /// square: (0.0, 0.0) (1.0, 1.0)
     fn draw(&mut self, cr: &cairo::Context, pixel_width: f64, pixel_height: f64);
-    // TODO: avoid the generation/make an accessor (?)
     fn gen_sampleable(&mut self, pixel_width: f64, pixel_height: f64) -> Box<dyn Samplable>;
+    /// returns Some((width, height)) if the underlying samplable is
+    /// made up of discrete units (like an image), otherwise None
+    /// (this is used for interpolation)
+    fn try_size(&self) -> Option<(usize, usize)>;
 }
 
 pub trait Samplable {
@@ -50,6 +54,10 @@ impl Transformable for TransformableImage {
     fn gen_sampleable(&mut self, _pixel_width: f64, _pixel_height: f64) -> Box<dyn Samplable> {
         self.image.clone()
     }
+
+    fn try_size(&self) -> Option<(usize, usize)> {
+        Some((self.image.width(), self.image.height()))
+    }
 }
 
 impl Samplable for Image {
@@ -86,17 +94,83 @@ impl Samplable for DrawableImage {
     }
 }
 
+/// A wrapper for a Samplable (reference) with
+/// an underlying size, allowing for pixel accesses
+/// (and therefore interpolation)
+struct SizedSampleable<'s> {
+    sampleable: &'s dyn Samplable,
+    // the width/height are used to determine the interpolation
+    // points (still within the unit square)
+    width: usize,
+    height: usize,
+    /// hack to allow `pix_at()` to return a reference (even though
+    /// an owned `Pixel` is produced)
+    return_pixel_cell: UnsafeCell<Pixel>,
+}
+
+impl<'s> SizedSampleable<'s> {
+    fn new(sampleable: &'s dyn Samplable, width: usize, height: usize) -> SizedSampleable<'s> {
+        SizedSampleable {
+            sampleable,
+            width,
+            height,
+            return_pixel_cell: UnsafeCell::new(Pixel::from_rgb(0, 0, 0)),
+        }
+    }
+}
+
+impl<'s> ImageLike for SizedSampleable<'s> {
+    fn height(&self) -> usize {
+        self.height
+    }
+
+    fn width(&self) -> usize {
+        self.width
+    }
+
+    fn try_pix_at(&self, r: usize, c: usize) -> Option<&Pixel> {
+        Some(self.pix_at(r, c))
+    }
+}
+
+impl<'s> ImageLikeUnchecked for SizedSampleable<'s> {
+    fn pix_at(&self, r: usize, c: usize) -> &Pixel {
+        let x = (c as f64 + 0.5) / self.width as f64;
+        let y = (r as f64 + 0.5) / self.height as f64;
+
+        unsafe {
+            // Surely there's a better way to do this.
+            *self.return_pixel_cell.get() = self.sampleable.sample(x, y);
+            &*self.return_pixel_cell.get()
+        }
+    }
+
+    fn pix_at_flat(&self, i:usize) -> &Pixel {
+        self.pix_at(i / self.width, i % self.width)
+    }
+}
+
 pub struct SampleableCommit<'s> {
     matrix: cairo::Matrix,
-    sampleable: &'s Box<dyn Samplable>,
+    sampleable: &'s dyn Samplable,
+    scale_method: ScaleMethod,
+    size_option: Option<(usize, usize)>,
     culprit: ActionName,
 }
 
 impl<'s> SampleableCommit<'s> {
-    pub fn new(sampleable: &'s Box<dyn Samplable>, matrix: cairo::Matrix, culprit: ActionName) -> Self {
+    pub fn new(
+        sampleable: &'s dyn Samplable,
+        matrix: cairo::Matrix,
+        scale_method: ScaleMethod,
+        size_option: Option<(usize, usize)>,
+        culprit: ActionName
+    ) -> Self {
         SampleableCommit {
             matrix,
             sampleable,
+            scale_method,
+            size_option,
             culprit,
         }
     }
@@ -129,6 +203,9 @@ impl<'s> AutoDiffAction for SampleableCommit<'s> {
         let max_x = (max_x.ceil() as usize).max(image.width() as usize - 1);
         let min_y = (min_y.floor() as usize).max(0);
         let max_y = (max_y.ceil() as usize).max(image.height() as usize - 1);
+
+        // TODO actually use interpolation
+        // let interpolation_fn = self.scale_method.interpolation_fn();
 
         // iterate all pixels in the bounding box
         for y in min_y..=max_y {

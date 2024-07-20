@@ -4,11 +4,28 @@ use super::{FusedLayer, Image, ImageLike, ImageLikeUnchecked, TrackedLayeredImag
 use gtk::gdk::RGBA;
 use itertools::{Itertools, Either};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum ScaleMethod {
     NearestNeighbor,
     Bilinear,
 }
+
+impl ScaleMethod {
+    pub fn labeled_variants() -> impl Iterator<Item = (&'static str, Self)> {
+        [
+            ("Bilinear", ScaleMethod::Bilinear),
+            ("Nearest Neighbor", ScaleMethod::NearestNeighbor),
+        ].iter().map(|x| x.clone())
+    }
+
+    pub fn interpolation_fn<I: ImageLikeUnchecked>(&self) -> (fn(&I, f32, f32) -> Pixel) {
+        match self {
+            Self::Bilinear => bilinear,
+            Self::NearestNeighbor => nearest_neighbor,
+        }
+    }
+}
+
 
 #[derive(Clone)]
 pub struct Scale {
@@ -59,10 +76,7 @@ impl MultiLayerAction for Scale {
     }
 
     fn exec(&mut self, _layer_data: &mut Self::LayerData, image: &mut Image) {
-        match self.method {
-            ScaleMethod::NearestNeighbor => self.exec_scale_with_fn(image, nearest_neighbor),
-            ScaleMethod::Bilinear => self.exec_scale_with_fn(image, bilinear),
-        }
+        self.exec_scale_with_fn(image, self.method.interpolation_fn());
     }
 
     fn undo(&mut self, layer_data: &mut Self::LayerData, image: &mut Image) {
@@ -71,7 +85,7 @@ impl MultiLayerAction for Scale {
 }
 
 #[inline]
-fn nearest_neighbor(image: &Image, x: f32, y: f32) -> Pixel {
+fn nearest_neighbor<I: ImageLikeUnchecked>(image: &I, x: f32, y: f32) -> Pixel {
     image.pix_at(y.floor() as usize, x.floor() as usize).clone()
 }
 
@@ -113,7 +127,7 @@ impl Pixel {
 }
 
 #[inline]
-fn bilinear(image: &Image, x: f32, y: f32) -> Pixel {
+fn bilinear<I: ImageLikeUnchecked>(image: &I, x: f32, y: f32) -> Pixel {
     // find four nearest points:
     // (the `.` is (x, y))
     // -----------

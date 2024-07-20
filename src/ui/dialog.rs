@@ -105,10 +105,7 @@ pub fn scale_dialog<P: Fn(Scale) + 'static>(
         default_h,
         false,
     );
-    let methods = vec![
-        ("Bilinear", ScaleMethod::Bilinear),
-        ("Nearest Neighbor", ScaleMethod::NearestNeighbor),
-    ];
+    let methods = ScaleMethod::labeled_variants().collect::<Vec<_>>();
     let method_field = DropdownField::new(Some("Scaling Algorithm"), methods, 0);
 
     let form = Form::builder()

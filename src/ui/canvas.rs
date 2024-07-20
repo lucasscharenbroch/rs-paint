@@ -1014,7 +1014,13 @@ impl Canvas {
         if let Some(selection) = transformable_option.as_mut() {
             let (width, height) = matrix_width_height(&selection.matrix);
             let sampleable = selection.transformable.gen_sampleable(width, height);
-            let commit_struct = SampleableCommit::new(&sampleable, selection.matrix, selection.culprit.clone());
+            let commit_struct = SampleableCommit::new(
+                &*sampleable,
+                selection.matrix,
+                self.ui_p.borrow().toolbar_p.borrow().get_free_transform_scale_method(),
+                selection.transformable.try_size(),
+                selection.culprit.clone(),
+            );
 
             // self.exec_auto_diff_action(commit_struct);
             // can't call because of ownership: work-around:

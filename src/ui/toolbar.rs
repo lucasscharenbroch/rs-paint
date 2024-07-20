@@ -8,6 +8,7 @@ use super::UiState;
 use palette::Palette;
 use crate::image::brush::{Brush, BrushType};
 use crate::image::blend::BlendingMode;
+use crate::image::resize::ScaleMethod;
 use crate::shape::ShapeType;
 use super::toolbar::mode::ModeToolbar;
 use super::super::icon_file;
@@ -287,5 +288,9 @@ impl Toolbar {
 
     fn get_clamp_rotate(&self) -> bool {
         self.mode_toolbar.get_free_transform_settings().2
+    }
+
+    pub fn get_free_transform_scale_method(&self) -> ScaleMethod {
+        self.mode_toolbar.get_free_transform_settings().3
     }
 }

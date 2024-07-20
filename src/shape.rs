@@ -80,6 +80,10 @@ impl Transformable for Shape {
 
         Box::new(drawable_image)
     }
+
+    fn try_size(&self) -> Option<(usize, usize)> {
+        None
+    }
 }
 
 #[derive(Clone, Copy)]
