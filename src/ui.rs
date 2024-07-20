@@ -7,6 +7,7 @@ mod io;
 mod tab;
 mod form;
 mod layer_window;
+mod infobar;
 
 use canvas::Canvas;
 use toolbar::Toolbar;

@@ -15,6 +15,7 @@ use super::toolbar::mode::{CursorState, FreeTransformState, MouseMode, Transform
 use crate::image::{ImageLike, blend::BlendingMode};
 use super::layer_window::LayerWindow;
 use super::dialog::modal_ok_dialog_str;
+use super::infobar::Infobar;
 
 use gtk::prelude::*;
 use gtk::gdk::{ModifierType, RGBA};
@@ -34,6 +35,7 @@ pub struct Canvas {
     /// NOT THE IMAGE (use `*_pos_pix` for pixel-relative coords)
     cursor_pos: (f64, f64),
     drawing_area: gtk::DrawingArea,
+    infobar: Infobar,
     grid: gtk::Grid,
     selection: Selection,
     v_scrollbar: gtk::Scrollbar,
@@ -104,6 +106,10 @@ impl Canvas {
 
         grid.attach(&drawing_area, 0, 0, 1, 1);
 
+        let infobar = Infobar::new();
+
+        grid.attach(infobar.widget(), 0, 2, 2, 1);
+
         let v_scrollbar = gtk::Scrollbar::new(gtk::Orientation::Vertical, gtk::Adjustment::NONE);
         let h_scrollbar = gtk::Scrollbar::new(gtk::Orientation::Horizontal, gtk::Adjustment::NONE);
 
@@ -118,6 +124,7 @@ impl Canvas {
             pan: (0.0, 0.0),
             cursor_pos: (0.0, 0.0),
             drawing_area,
+            infobar,
             grid,
             selection: Selection::NoSelection,
             v_scrollbar,
