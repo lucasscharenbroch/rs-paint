@@ -282,6 +282,7 @@ impl Canvas {
 
         motion_controller.connect_motion(clone!(@strong ui_p, @strong canvas_p => move |ecm, x, y| {
             canvas_p.borrow_mut().update_cursor_pos(x, y);
+            canvas_p.borrow_mut().update_infobar();
             run_non_lockable_mouse_mode_hook!(ui_p, canvas_p, ecm, handle_motion);
         }));
 
@@ -590,6 +591,10 @@ impl Canvas {
         }
     }
 
+    fn update_infobar(&mut self) {
+        self.infobar.update(self)
+    }
+
     pub fn update_after_undo_or_redo(&mut self) {
         let last_cursor_pos_pix = self.last_cursor_pos_pix();
         if let MouseMode::Pencil(ref mut pencil_state) = self.ui_p.borrow_mut()
@@ -609,6 +614,7 @@ impl Canvas {
     pub fn update(&mut self) {
         self.update_scrollbars();
         self.validate_selection();
+        self.update_infobar();
         self.drawing_area.queue_draw();
 
         let aspect_ratio = self.image_width() as f64 /
