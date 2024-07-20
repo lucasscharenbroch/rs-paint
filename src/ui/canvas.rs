@@ -1047,6 +1047,7 @@ impl Canvas {
             matrix,
             ActionName::Transform,
         ));
+        self.selection = Selection::NoSelection;
         self.update();
     }
 
