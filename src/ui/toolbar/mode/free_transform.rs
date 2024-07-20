@@ -256,8 +256,8 @@ impl TransformationType {
         // after-clamp scale
         let (sx, sy, rx, ry) = if should_clamp {
             let (rsx, rsy) = (
-                (sx * width).round().max(1.0 / width) / width,
-                (sy * height).round().max(1.0 / height) / height,
+                (sx * width).floor().max(1.0 / width) / width,
+                (sy * height).floor().max(1.0 / height) / height,
             );
             (rsx, rsy, sx - rsx, sy - rsy)
         } else {
@@ -273,9 +273,9 @@ impl TransformationType {
         matrix.scale(sx, sy);
 
         // remainder
-        (
-            rx * width * -left,
-            ry * height * -up,
+        matrix.transform_distance(
+            rx * -left,
+            ry * -up,
         )
     }
 
