@@ -924,6 +924,7 @@ impl Canvas {
     }
 
     pub fn toggle_layer_lock(&mut self, layer_index: LayerIndex) {
+        self.image_hist.commit_any_changes_on_active_layer();
         self.image_hist.now_mut().toggle_layer_lock(layer_index);
         self.update();
     }

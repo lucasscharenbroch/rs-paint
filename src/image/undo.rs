@@ -449,7 +449,7 @@ impl ImageHistory {
         self.apply_and_push_diff(image_diff, ActionName::CloneLayer);
     }
 
-    fn commit_any_changes_on_active_layer(&mut self) -> bool {
+    pub fn commit_any_changes_on_active_layer(&mut self) -> bool {
         if self.now_mut().has_unsaved_changes() {
             // if self is modified in any way, push the sate with Anon
             self.push_current_state(ActionName::Anonymous);
