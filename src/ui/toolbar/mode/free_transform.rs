@@ -303,8 +303,15 @@ impl TransformationType {
         match self {
             Self::Sterile => (0.0, 0.0),
             Self::Translate => {
-                matrix.translate(dx, dy);
-                (0.0, 0.0) // TODO
+                if should_clamp {
+                    let (rdx, rdy) = ((dx * width).floor() / width, (dy * height).floor() / height);
+                    let (rx, ry) = (dx - rdx, dy - rdy);
+                    matrix.translate(rdx, rdy);
+                    matrix.transform_distance(rx, ry)
+                } else {
+                    matrix.translate(dx, dy);
+                    (0.0, 0.0)
+                }
             },
             Self::ScaleUpLeft => {
                 Self::do_scale(
