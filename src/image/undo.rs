@@ -376,6 +376,10 @@ impl ImageHistory {
     }
 
     pub fn undo(&mut self) {
+        if self.commit_any_changes_on_active_layer() {
+            self.undo(); // undo those committed changes
+        }
+
         if let Some(d) = self.undo_tree.undo() {
             let mut to_update = DrawablesToUpdate::new();
             d.borrow_mut().unapply_to(&mut self.now, &mut to_update);
@@ -384,6 +388,14 @@ impl ImageHistory {
     }
 
     pub fn redo(&mut self) {
+        let target_id_option = self.undo_tree.peek_redo_target_id();
+        if self.commit_any_changes_on_active_layer() {
+            if let Some(target_id) = target_id_option {
+                self.migrate_to_commit(target_id);
+            }
+            return;
+        }
+
         if let Some(d) = self.undo_tree.redo() {
             let mut to_update = DrawablesToUpdate::new();
             d.borrow_mut().apply_to(&mut self.now, &mut to_update);
@@ -405,6 +417,8 @@ impl ImageHistory {
     // locate the given commit-id in the tree, then
     // apply the diffs along the path to that commit
     fn migrate_to_commit(&mut self, target_id: usize) {
+        self.commit_any_changes_on_active_layer();
+
         assert!(self.id_exists(target_id), "can't migrate to a non-existant commit");
         let diffs = self.undo_tree.traverse_to(target_id);
 
@@ -435,11 +449,13 @@ impl ImageHistory {
         self.apply_and_push_diff(image_diff, ActionName::CloneLayer);
     }
 
-    fn commit_any_changes_on_active_layer(&mut self) {
-        let (mod_pix, _layer) = self.now_mut().get_and_reset_modified();
-        if !mod_pix.is_empty() {
+    fn commit_any_changes_on_active_layer(&mut self) -> bool {
+        if self.now_mut().has_unsaved_changes() {
             // if self is modified in any way, push the sate with Anon
             self.push_current_state(ActionName::Anonymous);
+            true
+        } else {
+            false
         }
     }
 

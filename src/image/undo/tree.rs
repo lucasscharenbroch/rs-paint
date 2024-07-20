@@ -237,6 +237,12 @@ impl UndoTree {
         Some(self.current.value.clone())
     }
 
+    /// Finds the id of the node that will be re-done to
+    pub fn peek_redo_target_id(&self) -> Option<usize> {
+        self.current.children.borrow().get(*self.current.recent_child_idx.borrow())
+            .map(|undo_node| undo_node.id())
+    }
+
     pub fn widget(&self) -> &impl IsA<Widget> {
         &self.widget
     }
