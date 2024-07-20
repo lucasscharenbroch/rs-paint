@@ -1,4 +1,6 @@
-use crate::image::{Image, Pixel};
+use crate::image::{Image, ImageLike, Pixel};
+
+use std::borrow::Cow;
 
 /// Wrapper for arboard::Clipboard; using the wrapper
 /// to make it easiser to tweak the api/ add side-effects
@@ -6,6 +8,7 @@ use crate::image::{Image, Pixel};
 /// Fails gracefully when the clipboard is unavailable.
 pub struct Clipboard {
     clipboard: Option<arboard::Clipboard>,
+    copied_image: Option<Image>,
 }
 
 impl Clipboard {
@@ -19,7 +22,8 @@ impl Clipboard {
         }
 
         Clipboard {
-            clipboard
+            clipboard,
+            copied_image: None,
         }
     }
 
@@ -42,6 +46,25 @@ impl Clipboard {
         })
     }
 
-    pub fn set_image(&mut self, image: &Image) {
+    pub fn set_image(&mut self, image: Image) {
+        self.clipboard.as_mut().map(|clipboard| {
+            let width = image.width();
+            let height = image.height();
+            self.copied_image = Some(image);
+
+            let bytes = unsafe {
+                let ptr = self.copied_image.as_ref().unwrap().pixels().as_slice().as_ptr() as *const u8;
+                let slice = std::slice::from_raw_parts(ptr, width * height * 4);
+                Cow::from(slice)
+            };
+
+            let image_data = arboard::ImageData {
+                width,
+                height,
+                bytes,
+            };
+
+            let _ = clipboard.set_image(image_data);
+        });
     }
 }

@@ -955,44 +955,13 @@ impl Canvas {
             return Err(());
         }
 
-        let res = match self.selection {
-            Selection::Rectangle(x, y, w, h) => {
-                *self.transformation_selection.borrow_mut() = Some(TransformationSelection::new(
-                    Box::new(TransformableImage::from_image(self.active_image().subimage(x, y, w, h))),
-                    xywh_to_matrix(x, y, w, h),
-                    ActionName::Transform,
-                ));
+        let (image, matrix) = self.try_copy_selection()?;
 
-                Ok(())
-            },
-            Selection::Bitmask(ref bitmask) => {
-                let (x, y, w, h) = bitmask.bounding_box();
-
-                if w == 0 || h == 0 {
-                    Err(())
-                } else {
-                    let subimage = self.active_image().subimage(x, y, w, h);
-                    let submask = bitmask.submask(x, y, w, h);
-                    let transparent = Pixel::from_rgba(0, 0, 0, 0);
-
-                    let pixels = (0..(w * h))
-                        .map(|i| if submask.bit_at(i) { subimage.pix_at_flat(i) } else { &transparent })
-                        .map(|p| p.clone())
-                        .collect::<Vec<_>>();
-
-                    let masked_image = Image::new(pixels, w, h);
-
-                    *self.transformation_selection.borrow_mut() = Some(TransformationSelection::new(
-                        Box::new(TransformableImage::from_image(masked_image)),
-                        xywh_to_matrix(x, y, w, h),
-                        ActionName::Transform,
-                    ));
-
-                    Ok(())
-                }
-            },
-            _ => Err(()),
-        };
+        *self.transformation_selection.borrow_mut() = Some(TransformationSelection::new(
+            Box::new(TransformableImage::from_image(image)),
+            matrix,
+            ActionName::Transform
+        ));
 
         let selection = std::mem::replace(&mut self.selection, Selection::NoSelection);
         for (i, j) in selection.iter() {
@@ -1000,7 +969,7 @@ impl Canvas {
                 crate::image::Pixel::from_rgba(0, 0, 0, 0); // transparent
         }
 
-        res
+        Ok(())
     }
 
     pub fn scrap_transformable(&mut self) {
@@ -1079,5 +1048,37 @@ impl Canvas {
             ActionName::Transform,
         ));
         self.update();
+    }
+
+    pub fn try_copy_selection(&self) -> Result<(Image, cairo::Matrix), ()> {
+        match self.selection {
+            Selection::Rectangle(x, y, w, h) => {
+                let image = self.active_image().subimage(x, y, w, h);
+                let matrix = xywh_to_matrix(x, y, w, h);
+                Ok((image, matrix))
+            },
+            Selection::Bitmask(ref bitmask) => {
+                let (x, y, w, h) = bitmask.bounding_box();
+
+                if w == 0 || h == 0 {
+                    Err(())
+                } else {
+                    let subimage = self.active_image().subimage(x, y, w, h);
+                    let submask = bitmask.submask(x, y, w, h);
+                    let transparent = Pixel::from_rgba(0, 0, 0, 0);
+
+                    let pixels = (0..(w * h))
+                        .map(|i| if submask.bit_at(i) { subimage.pix_at_flat(i) } else { &transparent })
+                        .map(|p| p.clone())
+                        .collect::<Vec<_>>();
+
+                    let masked_image = Image::new(pixels, w, h);
+                    let matrix = xywh_to_matrix(x, y, w, h);
+
+                    Ok((masked_image, matrix))
+                }
+            },
+            _ => Err(()),
+        }
     }
 }

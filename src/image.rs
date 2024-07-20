@@ -130,6 +130,10 @@ impl Image {
 
         Image::new(pix, w, h)
     }
+
+    pub fn pixels(&self) -> &Vec<Pixel> {
+        &self.pixels
+    }
 }
 
 /// A read-only interface for mixing-and-matching image types

@@ -303,6 +303,7 @@ impl UiState {
                 gdk::Key::e => Self::export(ui_p.clone()),
                 gdk::Key::q => Self::quit(ui_p.clone()),
                 gdk::Key::v => Self::paste(ui_p.clone()),
+                gdk::Key::c => Self::copy(ui_p.clone()),
                 // Remember to add any new shortcuts to `dialog::info::keyboard_shortcuts_dialog`
                 _ => (),
             }
@@ -578,5 +579,19 @@ impl UiState {
             canvas_p.borrow_mut().place_image(image_to_paste);
             ui_p.borrow().toolbar_p.borrow_mut().set_mouse_mode(MouseMode::free_transform(&mut canvas_p.borrow_mut()));
         }
+    }
+
+    fn copy(ui_p: Rc<RefCell<Self>>) {
+        let copied_image = if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            if let Ok((image, _matrix)) = canvas_p.borrow().try_copy_selection() {
+                image
+            } else {
+                return;
+            }
+        } else {
+            return;
+        };
+
+        ui_p.borrow_mut().clipboard.set_image(copied_image);
     }
 }
