@@ -314,6 +314,7 @@ impl UiState {
             match key {
                 gdk::Key::L => Self::load_project(ui_p.clone()),
                 gdk::Key::S => Self::save_project_as(ui_p.clone()),
+                gdk::Key::V => Self::paste_as_tab(ui_p.clone()),
                 _ => (),
             }
         }
@@ -579,6 +580,16 @@ impl UiState {
             canvas_p.borrow_mut().place_image(image_to_paste);
             ui_p.borrow().toolbar_p.borrow_mut().set_mouse_mode(MouseMode::free_transform(&mut canvas_p.borrow_mut()));
         }
+    }
+
+    fn paste_as_tab(ui_p: Rc<RefCell<Self>>) {
+        let image_to_paste = if let Some(image_to_paste) = ui_p.borrow_mut().clipboard.get_image() {
+            image_to_paste
+        } else {
+            return;
+        };
+
+        UiState::new_tab(&ui_p, image_to_paste, "[pasted]");
     }
 
     fn copy(ui_p: Rc<RefCell<Self>>) {
