@@ -261,7 +261,10 @@ impl TransformationType {
             );
             (rsx, rsy, sx - rsx, sy - rsy)
         } else {
-            (sx, sy, 0.0, 0.0)
+            // prevent cross-over and zero-size here too
+            // (zero size for matrix inversion problems;
+            // cross-over for rotation bugs when crossed)
+            (sx.max(0.1 / width), sy.max(0.1 / height), 0.0, 0.0)
         };
 
         let (tx, ty) = (
