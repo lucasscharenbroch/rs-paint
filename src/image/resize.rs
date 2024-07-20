@@ -52,8 +52,8 @@ impl Scale {
         for i in 0..self.h {
             for j in 0..self.w {
                 // project (i, j) into the coords of `image`
-                let x_proj = j as f32 / self.w as f32 * image.width() as f32;
-                let y_proj = i as f32 / self.h as f32 * image.height() as f32;
+                let x_proj = (j as f32 + 0.5) / self.w as f32 * image.width() as f32;
+                let y_proj = (i as f32 + 0.5) / self.h as f32 * image.height() as f32;
                 let p = interpolation_fn(&image, x_proj, y_proj);
 
                 new_pix.push(p);
@@ -141,8 +141,8 @@ fn bilinear<I: ImageLikeUnchecked>(image: &I, x: f32, y: f32) -> Pixel {
     let p10 = (p00.0 + 1, p00.1);
     let p11 = (p00.0 + 1, p00.1 + 1);
 
-    let percent_left = 1.0 - (x - p00.0 as f32);
-    let percent_up = 1.0 - (y - p00.1 as f32);
+    let percent_left = 1.0 - (x - (p00.0 as f32 + 0.5));
+    let percent_up = 1.0 - (y - (p00.1 as f32 + 0.5));
 
     // p00 should always be in-bounds
     let p00 = image.pix_at(p00.1, p00.0);

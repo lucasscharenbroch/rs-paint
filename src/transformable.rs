@@ -208,10 +208,10 @@ impl<'s> AutoDiffAction for SampleableCommit<'s> {
 
         // get the tranformation's corners
         let corners =  vec![
-            inverse.transform_point(0.0, 0.0),
-            inverse.transform_point(1.0, 0.0),
-            inverse.transform_point(0.0, 1.0),
-            inverse.transform_point(1.0, 1.0),
+            self.matrix.transform_point(0.0, 0.0),
+            self.matrix.transform_point(1.0, 0.0),
+            self.matrix.transform_point(0.0, 1.0),
+            self.matrix.transform_point(1.0, 1.0),
         ];
 
         // compute bounding box/ extreme coordinates
@@ -222,9 +222,9 @@ impl<'s> AutoDiffAction for SampleableCommit<'s> {
 
         // cast them into existant pixel coordinates
         let min_x = (min_x.floor() as usize).max(0);
-        let max_x = (max_x.ceil() as usize).max(image.width() as usize - 1);
+        let max_x = (max_x.ceil() as usize).min(image.width() as usize - 1);
         let min_y = (min_y.floor() as usize).max(0);
-        let max_y = (max_y.ceil() as usize).max(image.height() as usize - 1);
+        let max_y = (max_y.ceil() as usize).min(image.height() as usize - 1);
 
         let sample_fn: Box<dyn Fn(f64, f64) -> Pixel> = if let Some((width, height)) = self.size_option {
             let sized_samplable = SizedSampleable::new(self.sampleable, width, height);
