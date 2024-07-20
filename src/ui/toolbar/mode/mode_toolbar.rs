@@ -23,8 +23,6 @@ fn mk_pencil_toolbar() -> (Form, Box<dyn Fn() -> PencilSettings>) {
         ("Square", BrushType::Square),
         ("Caligraphy", BrushType::Caligraphy),
         ("Dither", BrushType::Dither),
-        ("Pen", BrushType::Pen),
-        ("Crayon", BrushType::Crayon),
     ];
 
     let blending_modes = vec![

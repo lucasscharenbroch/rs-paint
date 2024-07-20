@@ -10,8 +10,6 @@ pub enum BrushType {
     Round,
     Dither,
     Caligraphy,
-    Pen, // faded round
-    Crayon, // faded dither
 }
 
 #[derive(PartialEq)]
@@ -142,8 +140,6 @@ impl Brush {
             BrushType::Round => mk_round_brush_image(r, false, false, props.primary_color, props.secondary_color),
             BrushType::Dither => mk_round_brush_image(r, false, true, props.primary_color, props.secondary_color),
             BrushType::Caligraphy => mk_caligraphy_brush_image(r, props.primary_color, props.secondary_color),
-            BrushType::Pen => mk_round_brush_image(r, true, false, props.primary_color, props.secondary_color),
-            BrushType::Crayon => mk_round_brush_image(r, true, true, props.primary_color, props.secondary_color),
         }
     }
 
