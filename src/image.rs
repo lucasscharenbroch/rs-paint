@@ -67,6 +67,22 @@ impl Pixel {
                          (above.b as f64 * o + below.b as f64 * t) as u8,
                          std::cmp::max(above.a, below.a))
     }
+
+    pub fn red(&self) -> u8 {
+        self.r
+    }
+
+    pub fn green(&self) -> u8 {
+        self.g
+    }
+
+    pub fn blue(&self) -> u8 {
+        self.b
+    }
+
+    pub fn alpha(&self) -> u8 {
+        self.a
+    }
 }
 
 const GRAY: Pixel = Pixel::from_rgb(211, 211, 211);

@@ -135,16 +135,33 @@ fn string_to_colors(string: &str) -> Result<Vec<Pixel>, String> {
 }
 
 fn colors_to_string(colors: Vec<Pixel>) -> String {
-    todo!()
+    colors.iter().map(|pix| {
+        // rgb:
+        // format!("{},{},{},{}\n", pix.red(), pix.green(), pix.blue(), pix.alpha())
+
+        // hex:
+        format!(
+            "#{:02x}{:02x}{:02x}{:02x}\n",
+            pix.red(),
+            pix.green(),
+            pix.blue(),
+            pix.alpha(),
+        )
+    })
+    .collect::<String>()
+}
+
+fn all_files() -> gtk::gio::ListStore {
+    let valid_filetypes = gtk::gio::ListStore::new::<gtk::FileFilter>();
+    let all = gtk::FileFilter::new();
+    all.set_name(Some("All Files"));
+    all.add_pattern("*");
+    valid_filetypes.append(&all);
+    valid_filetypes
 }
 
 impl UiState {
     pub fn import_palette(ui_p: Rc<RefCell<UiState>>) {
-        let valid_filetypes = gtk::gio::ListStore::new::<gtk::FileFilter>();
-        let all = gtk::FileFilter::new();
-        all.set_name(Some("All Files"));
-        all.add_pattern("*");
-        valid_filetypes.append(&all);
 
         fn gfile_to_colors(gfile: gtk::gio::File) -> Result<Vec<Pixel>, String> {
             let path = gfile.path().unwrap();
@@ -155,7 +172,7 @@ impl UiState {
         }
 
         choose_file_dialog(&ui_p.borrow().window, "Choose an palette to import",
-            "Import Palette", &valid_filetypes, false,
+            "Import", &all_files(), false,
             clone!(@strong ui_p => move |res| {
                 if let Ok(gfile) = res {
                     match gfile_to_colors(gfile) {
@@ -174,11 +191,41 @@ impl UiState {
                 }
             })
         );
-        println!("{:?}", string_to_colors("#01020304\n      233,432,33\n1,1,1,1,\n\n"));
-        // todo!("import palette");
     }
 
     pub fn export_palette(ui_p: Rc<RefCell<UiState>>) {
-        todo!("export palette");
+        let colors = ui_p.borrow().toolbar_p.borrow().palette_p.borrow()
+            .color_buttons.iter().flatten()
+            .map(|cb_p| cb_p.borrow().color)
+            .filter_map(|opt| opt)
+            .map(|rgba| Pixel::from_rgba_struct(rgba))
+            .collect::<Vec<_>>();
+
+        let colors_str = colors_to_string(colors);
+
+        fn write_string_to_gfile(s: &str, gfile: gtk::gio::File) -> Result<(), String> {
+            let path = gfile.path().unwrap();
+            let mut file = File::create(path).map_err(|e| e.to_string())?;
+            std::io::Write::write_all(&mut file, s.as_bytes()).map_err(|e| e.to_string())?;
+            Ok(())
+        }
+
+        choose_file_dialog(&ui_p.borrow().window, "Export Palette",
+            "Export", &all_files(), true,
+            clone!(@strong ui_p => move |res| {
+                if let Ok(gfile) = res {
+                    match write_string_to_gfile(&colors_str, gfile) {
+                        Ok(()) => (),
+                        Err(mesg) => {
+                            ok_dialog_str_(
+                                ui_p.borrow().window(),
+                                "Palette Export Error",
+                                format!("Error during export: {}", mesg).as_str()
+                            );
+                        },
+                    }
+                }
+            })
+        );
     }
 }

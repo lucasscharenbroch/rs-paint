@@ -19,7 +19,7 @@ A lightweight image editor, written in Rust using GTK4.
     - [ ] Text
 - Color Palette
     - Primary and Secondary Colors
-    - [ ] Import/Export Palette
+    - Import/Export Palette
 - Image Transformations
   - Flips
   - Rotations
