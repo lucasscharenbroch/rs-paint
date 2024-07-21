@@ -59,6 +59,7 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<gtk::Window>) {
     let rectangle_select_mode = group_from_specs("Rectangle Select Mode", &[
         ("Crop to Selection", "<Ctrl>Pointer_Left"),
         ("Clear Selection", "Pointer_Right"),
+        ("Lock Aspect Ratio", "<Shift>"),
     ]);
 
     let magic_wand_mode = group_from_specs("Magic Wand Mode", &[
@@ -66,22 +67,29 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<gtk::Window>) {
     ]);
 
     let eyedropper_mode = group_from_specs("Eyedropper Mode", &[
-        ("Eyedrop into palette", "<Ctrl>Pointer_Left"),
+        ("Eyedrop into Palette", "<Ctrl>Pointer_Left"),
+    ]);
+
+    let free_transform_mode = group_from_specs("Free Transform Mode", &[
+        ("Lock Aspect Ratio", "<Shift>"),
+    ]);
+
+    let all_modes = group_from_specs("All Modes", &[
+        ("Select All", "<Ctrl>a"),
+        ("Copy Selection", "<Ctrl>c"),
+        ("Paste as Transformation", "<Ctrl>p"),
+        ("Paste as Tab", "<Ctrl><Shift>p"),
     ]);
 
     let palette = group_from_specs("Palette", &[
-        ("Change palette color", "Pointer_Right"),
-        ("Remove palette color", "<Ctrl>Pointer_Right"),
+        ("Change Palette Color", "Pointer_Right"),
+        ("Remove Palette Color", "<Ctrl>Pointer_Right"),
     ]);
 
     let undo = group_from_specs("Undo", &[
         ("Undo", "<Ctrl>z"),
         ("Redo", "<Ctrl>y"),
         ("Undo History", "<Ctrl>h"),
-    ]);
-
-    let all_modes = group_from_specs("All Modes", &[
-        ("Select All", "<Ctrl>a"),
     ]);
 
     let misc = group_from_specs("Miscellaneous", &[
@@ -93,6 +101,7 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<gtk::Window>) {
         ("New Image", "<Ctrl>n"),
         ("Import Image", "<Ctrl>i"),
         ("Export Image", "<Ctrl>e"),
+        ("Import onto Canvas", "<Ctrl>o"),
         ("Load Project File", "<Ctrl><Shift>l"),
         ("Save Project As", "<Ctrl><Shift>s"),
     ]);
@@ -107,6 +116,7 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<gtk::Window>) {
     main_section.add_group(&rectangle_select_mode);
     main_section.add_group(&magic_wand_mode);
     main_section.add_group(&eyedropper_mode);
+    main_section.add_group(&free_transform_mode);
     main_section.add_group(&all_modes);
     main_section.add_group(&palette);
     main_section.add_group(&misc);
