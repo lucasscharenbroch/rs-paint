@@ -106,6 +106,10 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (gio::Menu, Vec<gio::SimpleAct
             .item("90\u{00B0} Counter-Clockwise", "rotate-90-counter-clockwise", rotate_counter_clockwise_fn)
             .item("180\u{00B0}", "rotate-180", rotate_180_fn));
 
+    let palette_menu = MenuBuilder::new()
+        .item("Import", "import-palette", Box::new(clone!(@strong ui_state => move || UiState::import_palette(ui_state.clone()))))
+        .item("Export", "export-palette", Box::new(clone!(@strong ui_state => move || UiState::export_palette(ui_state.clone()))));
+
     let help_menu = MenuBuilder::new()
         .item("Keyboard Shortcuts", "keyboard-shortcuts",
                 Box::new(clone!(@strong ui_state => move || keyboard_shortcuts_dialog(&ui_state.borrow().window))))
@@ -116,6 +120,7 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (gio::Menu, Vec<gio::SimpleAct
         .submenu("File", file_menu)
         .submenu("Edit", edit_menu)
         .submenu("Image", image_menu)
+        .submenu("Palette", palette_menu)
         .submenu("Help", help_menu)
         .build()
 }

@@ -12,6 +12,7 @@ gtk = { version = "0.8.1", package = "gtk4", features = ["v4_14"] }
 image = { version = "0.25.1", features = ["png", "jpeg", "gif", "ico", "webp", "bmp"] }
 itertools = "0.13.0"
 paste = "1.0.15"
+regex = "1.10.5"
 serde = "1.0.204"
 serde_cbor = "0.11.2"
 serde_derive = "1.0.204"

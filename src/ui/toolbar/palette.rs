@@ -1,3 +1,5 @@
+mod io;
+
 use crate::image::{DrawableImage, mk_transparent_checkerboard};
 use crate::ui::{dialog::choose_color_dialog, get_parent_window};
 
