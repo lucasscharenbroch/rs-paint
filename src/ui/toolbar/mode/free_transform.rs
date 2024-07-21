@@ -537,12 +537,12 @@ impl FreeTransformState {
 impl super::MouseModeState for FreeTransformState {
     fn handle_motion(&mut self, _mod_keys: &gdk::ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
         if let Some(selection) = canvas.transformation_selection().borrow_mut().as_mut() {
-                // cursor
-                let cursor_pos = canvas.cursor_pos_pix_f();
-                canvas.drawing_area().set_cursor(
-                    TransformationType::from_matrix_and_point(&selection.matrix, cursor_pos, *canvas.zoom())
-                        .cursor(&selection.matrix).as_ref()
-                );
+            // cursor
+            let cursor_pos = canvas.cursor_pos_pix_f();
+            canvas.drawing_area().set_cursor(
+                TransformationType::from_matrix_and_point(&selection.matrix, cursor_pos, *canvas.zoom())
+                    .cursor(&selection.matrix).as_ref()
+            );
         }
     }
 

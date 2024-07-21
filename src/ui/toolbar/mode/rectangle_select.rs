@@ -5,12 +5,86 @@ use crate::image::TrackedLayeredImage;
 
 use gtk::gdk::ModifierType;
 use gtk::cairo::Context;
+use gtk::prelude::*;
+use gtk::gdk;
+
+#[derive(Clone, Copy)]
+enum ScaleType {
+    Up,
+    Down,
+    Left,
+    Right,
+    UpLeft,
+    UpRight,
+    DownLeft,
+    DownRight,
+}
+
+impl ScaleType {
+    fn cursor(&self) -> Option<gdk::Cursor> {
+        let name = match self {
+            Self::Up |
+            Self::Down => "ns-resize",
+            Self::Left |
+            Self::Right => "ew-resize",
+            Self::UpLeft |
+            Self::DownRight => "nwse-resize",
+            Self::UpRight |
+            Self::DownLeft  => "nesw-resize"
+        };
+
+        gdk::Cursor::from_name(
+            name,
+            gdk::Cursor::from_name("default", None).as_ref(),
+        )
+    }
+
+    fn from_rect_and_pos(
+        _rect@(x, y, w, h): (f64, f64, f64, f64),
+        _pos@(cx, cy): (f64, f64),
+        zoom: f64
+    ) -> Option<Self> {
+        const SIDE_THRESH_UNSCALED: f64 = 10.0;
+        const CORNER_THRESH_UNSCALED: f64 = 15.0;
+
+        let side_thresh = SIDE_THRESH_UNSCALED / zoom;
+        let corner_thresh = CORNER_THRESH_UNSCALED / zoom;
+
+        let d_left = (cx - x).abs();
+        let d_right = (cx - (x + w)).abs();
+        let d_top = (cy - y).abs();
+        let d_bot = (cy - (y + h)).abs();
+
+        let epsilon = 0.1;
+
+        if d_left < corner_thresh && d_top < corner_thresh {
+            Some(Self::UpLeft)
+        } else if d_right < corner_thresh && d_top < corner_thresh {
+            Some(Self::UpRight)
+        } else if d_left < corner_thresh && d_bot < corner_thresh {
+            Some(Self::DownLeft)
+        } else if d_right < corner_thresh && d_bot < corner_thresh {
+            Some(Self::DownRight)
+        } else if d_left < side_thresh && (d_top + d_bot <= epsilon + h) {
+            Some(Self::Left)
+        } else if d_right < side_thresh && (d_top + d_bot <= epsilon + h) {
+            Some(Self::Right)
+        } else if d_top < side_thresh && (d_left + d_right <= epsilon + w) {
+            Some(Self::Up)
+        } else if d_bot < side_thresh && (d_left + d_right <= epsilon + w) {
+            Some(Self::Down)
+        } else {
+            None
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 pub enum RectangleSelectMode {
     Unselected,
     Selecting(f64, f64),
     Selected(f64, f64, f64, f64),
+    SelectedAndScaling(f64, f64, f64, f64, ScaleType),
 }
 
 #[derive(Clone, Copy)]
@@ -121,6 +195,7 @@ impl RectangleSelectState {
         match self.mode {
             RectangleSelectMode::Unselected => Box::new(|_| ()),
             RectangleSelectMode::Selected(x, y, w, h) => Self::visual_box_around(x, y, w, h, zoom),
+            RectangleSelectMode::SelectedAndScaling(x, y, w, h, _scale_type) => Self::visual_box_around(x, y, w, h, zoom),
             RectangleSelectMode::Selecting(ax, ay) => {
                 let (x, y, w, h) = Self::calc_xywh(ax, ay, canvas, maintain_square_ratio);
                 Self::visual_box_around(x, y, w, h, zoom)
@@ -195,5 +270,30 @@ impl super::MouseModeState for RectangleSelectState {
 
     fn handle_selection_deleted(&mut self) {
         self.mode = RectangleSelectMode::Unselected;
+    }
+
+    fn handle_close(&self, canvas: &mut Canvas, _toolbar: &Toolbar) {
+        canvas.drawing_area().set_cursor(gdk::Cursor::from_name("default", None).as_ref());
+    }
+
+    fn handle_motion(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+        let default_cursor = gdk::Cursor::from_name("default", None);
+
+        let cursor = match self.mode {
+            RectangleSelectMode::SelectedAndScaling(_x, _y, _w, _h, scale_mode) => {
+                scale_mode.cursor()
+            },
+            RectangleSelectMode::Selected(x, y, w, h) => {
+                let (cx, cy) = canvas.cursor_pos_pix_f();
+                ScaleType::from_rect_and_pos((x, y, w, h), (cx, cy), *canvas.zoom())
+                    .map(|scale_type| scale_type.cursor())
+                    .unwrap_or(default_cursor)
+            },
+            _ => default_cursor,
+        };
+
+        canvas.drawing_area().set_cursor(
+            cursor.as_ref()
+        );
     }
 }
