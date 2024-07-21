@@ -9,7 +9,7 @@ use gtk::prelude::*;
 use gtk::gdk;
 
 #[derive(Clone, Copy)]
-enum ScaleType {
+enum ResizeType {
     Up,
     Down,
     Left,
@@ -20,7 +20,7 @@ enum ScaleType {
     DownRight,
 }
 
-impl ScaleType {
+impl ResizeType {
     fn cursor(&self) -> Option<gdk::Cursor> {
         let name = match self {
             Self::Up |
@@ -77,14 +77,67 @@ impl ScaleType {
             None
         }
     }
+
+    fn compute_resized_rect(&self,
+        originial_rect@(ox, oy, ow, oh): (usize, usize, usize, usize),
+        cursor_pos@(cx, cy): (usize, usize),
+        lock_aspect_ratio: bool,
+    ) -> (usize, usize, usize, usize) {
+        // assume all arguments are in-bounds
+
+        // convert everything into i32, then back to usize at the end
+        let (ox, oy, ow, oh) = (ox as i32, oy as i32, ow as i32, oh as i32);
+        let (cx, cy) = (cx as i32, cy as i32);
+
+        let (x, y, w, h) = match self {
+            Self::Up => {
+                let d = oy - cy;
+                (ox, oy - d, ow, oh + d)
+            },
+            Self::Down => {
+                let d = cy - (oy + oh);
+                (ox, oy, ow, oh + d)
+            },
+            Self::Left => {
+                let d = ox - cx;
+                (ox - d, oy, ow + d, oh)
+            },
+            Self::Right => {
+                let d = cx - (ox + ow);
+                (ox, oy, ow + d, oh)
+            }
+            Self::UpLeft => {
+                let dy = oy - cy;
+                let dx = ox - cx;
+                (ox - dx, oy - dy, ow + dx, oh + dy)
+            }
+            Self::UpRight => {
+                let dx = cx - (ox + ow);
+                let dy = oy - cy;
+                (ox, oy - dy, ow + dx, oh + dy)
+            },
+            Self::DownLeft => {
+                let dx = ox - cx;
+                let dy = cy - (oy + oh);
+                (ox - dx, oy, ow + dx, oh + dy)
+            },
+            Self::DownRight => {
+                let dx = cx - (ox + ow);
+                let dy = cy - (oy + oh);
+                (ox, oy, ow + dx, oh + dy)
+            }
+        };
+
+        (x.min(ox + ow - 1) as usize, y.min(oy + oh - 1) as usize, w.max(1) as usize, h.max(1) as usize)
+    }
 }
 
 #[derive(Clone, Copy)]
 pub enum RectangleSelectMode {
     Unselected,
     Selecting(f64, f64),
-    Selected(f64, f64, f64, f64),
-    SelectedAndScaling(f64, f64, f64, f64, ScaleType),
+    Selected(usize, usize, usize, usize),
+    SelectedAndResizing(usize, usize, usize, usize, ResizeType),
 }
 
 #[derive(Clone, Copy)]
@@ -97,7 +150,7 @@ pub struct RectangleSelectState {
 impl RectangleSelectState {
     pub fn default(canvas: &Canvas) -> RectangleSelectState {
         let mode = match canvas.selection() {
-            Selection::Rectangle(x, y, w, h) => RectangleSelectMode::Selected(*x as f64, *y as f64, *w as f64, *h as f64),
+            Selection::Rectangle(x, y, w, h) => RectangleSelectMode::Selected(*x, *y, *w, *h),
             _ => RectangleSelectMode::Unselected,
         };
 
@@ -116,7 +169,7 @@ impl RectangleSelectState {
 
     /// Determine the the position of the selected rect
     /// where `(ax, ay)` is the "anchor point"
-    fn calc_xywh(ax: f64, ay: f64, canvas: &Canvas, maintain_square_ratio: bool) -> (f64, f64, f64, f64) {
+    fn calc_xywh(ax: f64, ay: f64, canvas: &Canvas, maintain_square_ratio: bool) -> (usize, usize, usize, usize) {
         let (cx, cy) = canvas.cursor_pos_pix_f();
 
         let (cx, cy) = if !maintain_square_ratio {
@@ -169,7 +222,7 @@ impl RectangleSelectState {
         let w = w.min(max_x - x + 1.0);
         let h = h.min(max_y - y + 1.0);
 
-        (x, y, w, h)
+        (x as usize, y as usize, w as usize, h as usize)
     }
 
     fn visual_box_around(x: f64, y: f64, w: f64, h: f64, zoom: f64) -> Box<dyn Fn(&Context)> {
@@ -194,11 +247,11 @@ impl RectangleSelectState {
 
         match self.mode {
             RectangleSelectMode::Unselected => Box::new(|_| ()),
-            RectangleSelectMode::Selected(x, y, w, h) => Self::visual_box_around(x, y, w, h, zoom),
-            RectangleSelectMode::SelectedAndScaling(x, y, w, h, _scale_type) => Self::visual_box_around(x, y, w, h, zoom),
+            RectangleSelectMode::Selected(x, y, w, h) => Self::visual_box_around(x as f64, y as f64, w as f64, h as f64, zoom),
+            RectangleSelectMode::SelectedAndResizing(x, y, w, h, _scale_type) => Self::visual_box_around(x as f64, y as f64, w as f64, h as f64, zoom),
             RectangleSelectMode::Selecting(ax, ay) => {
                 let (x, y, w, h) = Self::calc_xywh(ax, ay, canvas, maintain_square_ratio);
-                Self::visual_box_around(x, y, w, h, zoom)
+                Self::visual_box_around(x as f64, y as f64, w as f64, h as f64, zoom)
             }
         }
     }
@@ -227,12 +280,31 @@ impl super::MouseModeState for RectangleSelectState {
             }
         }
 
+        if let RectangleSelectMode::Selected(x, y, w, h) = self.mode {
+            let cursor_pos = canvas.cursor_pos_pix_f();
+            let zoom = *canvas.zoom();
+            if let Some(resize_type) = ResizeType::from_rect_and_pos((x as f64, y as f64, w as f64, h as f64), cursor_pos, zoom) {
+                self.mode = RectangleSelectMode::SelectedAndResizing(x, y, w, h, resize_type);
+                return;
+            }
+        }
+
         let (ax, ay) = canvas.cursor_pos_pix_f();
         self.mode = RectangleSelectMode::Selecting(ax, ay);
         canvas.set_selection(Selection::NoSelection);
     }
 
     fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+        if let RectangleSelectMode::SelectedAndResizing(x, y, w, h, resize_type) = self.mode {
+            let (x, y, w, h) = resize_type.compute_resized_rect(
+                (x as usize, y as usize, w as usize, h as usize),
+                canvas.cursor_pos_pix_u_in_bounds(),
+                mod_keys.intersects(gdk::ModifierType::SHIFT_MASK),
+            );
+            canvas.set_selection(Selection::Rectangle(x as usize, y as usize, w as usize, h as usize));
+            self.mode = RectangleSelectMode::SelectedAndResizing(x, y, w, h, resize_type);
+        }
+
         canvas.update_with(self.visual_cue_fn(canvas, mod_keys.intersects(ModifierType::SHIFT_MASK)));
     }
 
@@ -241,7 +313,16 @@ impl super::MouseModeState for RectangleSelectState {
             let (x, y, w, h) = Self::calc_xywh(ax, ay, canvas, mod_keys.intersects(ModifierType::SHIFT_MASK));
             self.mode = RectangleSelectMode::Selected(x, y, w, h);
             canvas.set_selection(Selection::Rectangle(x as usize, y as usize, w as usize, h as usize));
+        } else if let RectangleSelectMode::SelectedAndResizing(x, y, w, h, resize_type) = self.mode {
+            let (x, y, w, h) = resize_type.compute_resized_rect(
+                (x as usize, y as usize, w as usize, h as usize),
+                canvas.cursor_pos_pix_u_in_bounds(),
+                mod_keys.intersects(gdk::ModifierType::SHIFT_MASK),
+            );
+            canvas.set_selection(Selection::Rectangle(x as usize, y as usize, w as usize, h as usize));
+            self.mode = RectangleSelectMode::Selected(x, y, w, h);
         }
+
         canvas.update();
     }
 
@@ -254,10 +335,15 @@ impl super::MouseModeState for RectangleSelectState {
         if let RectangleSelectMode::Selected(x, y, w, h) = self.mode {
             if self.crop_visual_enabled {
                 let fused_layered_image = canvas.layered_image();
-                crop_visual(x, y, w, h, fused_layered_image.width(), fused_layered_image.height(), cr);
+                crop_visual(
+                    x as f64, y as f64, w as f64, h as f64,
+                    fused_layered_image.width(),
+                    fused_layered_image.height(),
+                    cr
+                );
             }
 
-            Self::visual_box_around(x, y, w, h, *canvas.zoom())(cr);
+            Self::visual_box_around(x as f64, y as f64, w as f64, h as f64, *canvas.zoom())(cr);
         }
     }
 
@@ -280,12 +366,12 @@ impl super::MouseModeState for RectangleSelectState {
         let default_cursor = gdk::Cursor::from_name("default", None);
 
         let cursor = match self.mode {
-            RectangleSelectMode::SelectedAndScaling(_x, _y, _w, _h, scale_mode) => {
+            RectangleSelectMode::SelectedAndResizing(_x, _y, _w, _h, scale_mode) => {
                 scale_mode.cursor()
             },
             RectangleSelectMode::Selected(x, y, w, h) => {
                 let (cx, cy) = canvas.cursor_pos_pix_f();
-                ScaleType::from_rect_and_pos((x, y, w, h), (cx, cy), *canvas.zoom())
+                ResizeType::from_rect_and_pos((x as f64, y as f64, w as f64, h as f64), (cx, cy), *canvas.zoom())
                     .map(|scale_type| scale_type.cursor())
                     .unwrap_or(default_cursor)
             },
