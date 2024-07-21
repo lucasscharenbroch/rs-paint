@@ -69,3 +69,11 @@ pub fn cross_product((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
 pub fn dot_product((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> f64 {
     x0 * x1 + y0 * y1
 }
+
+pub fn vec_plus((x0, y0): (f64, f64), (x1, y1): (f64, f64)) -> (f64, f64) {
+    (x0 + x1, y0 + y1)
+}
+
+pub fn vec_scale(s: f64, (x, y): (f64, f64)) -> (f64, f64) {
+    (s * x, s * y)
+}

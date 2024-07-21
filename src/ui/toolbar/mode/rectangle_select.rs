@@ -1,3 +1,4 @@
+use crate::geometry::{dot_product, normalized_vec, vec_magnitude, vec_plus, vec_scale};
 use crate::ui::selection::Selection;
 use super::{Canvas, Toolbar};
 use crate::image::TrackedLayeredImage;
@@ -39,8 +40,35 @@ impl RectangleSelectState {
         }
     }
 
-    fn calc_xywh(ax: f64, ay: f64, canvas: &Canvas) -> (f64, f64, f64, f64) {
+    /// Determine the the position of the selected rect
+    /// where `(ax, ay)` is the "anchor point"
+    fn calc_xywh(ax: f64, ay: f64, canvas: &Canvas, maintain_square_ratio: bool) -> (f64, f64, f64, f64) {
         let (cx, cy) = canvas.cursor_pos_pix_f();
+
+        let (cx, cy) = if !maintain_square_ratio {
+            (cx, cy)
+        } else {
+            // compute the diagonal of the square whose
+            // corner's "tangent" intersects (cx, cy)
+
+            fn sign(x: f64) -> f64 {
+                if x < 0.0 { -1.0 } else { 1.0 }
+            }
+
+            // hypotenuse vector, anchor -> cursor
+            let hv = (cx - ax, cy - ay);
+            // diagonal vector: the (unit) vector along the direction
+            // of the target side (the diagonal of the square)
+            let dv = (sign(cx - ax), sign(cy - ay));
+
+            // cosine of the angle between = diagonal_length / hypotenuse_length
+            // (normalize both for consistency/sanity)
+            let cos = dot_product(normalized_vec(hv), normalized_vec(dv));
+
+            let diagonal_length = cos * vec_magnitude(hv);
+
+            vec_plus((ax, ay), vec_scale(diagonal_length / std::f64::consts::SQRT_2, dv))
+        };
 
         // round boundaries to nearest pixel
         let x = if cx > ax { ax.floor() } else { ax.ceil() };
@@ -87,14 +115,14 @@ impl RectangleSelectState {
         })
     }
 
-    fn visual_cue_fn(&self, canvas: &Canvas) -> Box<dyn Fn(&Context)> {
+    fn visual_cue_fn(&self, canvas: &Canvas, maintain_square_ratio: bool) -> Box<dyn Fn(&Context)> {
         let zoom = *canvas.zoom();
 
         match self.mode {
             RectangleSelectMode::Unselected => Box::new(|_| ()),
             RectangleSelectMode::Selected(x, y, w, h) => Self::visual_box_around(x, y, w, h, zoom),
             RectangleSelectMode::Selecting(ax, ay) => {
-                let (x, y, w, h) = Self::calc_xywh(ax, ay, canvas);
+                let (x, y, w, h) = Self::calc_xywh(ax, ay, canvas, maintain_square_ratio);
                 Self::visual_box_around(x, y, w, h, zoom)
             }
         }
@@ -129,13 +157,13 @@ impl super::MouseModeState for RectangleSelectState {
         canvas.set_selection(Selection::NoSelection);
     }
 
-    fn handle_drag_update(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-        canvas.update_with(self.visual_cue_fn(canvas));
+    fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+        canvas.update_with(self.visual_cue_fn(canvas, mod_keys.intersects(ModifierType::SHIFT_MASK)));
     }
 
-    fn handle_drag_end(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
+    fn handle_drag_end(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
         if let RectangleSelectMode::Selecting(ax, ay) = self.mode {
-            let (x, y, w, h) = Self::calc_xywh(ax, ay, canvas);
+            let (x, y, w, h) = Self::calc_xywh(ax, ay, canvas, mod_keys.intersects(ModifierType::SHIFT_MASK));
             self.mode = RectangleSelectMode::Selected(x, y, w, h);
             canvas.set_selection(Selection::Rectangle(x as usize, y as usize, w as usize, h as usize));
         }
