@@ -108,10 +108,14 @@ impl PaletteColorButton {
 
         choose_color_dialog(parent_ref, move |res_color| {
             if let Ok(rgba) = res_color {
-                self_p.borrow_mut().color = Some(rgba);
-                self_p.borrow_mut().drawing_area.queue_draw();
+                Self::set_color(&self_p, Some(rgba));
             }
         });
+    }
+
+    fn set_color(self_p: &Rc<RefCell<Self>>, new_rgba_option: Option<RGBA>) {
+        self_p.borrow_mut().color = new_rgba_option;
+        self_p.borrow_mut().drawing_area.queue_draw();
     }
 }
 
@@ -421,5 +425,17 @@ impl Palette {
         let secondary = self.secondary_color();
         self.set_primary_color(secondary);
         self.set_secondary_color(primary);
+    }
+
+    /// Overwrites the palette colors (not the primary/secondary)
+    /// with the supplied colors, in row-major order, blanking
+    /// any extra slots, and ignoring any extra colors (if the
+    /// supplied colors outnumber the slots)
+    fn overwrite_colors(&mut self, new_colors: Vec<RGBA>) {
+        for (button_p, rgba) in self.color_buttons.iter().flatten()
+            .zip(new_colors.into_iter().map(|rgba| Some(rgba)).chain(std::iter::repeat(None)))
+        {
+            PaletteColorButton::set_color(button_p, rgba)
+        }
     }
 }
