@@ -33,10 +33,11 @@ A lightweight image editor, written in Rust using GTK4.
 - Complexity Management
     - Tabs
     - Layers
-        - Merging and Rearranging
+        - Merging, Cloning and Rearranging
         - Visibility Toggle
         - Modification Locking
     - Multi-Level Undo
+        - Tree-View, Click-to-Navigate
 - Misc.
     - Copy/Paste (internal selections and external clipboard)
     - Keybinds (see Help/Keyboard-Shortcuts)
