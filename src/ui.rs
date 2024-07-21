@@ -297,7 +297,7 @@ impl UiState {
                 gdk::Key::y => Self::redo(ui_p.clone()),
                 gdk::Key::h => Self::undo_history_dialog(ui_p.clone()),
                 gdk::Key::l => Self::layers_dialog(ui_p.clone()),
-                gdk::Key::a => about_dialog(&ui_p.borrow().window),
+                gdk::Key::a => Self::select_all(ui_p.clone()),
                 gdk::Key::n => Self::new(ui_p.clone()),
                 gdk::Key::i => Self::import(ui_p.clone()),
                 gdk::Key::e => Self::export(ui_p.clone()),
@@ -316,6 +316,7 @@ impl UiState {
                 gdk::Key::L => Self::load_project(ui_p.clone()),
                 gdk::Key::S => Self::save_project_as(ui_p.clone()),
                 gdk::Key::V => Self::paste_as_tab(ui_p.clone()),
+                gdk::Key::A => about_dialog(&ui_p.borrow().window),
                 _ => (),
             }
         }
@@ -605,5 +606,12 @@ impl UiState {
         };
 
         ui_p.borrow_mut().clipboard.set_image(copied_image);
+    }
+
+    fn select_all(ui_p: Rc<RefCell<Self>>) {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().select_all();
+            canvas_p.borrow_mut().update();
+        }
     }
 }

@@ -113,7 +113,7 @@ pub fn mk_menu(ui_state: Rc<RefCell<UiState>>) -> (gio::Menu, Vec<gio::SimpleAct
     let help_menu = MenuBuilder::new()
         .item("Keyboard Shortcuts", "keyboard-shortcuts",
                 Box::new(clone!(@strong ui_state => move || keyboard_shortcuts_dialog(&ui_state.borrow().window))))
-        .item_with_keybind("<Ctrl>a", "About", "about",
+        .item_with_keybind("<Ctrl><Shift>a", "About", "about",
                 Box::new(clone!(@strong ui_state => move || about_dialog(&ui_state.borrow().window))));
 
     MenuBuilder::new()

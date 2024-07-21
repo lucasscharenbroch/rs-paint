@@ -1085,4 +1085,8 @@ impl Canvas {
             _ => Err(()),
         }
     }
+
+    pub fn select_all(&mut self) {
+        self.set_selection(Selection::Rectangle(0, 0, self.image_width() as usize, self.image_height() as usize));
+    }
 }

@@ -80,8 +80,12 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<gtk::Window>) {
         ("Undo History", "<Ctrl>h"),
     ]);
 
+    let all_modes = group_from_specs("All Modes", &[
+        ("Select All", "<Ctrl>a"),
+    ]);
+
     let misc = group_from_specs("Miscellaneous", &[
-        ("About RS-Paint", "<Ctrl>a"),
+        ("About RS-Paint", "<Ctrl><Shift>a"),
         ("Quit", "<Ctrl>q"),
     ]);
 
@@ -103,6 +107,7 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<gtk::Window>) {
     main_section.add_group(&rectangle_select_mode);
     main_section.add_group(&magic_wand_mode);
     main_section.add_group(&eyedropper_mode);
+    main_section.add_group(&all_modes);
     main_section.add_group(&palette);
     main_section.add_group(&misc);
     main_section.add_group(&io);
