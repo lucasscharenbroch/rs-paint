@@ -6,23 +6,23 @@ use gtk::gdk::ModifierType;
 use gtk::cairo;
 
 #[derive(Clone, Copy)]
-pub enum InsertShapeState {
+pub enum ShapeState {
     Neutral,
     /// Transfer ASAP
     TransferToFreeTransform(f64, f64),
 }
 
-impl InsertShapeState {
-    pub fn default(_canvas: &Canvas) -> InsertShapeState {
+impl ShapeState {
+    pub fn default(_canvas: &Canvas) -> ShapeState {
         Self::default_no_canvas()
     }
 
-    pub const fn default_no_canvas() -> InsertShapeState {
-        InsertShapeState::Neutral
+    pub const fn default_no_canvas() -> ShapeState {
+        ShapeState::Neutral
     }
 }
 
-impl super::MouseModeState for InsertShapeState {
+impl super::MouseModeState for ShapeState {
     fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let (x, y) = canvas.cursor_pos_pix_f();
         let shape_type = toolbar.get_shape_type();

@@ -108,7 +108,7 @@ impl Toolbar {
             ("magic-wand", "Magic Wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
             ("fill", "Fill", MouseMode::fill, MouseMode::fill_default),
             ("free-transform", "Free Transform", MouseMode::free_transform, MouseMode::free_transform_default),
-            ("insert-shape", "Insert Shape", MouseMode::insert_shape, MouseMode::insert_shape_default),
+            ("insert-shape", "Insert Shape", MouseMode::shape, MouseMode::shape_default),
         ];
 
         toolbar_p.borrow_mut().mouse_mode_buttons = button_info.into_iter()
@@ -271,11 +271,11 @@ impl Toolbar {
     }
 
     fn get_shape_type(&self) -> ShapeType {
-        self.mode_toolbar.get_insert_shape_settings().0.clone()
+        self.mode_toolbar.get_shape_settings().0.clone()
     }
 
     fn get_shape_border_width(&self) -> u8 {
-        self.mode_toolbar.get_insert_shape_settings().1
+        self.mode_toolbar.get_shape_settings().1
     }
 
     fn get_clamp_translate(&self) -> bool {
