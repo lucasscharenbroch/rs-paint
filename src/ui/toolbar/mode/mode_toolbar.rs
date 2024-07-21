@@ -346,6 +346,7 @@ impl ModeToolbar {
             MouseModeVariant::Fill => &self.fill_form,
             MouseModeVariant::FreeTransform => &self.deferred.as_ref().unwrap().free_transform_form,
             MouseModeVariant::Shape => &self.shape_form,
+            MouseModeVariant::Text => &self.empty_form,
         }
     }
 

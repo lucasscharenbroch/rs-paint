@@ -7,6 +7,7 @@ mod magic_wand;
 mod fill;
 mod free_transform;
 mod shape;
+mod text;
 
 use crate::ui::{canvas::Canvas, toolbar::Toolbar};
 pub use mode_toolbar::ModeToolbar;
@@ -19,6 +20,7 @@ use self::eyedropper::EyedropperState;
 pub use self::rectangle_select::{RectangleSelectState, RectangleSelectMode};
 pub use free_transform::{FreeTransformState, TransformationSelection};
 use shape::ShapeState;
+use text::TextState;
 
 use gtk::cairo::Context;
 use gtk::gdk::ModifierType;
@@ -33,6 +35,7 @@ pub enum MouseMode {
     Fill(FillState),
     FreeTransform(FreeTransformState),
     Shape(ShapeState),
+    Text(TextState)
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -45,6 +48,7 @@ pub enum MouseModeVariant {
     Fill,
     FreeTransform,
     Shape,
+    Text,
 }
 
 trait MouseModeState {
@@ -141,6 +145,14 @@ impl MouseMode {
         MouseMode::Shape(ShapeState::default_no_canvas())
     }
 
+    pub fn text(canvas: &mut Canvas) -> MouseMode {
+        MouseMode::Text(TextState::default(canvas))
+    }
+
+    pub fn text_default() -> MouseMode {
+        MouseMode::Text(TextState::default_no_canvas())
+    }
+
     fn get_state(&mut self) -> &mut dyn MouseModeState {
         match self {
             MouseMode::Cursor(ref mut s) => s,
@@ -151,6 +163,7 @@ impl MouseMode {
             MouseMode::Fill(ref mut s) => s,
             MouseMode::FreeTransform(ref mut s) => s,
             MouseMode::Shape(ref mut s) => s,
+            MouseMode::Text(ref mut s) => s,
         }
     }
 
@@ -164,6 +177,7 @@ impl MouseMode {
             MouseMode::Fill(ref s) => s,
             MouseMode::FreeTransform(ref s) => s,
             MouseMode::Shape(ref s) => s,
+            MouseMode::Text(ref s) => s,
         }
     }
 
@@ -213,6 +227,7 @@ impl MouseMode {
             MouseMode::Fill(_) => MouseModeVariant::Fill,
             MouseMode::FreeTransform(_) => MouseModeVariant::FreeTransform,
             MouseMode::Shape(_) => MouseModeVariant::Shape,
+            MouseMode::Text(_) => MouseModeVariant::Text,
         }
     }
 
@@ -226,6 +241,7 @@ impl MouseMode {
             MouseMode::Fill(_) => true,
             MouseMode::FreeTransform(_) => true,
             MouseMode::Shape(_) => true,
+            MouseMode::Text(_) => true,
         }
     }
 
@@ -239,6 +255,7 @@ impl MouseMode {
             MouseModeVariant::Fill => Self::fill(canvas),
             MouseModeVariant::FreeTransform => Self::free_transform(canvas),
             MouseModeVariant::Shape => Self::shape(canvas),
+            MouseModeVariant::Text => Self::text(canvas),
         }
     }
 
