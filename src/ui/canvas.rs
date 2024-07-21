@@ -360,12 +360,13 @@ impl Canvas {
         (x.floor() as usize, y.floor() as usize)
     }
 
+    /// "in bounds" <=> ([0, height], [0, width])
     pub fn cursor_pos_pix_u_in_bounds(&self) -> (usize, usize) {
         let (x, y) = self.cursor_pos_pix_f();
         let (x, y) = (x.floor() as usize, y.floor() as usize);
         (
-            x.min((self.image_width() - 1) as usize),
-            y.min((self.image_height() - 1) as usize),
+            x.min((self.image_width()) as usize),
+            y.min((self.image_height()) as usize),
         )
     }
 

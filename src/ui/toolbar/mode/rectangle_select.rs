@@ -9,7 +9,9 @@ use gtk::prelude::*;
 use gtk::gdk;
 
 #[derive(Clone, Copy)]
-enum ResizeType {
+pub enum TransformType {
+    Pan(usize, usize), // anchor point (relative to the image)
+    // resizes:
     Up,
     Down,
     Left,
@@ -20,9 +22,10 @@ enum ResizeType {
     DownRight,
 }
 
-impl ResizeType {
+impl TransformType {
     fn cursor(&self) -> Option<gdk::Cursor> {
         let name = match self {
+            Self::Pan(_ax, _ay) => "move",
             Self::Up |
             Self::Down => "ns-resize",
             Self::Left |
@@ -73,15 +76,19 @@ impl ResizeType {
             Some(Self::Up)
         } else if d_bot < side_thresh && (d_left + d_right <= epsilon + w) {
             Some(Self::Down)
+        } else if d_left + d_right <= epsilon + w && d_top + d_bot <= epsilon + h {
+            Some(Self::Pan(cx as usize, cy as usize))
         } else {
             None
         }
     }
 
-    fn compute_resized_rect(&self,
+    fn compute_transformed_rect(&mut self,
         originial_rect@(ox, oy, ow, oh): (usize, usize, usize, usize),
         cursor_pos@(cx, cy): (usize, usize),
-        lock_aspect_ratio: bool,
+        max_x: usize,
+        max_y: usize,
+        lock_aspect_ratio: bool, /* TODO actually do this? */
     ) -> (usize, usize, usize, usize) {
         // assume all arguments are in-bounds
 
@@ -90,8 +97,15 @@ impl ResizeType {
         let (cx, cy) = (cx as i32, cy as i32);
 
         let (x, y, w, h) = match self {
+            Self::Pan(ax, ay) => {
+                let (dx, dy) = (cx - *ax as i32, cy - *ay as i32);
+                *ax = cx as usize;
+                *ay = cy as usize;
+
+                (ox + dx, oy + dy, ow, oh)
+            }
             Self::Up => {
-                let d = oy - cy;
+                let d = (oy - cy).max(1 - oh);
                 (ox, oy - d, ow, oh + d)
             },
             Self::Down => {
@@ -99,7 +113,7 @@ impl ResizeType {
                 (ox, oy, ow, oh + d)
             },
             Self::Left => {
-                let d = ox - cx;
+                let d = (ox - cx).max(1 - ow);
                 (ox - d, oy, ow + d, oh)
             },
             Self::Right => {
@@ -107,17 +121,17 @@ impl ResizeType {
                 (ox, oy, ow + d, oh)
             }
             Self::UpLeft => {
-                let dy = oy - cy;
-                let dx = ox - cx;
+                let dx = (ox - cx).max(1 - ow);
+                let dy = (oy - cy).max(1 - oh);
                 (ox - dx, oy - dy, ow + dx, oh + dy)
             }
             Self::UpRight => {
                 let dx = cx - (ox + ow);
-                let dy = oy - cy;
+                let dy = (oy - cy).max(1 - oh);
                 (ox, oy - dy, ow + dx, oh + dy)
             },
             Self::DownLeft => {
-                let dx = ox - cx;
+                let dx = (ox - cx).max(1 - ow);
                 let dy = cy - (oy + oh);
                 (ox - dx, oy, ow + dx, oh + dy)
             },
@@ -128,7 +142,12 @@ impl ResizeType {
             }
         };
 
-        (x.min(ox + ow - 1) as usize, y.min(oy + oh - 1) as usize, w.max(1) as usize, h.max(1) as usize)
+        (
+            x.max(0).min(1 + max_x as i32 - w) as usize,
+            y.max(0).min(1 + max_y as i32 - h) as usize,
+            w.max(1) as usize,
+            h.max(1) as usize
+        )
     }
 }
 
@@ -137,7 +156,7 @@ pub enum RectangleSelectMode {
     Unselected,
     Selecting(f64, f64),
     Selected(usize, usize, usize, usize),
-    SelectedAndResizing(usize, usize, usize, usize, ResizeType),
+    SelectedAndTransforming(usize, usize, usize, usize, TransformType),
 }
 
 #[derive(Clone, Copy)]
@@ -248,7 +267,7 @@ impl RectangleSelectState {
         match self.mode {
             RectangleSelectMode::Unselected => Box::new(|_| ()),
             RectangleSelectMode::Selected(x, y, w, h) => Self::visual_box_around(x as f64, y as f64, w as f64, h as f64, zoom),
-            RectangleSelectMode::SelectedAndResizing(x, y, w, h, _scale_type) => Self::visual_box_around(x as f64, y as f64, w as f64, h as f64, zoom),
+            RectangleSelectMode::SelectedAndTransforming(x, y, w, h, _scale_type) => Self::visual_box_around(x as f64, y as f64, w as f64, h as f64, zoom),
             RectangleSelectMode::Selecting(ax, ay) => {
                 let (x, y, w, h) = Self::calc_xywh(ax, ay, canvas, maintain_square_ratio);
                 Self::visual_box_around(x as f64, y as f64, w as f64, h as f64, zoom)
@@ -283,8 +302,8 @@ impl super::MouseModeState for RectangleSelectState {
         if let RectangleSelectMode::Selected(x, y, w, h) = self.mode {
             let cursor_pos = canvas.cursor_pos_pix_f();
             let zoom = *canvas.zoom();
-            if let Some(resize_type) = ResizeType::from_rect_and_pos((x as f64, y as f64, w as f64, h as f64), cursor_pos, zoom) {
-                self.mode = RectangleSelectMode::SelectedAndResizing(x, y, w, h, resize_type);
+            if let Some(resize_type) = TransformType::from_rect_and_pos((x as f64, y as f64, w as f64, h as f64), cursor_pos, zoom) {
+                self.mode = RectangleSelectMode::SelectedAndTransforming(x, y, w, h, resize_type);
                 return;
             }
         }
@@ -295,14 +314,16 @@ impl super::MouseModeState for RectangleSelectState {
     }
 
     fn handle_drag_update(&mut self, mod_keys: &ModifierType, canvas: &mut Canvas, _toolbar: &mut Toolbar) {
-        if let RectangleSelectMode::SelectedAndResizing(x, y, w, h, resize_type) = self.mode {
-            let (x, y, w, h) = resize_type.compute_resized_rect(
+        if let RectangleSelectMode::SelectedAndTransforming(x, y, w, h, mut resize_type) = self.mode {
+            let (x, y, w, h) = resize_type.compute_transformed_rect(
                 (x as usize, y as usize, w as usize, h as usize),
                 canvas.cursor_pos_pix_u_in_bounds(),
+                (canvas.image_width() - 1) as usize,
+                (canvas.image_height() - 1) as usize,
                 mod_keys.intersects(gdk::ModifierType::SHIFT_MASK),
             );
             canvas.set_selection(Selection::Rectangle(x as usize, y as usize, w as usize, h as usize));
-            self.mode = RectangleSelectMode::SelectedAndResizing(x, y, w, h, resize_type);
+            self.mode = RectangleSelectMode::SelectedAndTransforming(x, y, w, h, resize_type);
         }
 
         canvas.update_with(self.visual_cue_fn(canvas, mod_keys.intersects(ModifierType::SHIFT_MASK)));
@@ -313,10 +334,12 @@ impl super::MouseModeState for RectangleSelectState {
             let (x, y, w, h) = Self::calc_xywh(ax, ay, canvas, mod_keys.intersects(ModifierType::SHIFT_MASK));
             self.mode = RectangleSelectMode::Selected(x, y, w, h);
             canvas.set_selection(Selection::Rectangle(x as usize, y as usize, w as usize, h as usize));
-        } else if let RectangleSelectMode::SelectedAndResizing(x, y, w, h, resize_type) = self.mode {
-            let (x, y, w, h) = resize_type.compute_resized_rect(
+        } else if let RectangleSelectMode::SelectedAndTransforming(x, y, w, h, mut resize_type) = self.mode {
+            let (x, y, w, h) = resize_type.compute_transformed_rect(
                 (x as usize, y as usize, w as usize, h as usize),
                 canvas.cursor_pos_pix_u_in_bounds(),
+                (canvas.image_width() - 1) as usize,
+                (canvas.image_height() - 1) as usize,
                 mod_keys.intersects(gdk::ModifierType::SHIFT_MASK),
             );
             canvas.set_selection(Selection::Rectangle(x as usize, y as usize, w as usize, h as usize));
@@ -366,12 +389,12 @@ impl super::MouseModeState for RectangleSelectState {
         let default_cursor = gdk::Cursor::from_name("default", None);
 
         let cursor = match self.mode {
-            RectangleSelectMode::SelectedAndResizing(_x, _y, _w, _h, scale_mode) => {
+            RectangleSelectMode::SelectedAndTransforming(_x, _y, _w, _h, scale_mode) => {
                 scale_mode.cursor()
             },
             RectangleSelectMode::Selected(x, y, w, h) => {
                 let (cx, cy) = canvas.cursor_pos_pix_f();
-                ResizeType::from_rect_and_pos((x as f64, y as f64, w as f64, h as f64), (cx, cy), *canvas.zoom())
+                TransformType::from_rect_and_pos((x as f64, y as f64, w as f64, h as f64), (cx, cy), *canvas.zoom())
                     .map(|scale_type| scale_type.cursor())
                     .unwrap_or(default_cursor)
             },
