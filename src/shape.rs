@@ -39,22 +39,22 @@ impl Transformable for Shape {
             cr.scale(1.0, 1.0 / aspect_ratio);
 
             cr.set_source_rgba(
-                self.outline_color.red() as f64,
-                self.outline_color.green() as f64,
-                self.outline_color.blue() as f64,
-                self.outline_color.alpha() as f64,
-            );
-
-            let _ = cr.stroke_preserve();
-
-            cr.set_source_rgba(
                 self.fill_color.red() as f64,
                 self.fill_color.green() as f64,
                 self.fill_color.blue() as f64,
                 self.fill_color.alpha() as f64,
             );
 
-            let _ = cr.fill();
+            let _ = cr.fill_preserve();
+
+            cr.set_source_rgba(
+                self.outline_color.red() as f64,
+                self.outline_color.green() as f64,
+                self.outline_color.blue() as f64,
+                self.outline_color.alpha() as f64,
+            );
+
+            let _ = cr.stroke();
         }
         let _ = cr.restore();
     }
