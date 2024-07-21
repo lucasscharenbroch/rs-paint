@@ -316,7 +316,7 @@ impl ImageBitmask {
         if min_x > max_x || min_y > max_y {
             (0, 0, 0, 0)
         } else {
-            (min_x, min_y, max_x - min_x, max_y - min_y)
+            (min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
         }
     }
 
