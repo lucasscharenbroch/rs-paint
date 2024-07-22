@@ -1099,4 +1099,8 @@ impl Canvas {
     pub fn select_all(&mut self) {
         self.set_selection(Selection::Rectangle(0, 0, self.image_width() as usize, self.image_height() as usize));
     }
+
+    pub fn ui_p(&self) -> &Rc<RefCell<UiState>> {
+        &self.ui_p
+    }
 }
