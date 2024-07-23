@@ -99,17 +99,14 @@ impl Transformable for TransformableText {
 
         let _ = cr.save();
         {
-            // cr.translate(0.0, net_height);
-            cr.scale(1.0 / net_width, 1.0 / net_height);
-            println!("net width, net height = {net_width} {net_height}");
-
+            const EPSILON: f64 = 1e-6; // prevent from scaling to zero
+            cr.scale(1.0 / net_width.max(EPSILON), 1.0 / net_height.max(EPSILON));
             let line_height_prefix_sum = line_heights.iter().scan(0.0, |x, y| {
                 *x += y;
                 Some(*x)
             });
             text.lines().zip(line_height_prefix_sum).for_each(|(line, height)| {
                 cr.translate(0.0, height);
-                println!("line = {line}, {height}");
                 let _ = cr.show_text(line);
                 cr.new_path();
                 cr.translate(0.0, -height);
