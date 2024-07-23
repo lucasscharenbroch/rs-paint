@@ -4,10 +4,13 @@ use super::{Canvas, FreeTransformState, MouseMode, Toolbar};
 use crate::ui::form::{Form, FormBuilderIsh};
 use crate::transformable::Transformable;
 use crate::image::undo::action::ActionName;
+use crate::ui::UiState;
 
 use std::rc::Rc;
+use std::cell::RefCell;
 use gtk::{gdk, pango, cairo, prelude::*, TextView};
 use gdk::{ModifierType, RGBA};
+use glib_macros::clone;
 
 #[derive(Clone, Copy)]
 pub enum TextState {
@@ -28,9 +31,15 @@ impl TextState {
 }
 
 type TextSpecs = (String, Option<cairo::FontOptions>);
-fn mk_text_insertion_dialog() -> (Form, Rc<dyn Fn() -> TextSpecs>) {
+fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -> TextSpecs>) {
     let text_box = gtk::TextView::builder()
         .build();
+
+    text_box.buffer().connect_changed(clone!(@strong ui_p => move |_buffer| {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().update();
+        }
+    }));
 
     let font_dialog = gtk::FontDialog::builder()
         .language(&pango::Language::default())
@@ -127,7 +136,7 @@ impl Transformable for TransformableText {
 impl super::MouseModeState for TextState {
     fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         if let Self::Ready = self {
-            let (form, get_text_specs) = mk_text_insertion_dialog();
+            let (form, get_text_specs) = mk_text_insertion_dialog(canvas.ui_p());
 
             close_dialog(
                 canvas.ui_p().borrow().window(),
