@@ -15,7 +15,6 @@ pub enum ActionName {
     Rotate,
     Flip,
     Scale,
-    LevelShift,
     Crop,
     Expand,
     AppendLayer,
@@ -25,6 +24,7 @@ pub enum ActionName {
     MergeLayers,
     Transform,
     InsertShape,
+    InsertText,
 }
 
 impl ActionName {
@@ -37,7 +37,6 @@ impl ActionName {
             Self::Rotate => "Rotate",
             Self::Flip => "Flip",
             Self::Scale => "Scale",
-            Self::LevelShift => "Level Shift",
             Self::Crop => "Crop",
             Self::Expand => "Expand",
             Self::AppendLayer => "Append Layer",
@@ -47,6 +46,7 @@ impl ActionName {
             Self::MergeLayers => "Merge Layers",
             Self::Transform => "Transform",
             Self::InsertShape => "Insert Shape",
+            Self::InsertText => "Insert Text",
         }
     }
 }

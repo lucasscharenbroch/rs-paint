@@ -15,8 +15,7 @@ A lightweight image editor, written in Rust using GTK4.
     - Fill
     - Free Transform (Translate, Scale, Rotate)
     - Shapes
-    - [ ] Lasso Select
-    - [ ] Text
+    - Text
 - Color Palette
     - Primary and Secondary Colors
     - Import/Export Palette
