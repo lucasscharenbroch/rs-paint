@@ -58,32 +58,6 @@ impl Transformable for Shape {
         }
         let _ = cr.restore();
     }
-
-    fn gen_sampleable(&mut self, pixel_width: f64, pixel_height: f64) -> Box<dyn crate::transformable::Samplable> {
-        let width = pixel_width.ceil() as usize;
-        let height = pixel_height.ceil() as usize;
-
-        let surface = cairo::ImageSurface::create(
-            cairo::Format::ARgb32,
-            width as i32,
-            height as i32,
-        ).unwrap();
-
-        let cr = cairo::Context::new(&surface).unwrap();
-        cr.scale(pixel_width, pixel_height);
-
-        self.draw(&cr, pixel_width, pixel_height);
-
-        std::mem::drop(cr);
-        let raw_data = surface.take_data().unwrap();
-        let drawable_image = DrawableImage::from_raw_data(width, height, raw_data);
-
-        Box::new(drawable_image)
-    }
-
-    fn try_image_ref(&self) -> Option<&crate::image::Image> {
-        None
-    }
 }
 
 #[derive(Clone, Copy)]

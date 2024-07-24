@@ -1,3 +1,4 @@
+use crate::image::DrawableImage;
 use crate::ui::dialog::{close_dialog, no_button_dialog};
 
 use super::{Canvas, FreeTransformState, MouseMode, Toolbar};
@@ -145,14 +146,6 @@ impl Transformable for TransformableText {
             });
         }
         let _ = cr.restore();
-    }
-
-    fn gen_sampleable(&mut self, pixel_width: f64, pixel_height: f64) -> Box<dyn crate::transformable::Samplable> {
-        todo!()
-    }
-
-    fn try_image_ref(&self) -> Option<&crate::image::Image> {
-        None
     }
 }
 
