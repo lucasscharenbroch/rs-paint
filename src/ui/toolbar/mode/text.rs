@@ -1,4 +1,4 @@
-use crate::ui::dialog::close_dialog;
+use crate::ui::dialog::{close_dialog, no_button_dialog};
 
 use super::{Canvas, FreeTransformState, MouseMode, Toolbar};
 use crate::ui::form::{Form, FormBuilderIsh};
@@ -33,7 +33,12 @@ impl TextState {
 type TextSpecs = (String, Option<cairo::FontOptions>);
 fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -> TextSpecs>) {
     let text_box = gtk::TextView::builder()
+        .width_request(300)
+        .css_classes(["text-tool-entry"])
         .build();
+
+    text_box.buffer().set_text("Type Text Here");
+    text_box.emit_select_all(true);
 
     text_box.buffer().connect_changed(clone!(@strong ui_p => move |_buffer| {
         if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
@@ -52,7 +57,7 @@ fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -
 
     let form = Form::builder()
         .with_field(&font_button)
-        .with_field(&text_box)
+        .with_focused_field(&text_box)
         .build();
 
     let get = move || {
@@ -145,13 +150,11 @@ impl super::MouseModeState for TextState {
         if let Self::Ready = self {
             let (form, get_text_specs) = mk_text_insertion_dialog(canvas.ui_p());
 
-            close_dialog(
+            no_button_dialog(
                 canvas.ui_p().borrow().window(),
                 "Add Text",
                 form.widget(),
-                || crate::ui::dialog::CloseDialog::Yes,
-                || (),
-            );
+            ).grab_focus();
 
             let (cx, cy) = canvas.cursor_pos_pix_f();
 

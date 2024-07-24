@@ -556,6 +556,7 @@ impl Form {
 
 pub trait FormBuilderIsh {
     fn with_field(self, new_field: &impl FormField) -> Self;
+    fn with_focused_field(self, new_field: &impl FormField) -> Self;
 }
 
 pub struct FormBuilder {
@@ -567,6 +568,13 @@ pub struct FormBuilder {
 impl FormBuilderIsh for FormBuilder {
     fn with_field(self, new_field: &impl FormField) -> Self {
         self.widget.append(new_field.outer_widget());
+        self
+    }
+
+    fn with_focused_field(self, new_field: &impl FormField) -> Self {
+        let new_field_widget = new_field.outer_widget();
+        self.widget.append(new_field_widget);
+        self.widget.set_focus_child(Some(new_field_widget));
         self
     }
 }
@@ -637,6 +645,13 @@ pub struct FlowFormBuilder {
 impl FormBuilderIsh for FlowFormBuilder {
     fn with_field(self, new_field: &impl FormField) -> Self {
         self.widget.append(new_field.outer_widget());
+        self
+    }
+
+    fn with_focused_field(self, new_field: &impl FormField) -> Self {
+        let new_field_widget = new_field.outer_widget();
+        self.widget.append(new_field_widget);
+        self.widget.set_focus_child(Some(new_field_widget));
         self
     }
 }

@@ -65,3 +65,8 @@
 .active-layer-tab {
     background: #dad6d2;
 }
+
+.text-tool-entry {
+    font-size: x-large;
+    background-color: white;
+}

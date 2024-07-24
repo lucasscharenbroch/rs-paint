@@ -161,7 +161,7 @@ pub fn no_button_dialog(
     parent: &impl IsA<gtk::Window>,
     title: &str,
     inner_content: &impl IsA<gtk::Widget>,
-) {
+) -> gtk::Window {
     let wrapper = gtk::Box::builder()
         .margin_top(12)
         .margin_bottom(12)
@@ -187,4 +187,6 @@ pub fn no_button_dialog(
         wrapper.remove(&inner_content);
         gtk::glib::Propagation::Proceed
     }));
+
+    dialog_window
 }
