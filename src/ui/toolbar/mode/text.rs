@@ -120,7 +120,10 @@ impl Transformable for TransformableText {
                 .zip(widths_and_bearings)
                 .for_each(|((line, (height, y_bearing)), (_width, x_bearing))| {
                 cr.translate(-x_bearing, -y_bearing);
-                let r = cr.show_text(line);
+                // The following sometimes errors when highly zoomed in.
+                // It might just be my system.
+                // Not sure how to fix it, so we'll turn out backs as the world burns.
+                let _ = cr.show_text(line);
                 cr.translate(x_bearing, y_bearing + height);
                 cr.new_path();
             });
