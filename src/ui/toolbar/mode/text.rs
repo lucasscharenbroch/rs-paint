@@ -90,6 +90,7 @@ impl Transformable for TransformableText {
         }
 
         let (widths_and_bearings, heights_and_bearings): (Vec<(f64, f64)>, Vec<(f64, f64)>) = text.lines()
+            .map(|line| if line.len() == 0 { "_" } else { line }) // give blank-lines the width/height of "_"
             .map(|line| cr.text_extents(line))
             .map(|e| {
                 e.map(|extents| (
