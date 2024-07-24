@@ -4,6 +4,12 @@
 
 A lightweight image editor, written in Rust using GTK4.
 
+## Goals
+
+- Match the intuition and simplicity of MS-Paint
+- Add core features and ergonomics MS-Paint lacks
+- Be cross-platform, free, and open-source
+
 ## Features
 
 - Basic Tools
