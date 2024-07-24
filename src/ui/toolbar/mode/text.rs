@@ -89,36 +89,39 @@ impl Transformable for TransformableText {
             cr.set_font_options(&font_options);
         }
 
-        let (line_widths, line_heights): (Vec<f64>, Vec<f64>) = text.lines()
+        let (widths_and_bearings, heights_and_bearings): (Vec<(f64, f64)>, Vec<(f64, f64)>) = text.lines()
             .map(|line| cr.text_extents(line))
             .map(|e| {
                 e.map(|extents| (
-                    extents.width(),
-                    extents.height(),
+                    (extents.width(), extents.x_bearing()),
+                    (extents.height(), extents.y_bearing()),
                 ))
-                    .unwrap_or((0.0, 0.0))
+                    .unwrap_or(((0.0, 0.0), (0.0, 0.0)))
             })
             .unzip();
 
         // determine the effective height/width of the text
-        let net_width = *line_widths.iter().max_by(|x, y| {
-            x.partial_cmp(y).unwrap()
-        }).unwrap_or(&0.0);
-        let net_height: f64 = line_heights.iter().sum();
+        let net_width = widths_and_bearings.iter()
+            .map(|(width, bearing)| *width - *bearing)
+            .max_by(|a, b| {
+                a.partial_cmp(b).unwrap()
+            }).unwrap_or(0.0);
+        let net_height: f64 = heights_and_bearings.iter()
+            .map(|(height, bearing)| height)
+            .sum::<f64>();
 
         let _ = cr.save();
         {
             const EPSILON: f64 = 1e-6; // prevent from scaling to zero
             cr.scale(1.0 / net_width.max(EPSILON), 1.0 / net_height.max(EPSILON));
-            let line_height_prefix_sum = line_heights.iter().scan(0.0, |x, y| {
-                *x += y;
-                Some(*x)
-            });
-            text.lines().zip(line_height_prefix_sum).for_each(|(line, height)| {
-                cr.translate(0.0, height);
-                let _ = cr.show_text(line);
+
+            text.lines().zip(heights_and_bearings)
+                .zip(widths_and_bearings)
+                .for_each(|((line, (height, y_bearing)), (width, x_bearing))| {
+                cr.translate(-x_bearing, -y_bearing);
+                let r = cr.show_text(line);
+                cr.translate(x_bearing, y_bearing + height);
                 cr.new_path();
-                cr.translate(0.0, -height);
             });
         }
         let _ = cr.restore();
