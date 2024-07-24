@@ -102,12 +102,12 @@ impl Transformable for TransformableText {
 
         // determine the effective height/width of the text
         let net_width = widths_and_bearings.iter()
-            .map(|(width, bearing)| *width - *bearing)
+            .map(|(width, _bearing)| *width)
             .max_by(|a, b| {
                 a.partial_cmp(b).unwrap()
             }).unwrap_or(0.0);
         let net_height: f64 = heights_and_bearings.iter()
-            .map(|(height, bearing)| height)
+            .map(|(height, _bearing)| *height)
             .sum::<f64>();
 
         let _ = cr.save();
@@ -117,7 +117,7 @@ impl Transformable for TransformableText {
 
             text.lines().zip(heights_and_bearings)
                 .zip(widths_and_bearings)
-                .for_each(|((line, (height, y_bearing)), (width, x_bearing))| {
+                .for_each(|((line, (height, y_bearing)), (_width, x_bearing))| {
                 cr.translate(-x_bearing, -y_bearing);
                 let r = cr.show_text(line);
                 cr.translate(x_bearing, y_bearing + height);
