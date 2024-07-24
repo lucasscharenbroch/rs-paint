@@ -1,6 +1,6 @@
 # RS-Paint
 
-![rs-paint alpha logo](/icons/logo.png)
+![rs-paint screenshot](screenshot.png)
 
 A lightweight image editor, written in Rust using GTK4.
 
