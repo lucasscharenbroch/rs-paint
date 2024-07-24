@@ -30,7 +30,7 @@ impl TextState {
     }
 }
 
-type TextSpecs = (String, Option<cairo::FontOptions>);
+type TextSpecs = (String, Option<cairo::FontFace>);
 fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -> TextSpecs>) {
     let text_box = gtk::TextView::builder()
         .width_request(300)
@@ -55,6 +55,12 @@ fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -
         .level(gtk::FontLevel::Family)
         .build();
 
+    font_button.connect_font_desc_notify(clone!(@strong ui_p => move |_| {
+        if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
+            canvas_p.borrow_mut().update();
+        }
+    }));
+
     let form = Form::builder()
         .with_field(&font_button)
         .with_focused_field(&text_box)
@@ -68,7 +74,12 @@ fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -
 
         (
             string_from_text_view(&text_box),
-            font_button.font_options()
+            font_button.font_desc().and_then(|desc| {
+                desc.family().map(|family| {
+                    cairo::FontFace::toy_create(family.as_str(), cairo::FontSlant::Normal, cairo::FontWeight::Normal)
+                        .unwrap()
+                })
+            })
         )
     };
 
@@ -83,15 +94,15 @@ struct TransformableText {
 
 impl Transformable for TransformableText {
     fn draw(&mut self, cr: &gtk::cairo::Context, pixel_width: f64, pixel_height: f64) {
-        let (text, font_options) = (*self.get_text_specs)();
+        let (text, font_face) = (*self.get_text_specs)();
         cr.set_source_rgba(
             self.color.red() as f64,
             self.color.green() as f64,
             self.color.blue() as f64,
             self.color.alpha() as f64,
         );
-        if let Some(font_options) = font_options {
-            cr.set_font_options(&font_options);
+        if let Some(font_face) = font_face {
+            cr.set_font_face(&font_face);
         }
 
         let (widths_and_bearings, heights_and_bearings): (Vec<(f64, f64)>, Vec<(f64, f64)>) = text.lines()
