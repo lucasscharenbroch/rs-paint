@@ -77,6 +77,7 @@ pub fn keyboard_shortcuts_dialog(parent: &impl IsA<gtk::Window>) {
     let all_modes = group_from_specs("All Modes", &[
         ("Select All", "<Ctrl>a"),
         ("Copy Selection", "<Ctrl>c"),
+        ("Cut Selection", "<Ctrl>x"),
         ("Paste as Transformation", "<Ctrl>p"),
         ("Paste as Tab", "<Ctrl><Shift>p"),
     ]);

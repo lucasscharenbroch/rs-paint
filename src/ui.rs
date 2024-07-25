@@ -303,7 +303,8 @@ impl UiState {
                 gdk::Key::e => Self::export(ui_p.clone()),
                 gdk::Key::q => Self::quit(ui_p.clone()),
                 gdk::Key::v => Self::paste(ui_p.clone()),
-                gdk::Key::c => Self::copy(ui_p.clone()),
+                gdk::Key::c => Self::copy(ui_p.clone()).unwrap_or(()),
+                gdk::Key::x => Self::cut(ui_p.clone()),
                 gdk::Key::o => Self::import_onto(ui_p.clone()),
                 // Remember to add any new shortcuts to `dialog::info::keyboard_shortcuts_dialog`
                 _ => (),
@@ -594,18 +595,25 @@ impl UiState {
         UiState::new_tab(&ui_p, image_to_paste, "[pasted]");
     }
 
-    fn copy(ui_p: Rc<RefCell<Self>>) {
+    fn copy(ui_p: Rc<RefCell<Self>>) -> Result<(), ()> {
         let copied_image = if let Some(canvas_p) = ui_p.borrow().active_canvas_p() {
             if let Ok((image, _matrix)) = canvas_p.borrow().try_copy_selection() {
                 image
             } else {
-                return;
+                return Err(());
             }
         } else {
-            return;
+            return Err(());
         };
 
         ui_p.borrow_mut().clipboard.set_image(copied_image);
+        Ok(())
+    }
+
+    fn cut(ui_p: Rc<RefCell<Self>>) {
+        if let Ok(()) = UiState::copy(ui_p.clone()) {
+            UiState::delete_all_selections(ui_p.clone());
+        }
     }
 
     fn select_all(ui_p: Rc<RefCell<Self>>) {
