@@ -20,7 +20,7 @@ use crate::clipboard::Clipboard;
 
 use gtk::{gdk::RGBA, prelude::*};
 use gtk::gdk;
-use std::rc::Rc;
+use std::{f64::consts::E, rc::Rc, str::FromStr};
 use std::cell::RefCell;
 use glib_macros::clone;
 use gtk::glib::signal::Propagation;
@@ -52,15 +52,16 @@ pub struct UiState {
 }
 
 impl UiState {
-    pub fn run_main_ui() -> gtk::glib::ExitCode {
+    pub fn run_main_ui(cli_settings: crate::cli::CliSettings) -> gtk::glib::ExitCode {
         let app = gtk::Application::builder()
             .build();
         let ui_p = Self::new_p(app.clone());
-        Self::setup_default_image(&ui_p);
 
         app.connect_activate(clone!(@strong ui_p => move |app| {
             ui_p.borrow().window.set_application(Some(app));
             ui_p.borrow().window.present();
+
+            Self::setup_default_image(&cli_settings.image_file, &ui_p);
         }));
 
         app.connect_startup(|_| {
@@ -84,7 +85,10 @@ impl UiState {
         app.set_menubar(Some(&menu));
         menu_actions.iter().for_each(|a| app.add_action(a));
 
-        app.run()
+        // pass on an empty arg list to gtk (to avoid it trying to re-parse
+        // everything handled by clap)
+        let no_args: Vec<String> = vec![];
+        app.run_with_args(&no_args)
     }
 
     fn update_tabbar_widget(ui_p: &Rc<RefCell<Self>>) {
@@ -348,15 +352,41 @@ impl UiState {
         }
     }
 
-    fn setup_default_image(ui_p: &Rc<RefCell<Self>>) {
-        const DEFAULT_IMAGE_PROPS: NewImageProps = NewImageProps {
-            height: 512,
-            width: 512,
-            color: RGBA::new(0.0, 0.0, 0.0, 0.0),
-        };
+    fn setup_default_image(image_file: &Option<String>, ui_p: &Rc<RefCell<Self>>) {
+        if let Some(filename) = image_file {
+            let path = std::path::PathBuf::from_str(filename.as_str());
 
-        let image = generate(DEFAULT_IMAGE_PROPS);
-        UiState::new_tab(ui_p, image, "[untitled]");
+            match path.map_err(|_| String::from("bad path"))
+                .and_then(|path| {
+                    let path = path.as_path();
+                    let image = Image::from_path(path)?;
+                    let name = path.file_name().and_then(|os| os.to_str()).unwrap_or("[Untitled]");
+                    Ok((
+                        image,
+                        String::from(name),
+                    ))
+                })
+            {
+                Ok((img, name)) => {
+                    UiState::new_tab(&ui_p, img, &name);
+                },
+                Err(mesg) => {
+                    ok_dialog_str_(
+                        ui_p.borrow().window(),
+                        "Import Error",
+                        format!("Error during import: {}", mesg).as_str()
+                    );
+                }
+            }
+        } else {
+            const DEFAULT_IMAGE_PROPS: NewImageProps = NewImageProps {
+                height: 512,
+                width: 512,
+                color: RGBA::new(0.0, 0.0, 0.0, 0.0),
+            };
+            let image = generate(DEFAULT_IMAGE_PROPS);
+            UiState::new_tab(ui_p, image, "[untitled]");
+        }
     }
 
     pub fn history_popup(&self) {

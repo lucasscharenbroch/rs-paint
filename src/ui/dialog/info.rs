@@ -7,12 +7,12 @@ pub fn about_dialog(parent: &impl IsA<gtk::Window>) {
     let icon_texture = gtk::gdk::Texture::from_filename(&icon_file!("logo"));
 
     let dialog = gtk::AboutDialog::builder()
-        .program_name("RS-Paint")
-        .comments("A lightweight image editor, written in Rust using GTK4.")
+        .program_name(crate::PROGRAM_NAME)
+        .comments(crate::PROGRAM_DESCRIPTION)
         .website_label("Github")
         .website("https://github.com/lucasscharenbroch/rs-paint")
         .authors(vec!["Lucas Scharenbroch"])
-        .version("1.0")
+        .version(crate::SEMANTIC_VERSION)
         .deletable(true)
         .transient_for(parent)
         .build();
