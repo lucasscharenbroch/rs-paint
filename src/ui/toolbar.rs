@@ -24,7 +24,7 @@ pub struct Toolbar {
     palette_p: Rc<RefCell<Palette>>,
     mouse_mode: MouseMode,
     mouse_mode_buttons: Vec<MouseModeButton>,
-    mode_change_hook: Option<Box<dyn Fn(&Toolbar, Option<MouseMode>)>>,
+    mode_change_hook: Option<Box<dyn Fn(&Toolbar, Option<MouseMode>, MouseMode)>>,
     mode_toolbar: ModeToolbar,
     primary_brush: Brush,
     secondary_brush: Brush,
@@ -127,17 +127,17 @@ impl Toolbar {
 
                 button.connect_clicked(clone!(@strong toolbar_p, @strong ui_p => move |b| {
                     if b.is_active() {
-                        let mode =
+                        let new_mode =
                             if let Some(canvas_p) = ui_p.borrow().active_canvas_p()  {
                                 mode_constructor(&mut canvas_p.borrow_mut())
                             } else {
                                 mode_constructor_default()
                             };
 
-                        let old_mode = toolbar_p.borrow_mut().set_mouse_mode(mode.clone());
+                        let old_mode = toolbar_p.borrow_mut().set_mouse_mode(new_mode.clone());
 
                         if let Some(ref f) = toolbar_p.borrow().mode_change_hook {
-                            f(&toolbar_p.borrow(), old_mode);
+                            f(&toolbar_p.borrow(), old_mode, new_mode);
                         }
                     } else {
                         // the only way to deactivate is to activate a different modal button
@@ -191,10 +191,10 @@ impl Toolbar {
             b.widget.set_active(b.mode.variant() == new_mouse_mode.variant());
         }
 
-        let old_mode = std::mem::replace(&mut self.mouse_mode, new_mouse_mode);
+        let old_mode = std::mem::replace(&mut self.mouse_mode, new_mouse_mode.clone());
         self.mode_toolbar.set_to_variant(new_mouse_mode.variant());
 
-        Some(old_mode).filter(|_| old_mode.variant() != self.mouse_mode.variant())
+        Some(old_mode.clone()).filter(move |_| old_mode.variant() != self.mouse_mode.variant())
     }
 
     pub fn primary_color(&self) -> RGBA {
@@ -221,7 +221,7 @@ impl Toolbar {
         &self.widget
     }
 
-    pub fn set_mode_change_hook(&mut self, f: Box<dyn Fn(&Toolbar, Option<MouseMode>)>) {
+    pub fn set_mode_change_hook(&mut self, f: Box<dyn Fn(&Toolbar, Option<MouseMode>, MouseMode)>) {
         self.mode_change_hook = Some(f);
     }
 

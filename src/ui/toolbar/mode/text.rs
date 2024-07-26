@@ -13,12 +13,14 @@ use gtk::{gdk, pango, cairo, prelude::*, TextView};
 use gdk::{ModifierType, RGBA};
 use glib_macros::clone;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum TextState {
     /// No marker placed, but ready to place one upon a click
     Ready,
+    /// Inserting text without transforming (scale to natural width/height)
+    Inserting(f64, f64, Rc<dyn Fn() -> TextSpecs>), // (x, y, get_text_specs)
     /// Typing dialog is up; insert transformable @ (x, y)
-    TransferToFreeTransform(f64, f64), // (x, y)
+    TransferToFreeTransform(f64, f64), // text origin (x, y)
 }
 
 impl TextState {
@@ -163,7 +165,7 @@ impl super::MouseModeState for TextState {
             let (cx, cy) = canvas.cursor_pos_pix_f();
 
             let transformable = TransformableText {
-                get_text_specs,
+                get_text_specs: get_text_specs.clone(),
                 color: toolbar.primary_color(),
             };
 
@@ -176,7 +178,7 @@ impl super::MouseModeState for TextState {
                 ActionName::InsertShape,
             ));
 
-            *self = Self::TransferToFreeTransform(cx, cy);
+            *self = Self::Inserting(cx, cy, get_text_specs);
         }
     }
 
@@ -188,5 +190,8 @@ impl super::MouseModeState for TextState {
         } else {
             Err(())
         }
+    }
+
+    fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar, new_mode: &MouseMode) {
     }
 }

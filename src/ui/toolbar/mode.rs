@@ -25,7 +25,7 @@ use text::TextState;
 use gtk::cairo::Context;
 use gtk::gdk::ModifierType;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum MouseMode {
     Cursor(CursorState),
     Pencil(PencilState),
@@ -76,7 +76,7 @@ trait MouseModeState {
 
     /// Called when the mode is changed away (useful for cleaning up
     /// any changes to the canvas state, e.g. the cursor visual)
-    fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar) {}
+    fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar, new_mode: &MouseMode) {}
     fn handle_selection_deleted(&mut self) {}
 }
 
@@ -266,8 +266,8 @@ impl MouseMode {
         }
     }
 
-    pub fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar) {
-        self.get_state_immutable().handle_close(canvas, toolbar);
+    pub fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar, new_mode: &MouseMode) {
+        self.get_state_immutable().handle_close(canvas, toolbar, new_mode);
     }
 
     pub fn handle_selection_deleted(&mut self) {

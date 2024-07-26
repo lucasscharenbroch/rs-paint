@@ -1,6 +1,6 @@
 use crate::geometry::{dot_product, normalized_vec, vec_magnitude, vec_plus, vec_scale};
 use crate::ui::selection::Selection;
-use super::{Canvas, Toolbar};
+use super::{Canvas, MouseMode, Toolbar};
 use crate::image::TrackedLayeredImage;
 
 use gtk::gdk::ModifierType;
@@ -381,7 +381,7 @@ impl super::MouseModeState for RectangleSelectState {
         self.mode = RectangleSelectMode::Unselected;
     }
 
-    fn handle_close(&self, canvas: &mut Canvas, _toolbar: &Toolbar) {
+    fn handle_close(&self, canvas: &mut Canvas, _toolbar: &Toolbar, _new_mode: &MouseMode) {
         canvas.drawing_area().set_cursor(gdk::Cursor::from_name("default", None).as_ref());
     }
 

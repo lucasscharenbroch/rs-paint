@@ -1,4 +1,4 @@
-use super::{Canvas, Toolbar};
+use super::{Canvas, MouseMode, Toolbar};
 use gtk::{prelude::*, cairo, gdk};
 use crate::geometry::*;
 use crate::image::undo::action::ActionName;
@@ -614,7 +614,7 @@ impl super::MouseModeState for FreeTransformState {
         self.mouse_state = FreeTransformMouseState::Up;
     }
 
-    fn handle_close(&self, canvas: &mut Canvas, _toolbar: &Toolbar) {
+    fn handle_close(&self, canvas: &mut Canvas, _toolbar: &Toolbar, _new_mode: &MouseMode) {
         canvas.drawing_area().set_cursor(gdk::Cursor::from_name("default", None).as_ref());
     }
 }
