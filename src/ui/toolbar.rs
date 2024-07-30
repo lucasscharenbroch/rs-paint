@@ -10,6 +10,7 @@ use crate::image::brush::{Brush, BrushType};
 use crate::image::blend::BlendingMode;
 use crate::image::resize::ScaleMethod;
 use crate::shape::ShapeType;
+use crate::transformable::Transformable;
 use super::toolbar::mode::ModeToolbar;
 use super::super::icon_file;
 
@@ -34,6 +35,8 @@ pub struct Toolbar {
     /// Used by self-closing modes (free transform) to recover
     /// the previous mode
     last_two_mode_variants: (MouseModeVariant, MouseModeVariant),
+    /// Hack to allow text tool to use non-copyable state
+    boxed_transformable: RefCell<Option<Box<dyn Transformable>>>,
 }
 
 struct MouseModeButton {
@@ -92,6 +95,7 @@ impl Toolbar {
             secondary_brush,
             eyedropper_brush,
             last_two_mode_variants: (MouseModeVariant::Cursor, MouseModeVariant::Cursor),
+            boxed_transformable: RefCell::new(None),
         }));
 
         toolbar_p
@@ -293,5 +297,13 @@ impl Toolbar {
 
     pub fn get_free_transform_scale_method(&self) -> ScaleMethod {
         self.mode_toolbar.get_free_transform_settings().3
+    }
+
+    pub fn set_boxed_transformable(&self, boxed_transformable: Box<dyn Transformable>) {
+        *self.boxed_transformable.borrow_mut() = Some(boxed_transformable);
+    }
+
+    pub fn try_take_boxed_transformable(&self) -> Option<Box<dyn Transformable>> {
+        std::mem::replace(&mut self.boxed_transformable.borrow_mut(), None)
     }
 }

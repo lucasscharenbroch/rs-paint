@@ -1,7 +1,8 @@
+use crate::geometry::xywh_to_matrix_f;
 use crate::image::DrawableImage;
 use crate::ui::dialog::{close_dialog, no_button_dialog};
 
-use super::{Canvas, FreeTransformState, MouseMode, Toolbar};
+use super::{Canvas, FreeTransformState, MouseMode, MouseModeVariant, Toolbar};
 use crate::ui::form::{Form, FormBuilderIsh};
 use crate::transformable::Transformable;
 use crate::image::undo::action::ActionName;
@@ -33,7 +34,32 @@ impl TextState {
     }
 }
 
-type TextSpecs = (String, Option<cairo::FontFace>);
+pub struct TextSpecs {
+    text: String,
+    font_face_option: Option<cairo::FontFace>,
+}
+
+impl TextSpecs {
+    fn new(text: String, font_face_option: Option<cairo::FontFace>) -> Self {
+        TextSpecs {
+            text,
+            font_face_option,
+        }
+    }
+
+    fn try_font_face(&self) -> &Option<cairo::FontFace> {
+        &self.font_face_option
+    }
+
+    fn text(&self) -> &str {
+        &self.text
+    }
+
+    fn calc_natural_wh(&self) -> (f64, f64) {
+        todo!()
+    }
+}
+
 fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -> TextSpecs>) {
     let text_box = gtk::TextView::builder()
         .width_request(300)
@@ -75,7 +101,7 @@ fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -
             buffer.text(&buffer.start_iter(), &buffer.end_iter(), false).into()
         }
 
-        (
+        TextSpecs::new(
             string_from_text_view(&text_box),
             font_button.font_desc().and_then(|desc| {
                 desc.family().map(|family| {
@@ -97,18 +123,18 @@ struct TransformableText {
 
 impl Transformable for TransformableText {
     fn draw(&mut self, cr: &gtk::cairo::Context, pixel_width: f64, pixel_height: f64) {
-        let (text, font_face) = (*self.get_text_specs)();
+        let text_specs = (*self.get_text_specs)();
         cr.set_source_rgba(
             self.color.red() as f64,
             self.color.green() as f64,
             self.color.blue() as f64,
             self.color.alpha() as f64,
         );
-        if let Some(font_face) = font_face {
+        if let Some(font_face) = text_specs.try_font_face() {
             cr.set_font_face(&font_face);
         }
 
-        let (widths_and_bearings, heights_and_bearings): (Vec<(f64, f64)>, Vec<(f64, f64)>) = text.lines()
+        let (widths_and_bearings, heights_and_bearings): (Vec<(f64, f64)>, Vec<(f64, f64)>) = text_specs.text().lines()
             .map(|line| if line.len() == 0 { "_" } else { line }) // give blank-lines the width/height of "_"
             .map(|line| cr.text_extents(line))
             .map(|e| {
@@ -135,7 +161,7 @@ impl Transformable for TransformableText {
             const EPSILON: f64 = 1e-6; // prevent from scaling to zero
             cr.scale(1.0 / net_width.max(EPSILON), 1.0 / net_height.max(EPSILON));
 
-            text.lines().zip(heights_and_bearings)
+            text_specs.text().lines().zip(heights_and_bearings)
                 .zip(widths_and_bearings)
                 .for_each(|((line, (height, y_bearing)), (_width, x_bearing))| {
                 cr.translate(-x_bearing, -y_bearing);
@@ -193,5 +219,14 @@ impl super::MouseModeState for TextState {
     }
 
     fn handle_close(&self, canvas: &mut Canvas, toolbar: &Toolbar, new_mode: &MouseMode) {
+        if let Some(transformable) = toolbar.try_take_boxed_transformable() {
+            if new_mode.variant() == MouseModeVariant::FreeTransform {
+                if let Self::Inserting(x, y, get_text_specs) = self {
+                    let (w, h) = get_text_specs().calc_natural_wh();
+                    let matrix = xywh_to_matrix_f(*x, *y, w, h);
+                    let _ = canvas.try_give_transformable(transformable, matrix);
+                }
+            }
+        }
     }
 }

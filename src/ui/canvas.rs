@@ -984,6 +984,23 @@ impl Canvas {
         Ok(())
     }
 
+    pub fn try_give_transformable(&mut self, transformable: Box<dyn Transformable>, matrix: cairo::Matrix) -> Result<(), ()> {
+        if self.active_layer_locked() {
+            self.alert_user_of_lock("Can't transform: active layer locked");
+            return Err(());
+        }
+
+        *self.transformation_selection.borrow_mut() = Some(TransformationSelection::new(
+            transformable,
+            matrix,
+            ActionName::Transform
+        ));
+
+        let selection = std::mem::replace(&mut self.selection, Selection::NoSelection);
+
+        Ok(())
+    }
+
     pub fn scrap_transformable(&mut self) {
         if self.transformation_selection.borrow_mut().is_some() {
             *self.transformation_selection.borrow_mut() = None;
