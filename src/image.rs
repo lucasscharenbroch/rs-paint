@@ -14,7 +14,7 @@ use gtk::gdk::RGBA;
 
 use serde_derive::{Serialize, Deserialize};
 
-/// The ambivalent (r, g, b, a) pixel type, used for
+/// The ubiquitous (r, g, b, a) pixel type, used for
 /// importing and drawing (it cannot be directly displayed to cairo,
 /// though: use `DrawablePixel` (and `DrawableImage`) instead)
 #[derive(Clone, Serialize, Deserialize, Debug)]
