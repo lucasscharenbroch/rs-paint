@@ -303,6 +303,10 @@ impl Toolbar {
         *self.boxed_transformable.borrow_mut() = Some(boxed_transformable);
     }
 
+    pub fn get_boxed_transformable(&self) -> std::cell::RefMut<Option<Box<dyn Transformable>>> {
+        self.boxed_transformable.borrow_mut()
+    }
+
     pub fn try_take_boxed_transformable(&self) -> Option<Box<dyn Transformable>> {
         std::mem::replace(&mut self.boxed_transformable.borrow_mut(), None)
     }

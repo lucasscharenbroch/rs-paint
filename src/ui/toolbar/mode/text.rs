@@ -56,7 +56,7 @@ impl TextSpecs {
     }
 
     fn calc_natural_wh(&self) -> (f64, f64) {
-        todo!()
+        (100.0, 100.0)
     }
 }
 
@@ -195,16 +195,10 @@ impl super::MouseModeState for TextState {
                 color: toolbar.primary_color(),
             };
 
-            let mut matrix = cairo::Matrix::identity();
-            matrix.translate(cx, cy);
-
-            *canvas.transformation_selection().borrow_mut() = Some(super::TransformationSelection::new(
-                Box::new(transformable),
-                matrix,
-                ActionName::InsertShape,
-            ));
+            toolbar.set_boxed_transformable(Box::new(transformable));
 
             *self = Self::Inserting(cx, cy, get_text_specs);
+            canvas.update();
         }
     }
 
@@ -227,6 +221,27 @@ impl super::MouseModeState for TextState {
                     let _ = canvas.try_give_transformable(transformable, matrix);
                 }
             }
+        }
+    }
+
+    fn draw(&self, _canvas: &Canvas, cr: &cairo::Context, toolbar: &mut Toolbar) {
+        match self {
+            Self::Inserting(x, y, get_text_specs) => {
+                let text_specs = get_text_specs();
+                let (w, h) = text_specs.calc_natural_wh();
+
+                let _ = cr.save();
+                {
+                    cr.translate(*x, *y);
+                    cr.scale(w, h);
+                    if let Some(transformable) = toolbar.get_boxed_transformable().as_mut() {
+                        transformable.draw(cr, w, h);
+                    } else {
+                    }
+                }
+                let _ = cr.restore();
+            },
+            _ => (),
         }
     }
 }
