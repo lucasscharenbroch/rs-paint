@@ -56,7 +56,39 @@ impl TextSpecs {
     }
 
     fn calc_natural_wh(&self) -> (f64, f64) {
-        (100.0, 100.0)
+        // make a dummy surface and context for calculating the text extents
+
+        let surface = cairo::ImageSurface::create(
+            cairo::Format::ARgb32,
+            1,
+            1,
+        ).unwrap();
+
+        let cr = cairo::Context::new(&surface).unwrap();
+
+        let (widths_and_bearings, heights_and_bearings): (Vec<(f64, f64)>, Vec<(f64, f64)>) = self.text().lines()
+            .map(|line| if line.len() == 0 { "_" } else { line }) // give blank-lines the width/height of "_"
+            .map(|line| cr.text_extents(line))
+            .map(|e| {
+                e.map(|extents| (
+                    (extents.width(), extents.x_bearing()),
+                    (extents.height(), extents.y_bearing()),
+                ))
+                    .unwrap_or(((0.0, 0.0), (0.0, 0.0)))
+            })
+            .unzip();
+
+        // determine the effective height/width of the text
+        let net_width = widths_and_bearings.iter()
+            .map(|(width, _bearing)| *width)
+            .max_by(|a, b| {
+                a.partial_cmp(b).unwrap()
+            }).unwrap_or(0.0);
+        let net_height: f64 = heights_and_bearings.iter()
+            .map(|(height, _bearing)| *height)
+            .sum::<f64>();
+
+        (net_width, net_height)
     }
 }
 
