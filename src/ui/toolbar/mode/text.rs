@@ -37,13 +37,15 @@ impl TextState {
 pub struct TextSpecs {
     text: String,
     font_face_option: Option<cairo::FontFace>,
+    font_size: i32,
 }
 
 impl TextSpecs {
-    fn new(text: String, font_face_option: Option<cairo::FontFace>) -> Self {
+    fn new(text: String, font_face_option: Option<cairo::FontFace>, font_size: i32) -> Self {
         TextSpecs {
             text,
             font_face_option,
+            font_size,
         }
     }
 
@@ -88,7 +90,14 @@ impl TextSpecs {
             .map(|(height, _bearing)| *height)
             .sum::<f64>();
 
-        (net_width, net_height)
+        fn font_size_scale_fn(x: i32) -> f64 {
+            // x is in "points"
+            x as f64 / 12276.0
+        }
+
+        let mult = font_size_scale_fn(self.font_size);
+
+        (net_width * mult, net_height * mult)
     }
 }
 
@@ -113,7 +122,7 @@ fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -
 
     let font_button = gtk::FontDialogButton::builder()
         .dialog(&font_dialog)
-        .level(gtk::FontLevel::Family)
+        .level(gtk::FontLevel::Font)
         .build();
 
     font_button.connect_font_desc_notify(clone!(@strong ui_p => move |_| {
@@ -140,7 +149,10 @@ fn mk_text_insertion_dialog(ui_p: &Rc<RefCell<UiState>>) -> (Form, Rc<dyn Fn() -
                     cairo::FontFace::toy_create(family.as_str(), cairo::FontSlant::Normal, cairo::FontWeight::Normal)
                         .unwrap()
                 })
-            })
+            }),
+            font_button.font_desc().map(|desc| {
+                desc.size()
+            }).unwrap_or(12),
         )
     };
 
