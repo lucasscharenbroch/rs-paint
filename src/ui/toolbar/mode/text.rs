@@ -223,26 +223,34 @@ impl Transformable for TransformableText {
 
 impl super::MouseModeState for TextState {
     fn handle_drag_start(&mut self, _mod_keys: &ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
-        if let Self::Ready = self {
-            let (form, get_text_specs) = mk_text_insertion_dialog(canvas.ui_p());
+        match self {
+            Self::Ready => {
+                let (form, get_text_specs) = mk_text_insertion_dialog(canvas.ui_p());
 
-            no_button_dialog(
-                canvas.ui_p().borrow().window(),
-                "Add Text",
-                form.widget(),
-            ).grab_focus();
+                no_button_dialog(
+                    canvas.ui_p().borrow().window(),
+                    "Add Text",
+                    form.widget(),
+                ).grab_focus();
 
-            let (cx, cy) = canvas.cursor_pos_pix_f();
+                let (cx, cy) = canvas.cursor_pos_pix_f();
 
-            let transformable = TransformableText {
-                get_text_specs: get_text_specs.clone(),
-                color: toolbar.primary_color(),
-            };
+                let transformable = TransformableText {
+                    get_text_specs: get_text_specs.clone(),
+                    color: toolbar.primary_color(),
+                };
 
-            toolbar.set_boxed_transformable(Box::new(transformable));
+                toolbar.set_boxed_transformable(Box::new(transformable));
 
-            *self = Self::Inserting(cx, cy, get_text_specs);
-            canvas.update();
+                *self = Self::Inserting(cx, cy, get_text_specs);
+                canvas.update();
+            },
+            Self::Inserting(x, y, get_text_specs) => {
+                let (cx, cy) = canvas.cursor_pos_pix_f();
+                *self = Self::Inserting(cx, cy, get_text_specs.clone());
+                canvas.update();
+            },
+            _ => (),
         }
     }
 
