@@ -277,6 +277,21 @@ impl super::MouseModeState for TextState {
     }
 
     fn draw(&self, _canvas: &Canvas, cr: &cairo::Context, toolbar: &mut Toolbar) {
+
+        // visual cue for text origin at (0, 0)
+        fn draw_origin_point(cr: &cairo::Context) {
+            cr.set_source_rgb(0.0, 0.0, 0.0);
+
+            let origin_offset = 2.0;
+            let line_length = 10.0;
+
+            cr.move_to(-origin_offset, -origin_offset);
+            cr.line_to(-origin_offset + line_length, -origin_offset);
+            cr.move_to(-origin_offset, -origin_offset);
+            cr.line_to(-origin_offset, -origin_offset + line_length);
+            let _ = cr.stroke();
+        }
+
         match self {
             Self::Inserting(x, y, get_text_specs) => {
                 let text_specs = get_text_specs();
@@ -285,6 +300,7 @@ impl super::MouseModeState for TextState {
                 let _ = cr.save();
                 {
                     cr.translate(*x, *y);
+                    draw_origin_point(cr);
                     cr.scale(w, h);
                     if let Some(transformable) = toolbar.get_boxed_transformable().as_mut() {
                         transformable.draw(cr, w, h);
