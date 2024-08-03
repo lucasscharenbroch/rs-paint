@@ -769,7 +769,8 @@ impl FusedLayeredImage {
     }
 
     pub fn has_unsaved_changes(&self) -> bool {
-        !self.pix_modified_since_save.is_empty()
+        (!self.pix_modified_since_save.is_empty()) ||
+        (!self.pix_modified_since_draw.is_empty())
     }
 
     #[inline]
