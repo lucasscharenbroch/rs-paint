@@ -1,10 +1,8 @@
-use super::super::super::icon_file;
-
 use gtk::prelude::*;
 use gtk::glib::object::IsA;
 
 pub fn about_dialog(parent: &impl IsA<gtk::Window>) {
-    let icon_texture = gtk::gdk::Texture::from_filename(&icon_file!("logo"));
+    let icon_texture = &*crate::ui::icon::LOGO;
 
     let dialog = gtk::AboutDialog::builder()
         .program_name(crate::PROGRAM_NAME)
@@ -15,11 +13,8 @@ pub fn about_dialog(parent: &impl IsA<gtk::Window>) {
         .version(crate::SEMANTIC_VERSION)
         .deletable(true)
         .transient_for(parent)
+        .logo(icon_texture)
         .build();
-
-    if let Ok(texture) = icon_texture {
-        dialog.set_logo(Some(&texture));
-    }
 
     dialog.present();
 }

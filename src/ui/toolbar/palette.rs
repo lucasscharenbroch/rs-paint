@@ -317,19 +317,9 @@ impl Palette {
             .spacing(4)
             .build();
 
-        use crate::icon_file;
-
-        let arrow_icon1 = gtk::Image::builder()
-            .file(icon_file!("right-arrow"))
-            .build();
-
-        let arrow_icon2 = gtk::Image::builder()
-            .file(icon_file!("right-arrow"))
-            .build();
-
-        let swap_icon = gtk::Image::builder()
-            .file(icon_file!("swap"))
-            .build();
+        let arrow_icon1 = gtk::Image::from_paintable(Some(&*crate::ui::icon::RIGHT_ARROW));
+        let arrow_icon2 = gtk::Image::from_paintable(Some(&*crate::ui::icon::RIGHT_ARROW));
+        let swap_icon = gtk::Image::from_paintable(Some(&*crate::ui::icon::SWAP));
 
         let primary_to_palette = gtk::Button::builder()
             .child(&arrow_icon1)

@@ -1,7 +1,7 @@
 use super::shape::ShapeState;
 use super::{FreeTransformState, MouseModeVariant};
 use crate::image::resize::ScaleMethod;
-use crate::{icon_file, vertical_composite_field};
+use crate::vertical_composite_field;
 use crate::image::blend::BlendingMode;
 use crate::image::brush::BrushType;
 use crate::transformable::Transformable;
@@ -121,20 +121,9 @@ fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
 
 type FreeTransformSettings = (bool, bool, bool, ScaleMethod);
 fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() -> FreeTransformSettings>) {
-    let commit_image = gtk::Image::builder()
-        .file(icon_file!("checkmark"))
-        .vexpand(true)
-        .build();
-
-    let commit_and_keep_image = gtk::Image::builder()
-        .file(icon_file!("dotted-checkmark"))
-        .vexpand(true)
-        .build();
-
-    let scrap_image = gtk::Image::builder()
-        .file(icon_file!("big-red-x"))
-        .vexpand(true)
-        .build();
+    let commit_image = gtk::Image::from_paintable(Some(&*crate::ui::icon::CHECKMARK));
+    let commit_and_keep_image = gtk::Image::from_paintable(Some(&*crate::ui::icon::DOTTED_CHECKMARK));
+    let scrap_image = gtk::Image::from_paintable(Some(&*crate::ui::icon::BIG_RED_X));
 
     let commit_inner = gtk::Box::new(gtk::Orientation::Vertical, 4);
     commit_inner.append(&commit_image);

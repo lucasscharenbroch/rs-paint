@@ -9,10 +9,10 @@ use palette::Palette;
 use crate::image::brush::{Brush, BrushType};
 use crate::image::blend::BlendingMode;
 use crate::image::resize::ScaleMethod;
+use crate::ui::icon;
 use crate::shape::ShapeType;
 use crate::transformable::Transformable;
 use super::toolbar::mode::ModeToolbar;
-use super::super::icon_file;
 
 use gtk::prelude::*;
 use std::rc::Rc;
@@ -104,23 +104,21 @@ impl Toolbar {
     pub fn init_ui_hooks(ui_p: &Rc<RefCell<UiState>>) {
         let toolbar_p = ui_p.borrow().toolbar_p.clone();
 
-        let button_info: Vec<(&str, &str, fn(&mut Canvas) -> MouseMode, fn() -> MouseMode)> = vec![
-            ("cursor", "Cursor", MouseMode::cursor, MouseMode::cursor_default),
-            ("pencil", "Pencil", MouseMode::pencil, MouseMode::pencil_default),
-            ("eyedropper", "Eyedropper", MouseMode::eyedropper, MouseMode::eyedropper_default),
-            ("rectangle-select", "Rectangle Select", MouseMode::rectangle_select, MouseMode::rectangle_select_default),
-            ("magic-wand", "Magic Wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
-            ("fill", "Fill", MouseMode::fill, MouseMode::fill_default),
-            ("free-transform", "Free Transform", MouseMode::free_transform, MouseMode::free_transform_default),
-            ("shape", "Shape", MouseMode::shape, MouseMode::shape_default),
-            ("text", "Text", MouseMode::text, MouseMode::text_default),
+        let button_info: Vec<(_, &str, fn(&mut Canvas) -> MouseMode, fn() -> MouseMode)> = vec![
+            (&icon::CURSOR, "Cursor", MouseMode::cursor, MouseMode::cursor_default),
+            (&icon::PENCIL, "Pencil", MouseMode::pencil, MouseMode::pencil_default),
+            (&icon::EYEDROPPER, "Eyedropper", MouseMode::eyedropper, MouseMode::eyedropper_default),
+            (&icon::RECTANGLE_SELECT, "Rectangle Select", MouseMode::rectangle_select, MouseMode::rectangle_select_default),
+            (&icon::MAGIC_WAND, "Magic Wand", MouseMode::magic_wand, MouseMode::magic_wand_default),
+            (&icon::FILL, "Fill", MouseMode::fill, MouseMode::fill_default),
+            (&icon::FREE_TRANSFORM, "Free Transform", MouseMode::free_transform, MouseMode::free_transform_default),
+            (&icon::SHAPE, "Shape", MouseMode::shape, MouseMode::shape_default),
+            (&icon::TEXT, "Text", MouseMode::text, MouseMode::text_default),
         ];
 
         toolbar_p.borrow_mut().mouse_mode_buttons = button_info.into_iter()
-            .map(|(name, tooltip, mode_constructor, mode_constructor_default)| {
-                let icon_widget = gtk::Image::builder()
-                    .file(icon_file!(name))
-                    .build();
+            .map(|(icon_texture, tooltip, mode_constructor, mode_constructor_default)| {
+                let icon_widget = gtk::Image::from_paintable(Some(&**icon_texture));
 
                 let button = gtk::ToggleButton::builder()
                     .child(&icon_widget)

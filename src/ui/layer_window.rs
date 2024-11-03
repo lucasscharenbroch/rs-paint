@@ -39,17 +39,17 @@ impl LayerTab {
             .build();
 
         let close_button = gtk::Button::builder()
-            .child(&gtk::Image::from_file(crate::icon_file!("x")))
+            .child(&gtk::Image::from_paintable(Some(&*crate::ui::icon::X)))
             .tooltip_text("Close Layer")
             .build();
 
         let lock_button = gtk::ToggleButton::builder()
-            .child(&gtk::Image::from_file(crate::icon_file!("lock")))
+            .child(&gtk::Image::from_paintable(Some(&*crate::ui::icon::LOCK)))
             .tooltip_text("Lock Layer (Disable Changes)")
             .build();
 
         let visible_button = gtk::ToggleButton::builder()
-            .child(&gtk::Image::from_file(crate::icon_file!("eyeball")))
+            .child(&gtk::Image::from_paintable(Some(&*crate::ui::icon::EYEBALL)))
             .tooltip_text("Toggle Visibility")
             .build();
 
@@ -241,9 +241,7 @@ impl LayerWindow {
             .halign(gtk::Align::Center)
             .build();
 
-        let new_icon = gtk::Image::builder()
-            .file(crate::icon_file!("plus"))
-            .build();
+        let new_icon = gtk::Image::from_paintable(Some(&*crate::ui::icon::PLUS));
 
         let new_button = gtk::Button::builder()
             .child(&new_icon)
@@ -259,11 +257,12 @@ impl LayerWindow {
         }));
 
         let up_icon = gtk::Image::builder()
-            .file(crate::icon_file!("up-arrow"))
+            .paintable(&*crate::ui::icon::UP_ARROW)
+            .tooltip_text("Move Active Layer Up")
             .build();
 
         let down_icon = gtk::Image::builder()
-            .file(crate::icon_file!("down-arrow"))
+            .paintable(&*crate::ui::icon::DOWN_ARROW)
             .tooltip_text("Move Active Layer Down")
             .build();
 

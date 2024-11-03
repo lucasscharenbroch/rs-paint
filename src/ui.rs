@@ -8,6 +8,7 @@ mod tab;
 mod form;
 mod layer_window;
 mod infobar;
+mod icon;
 
 use canvas::Canvas;
 use toolbar::Toolbar;
@@ -20,17 +21,10 @@ use crate::clipboard::Clipboard;
 
 use gtk::{gdk::RGBA, prelude::*};
 use gtk::gdk;
-use std::{f64::consts::E, rc::Rc, str::FromStr};
+use std::{rc::Rc, str::FromStr};
 use std::cell::RefCell;
 use glib_macros::clone;
 use gtk::glib::signal::Propagation;
-
-#[macro_export]
-macro_rules! icon_file {
-    ($name:expr) => {
-        format!("./icons/{}.png", $name)
-    };
-}
 
 fn get_parent_window(widget: &impl IsA<gtk::Widget>) -> Option<gtk::Window> {
     let parent = widget.parent()?;
