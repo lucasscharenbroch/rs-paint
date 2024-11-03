@@ -121,9 +121,20 @@ fn mk_fill_toolbar() -> (Form, Box<dyn Fn() -> FillSettings>) {
 
 type FreeTransformSettings = (bool, bool, bool, ScaleMethod);
 fn mk_free_transform_toolbar(ui_p: Rc<RefCell<UiState>>) -> (Form, Box<dyn Fn() -> FreeTransformSettings>) {
-    let commit_image = gtk::Image::from_paintable(Some(&*crate::ui::icon::CHECKMARK));
-    let commit_and_keep_image = gtk::Image::from_paintable(Some(&*crate::ui::icon::DOTTED_CHECKMARK));
-    let scrap_image = gtk::Image::from_paintable(Some(&*crate::ui::icon::BIG_RED_X));
+    let commit_image = gtk::Image::builder()
+        .paintable(&*crate::ui::icon::CHECKMARK)
+        .vexpand(true)
+        .build();
+
+    let commit_and_keep_image = gtk::Image::builder()
+        .paintable(&*crate::ui::icon::DOTTED_CHECKMARK)
+        .vexpand(true)
+        .build();
+
+    let scrap_image = gtk::Image::builder()
+        .paintable(&*crate::ui::icon::BIG_RED_X)
+        .vexpand(true)
+        .build();
 
     let commit_inner = gtk::Box::new(gtk::Orientation::Vertical, 4);
     commit_inner.append(&commit_image);
