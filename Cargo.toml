@@ -2,8 +2,12 @@
 name = "rs-paint"
 version = "1.0.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+description = "A light-weight image editor"
+repository = "https://github.com/lucasscharenbroch/rs-paint"
+readme = "README.md"
+exclude = ["screenshot.png"]
+categories = ["multimedia::images"]
 
 [dependencies]
 arboard = "3.4.0"
