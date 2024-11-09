@@ -33,6 +33,47 @@ impl TransformationSelection {
 }
 
 #[derive(Clone, Copy)]
+struct TransformationRemainder {
+    extra_translation: (f64, f64),
+    extra_scale: (f64, f64),
+    extra_rotation: f64,
+}
+
+impl TransformationRemainder {
+    fn zero() -> Self {
+        TransformationRemainder {
+            extra_translation: (0.0, 0.0),
+            extra_scale: (0.0, 0.0),
+            extra_rotation: 0.0,
+        }
+    }
+
+    fn just_translation(extra_translation: (f64, f64)) -> Self {
+        TransformationRemainder {
+            extra_translation,
+            extra_scale: (0.0, 0.0),
+            extra_rotation: 0.0,
+        }
+    }
+
+    fn just_scale(extra_scale: (f64, f64)) -> Self {
+        TransformationRemainder {
+            extra_translation: (0.0, 0.0),
+            extra_scale,
+            extra_rotation: 0.0,
+        }
+    }
+
+    fn just_rotation(extra_rotation: f64) -> Self {
+        TransformationRemainder {
+            extra_translation: (0.0, 0.0),
+            extra_scale: (0.0, 0.0),
+            extra_rotation,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
 enum TransformationType {
     /// Do nothing
     Sterile,
@@ -224,15 +265,12 @@ impl TransformationType {
         maintain_aspect_ratio: bool,
         true_aspect_ratio: f64,
         should_clamp: bool,
-        width: f64,
-        height: f64,
-        dx: f64,
-        dy: f64,
+        (width, height): (f64, f64),
+        (dx, dy): (f64, f64),
+        (extra_sx, extra_sy): (f64, f64),
         up: f64, // how much up? (1.0, 0.0, or -1.0)
         left: f64, // how much left?
-    ) -> (f64, f64) {
-        // let (dx, dy) = (dx * -left, dy * -up);
-
+    ) -> TransformationRemainder {
         // handle aspect-ratio-locking
         let (dx, dy) = if maintain_aspect_ratio {
             // trig that's really hard to explain concisely in comments...
@@ -251,22 +289,23 @@ impl TransformationType {
 
         // before-clamp scale
         let (sx, sy) = (
-            1.0 + dx,
-            1.0 + dy
+            1.0 + dx + extra_sx,
+            1.0 + dy + extra_sy,
         );
 
         // after-clamp scale
         let (sx, sy, rx, ry) = if should_clamp {
             let (rsx, rsy) = (
-                (sx * width).floor().max(1.0 / width) / width,
-                (sy * height).floor().max(1.0 / height) / height,
+                // (1.0 / width) is the scale needed to make width=1.0
+                ((sx * width).round() / width).max(1.0 / width),
+                ((sy * height).round() / height).max(1.0 / height),
             );
             (rsx, rsy, sx - rsx, sy - rsy)
         } else {
             // prevent cross-over and zero-size here too
             // (zero size for matrix inversion problems;
             // cross-over for rotation bugs when crossed)
-            (sx.max(0.1 / width), sy.max(0.1 / height), 0.0, 0.0)
+            (sx.max(1.0 / width), sy.max(1.0 / height), 0.0, 0.0)
         };
 
         let (tx, ty) = (
@@ -278,10 +317,7 @@ impl TransformationType {
         matrix.scale(sx, sy);
 
         // remainder
-        matrix.transform_distance(
-            rx * -left,
-            ry * -up,
-        )
+        TransformationRemainder::just_scale((rx, ry))
     }
 
     fn update_matrix_with_point_diff(
@@ -290,36 +326,38 @@ impl TransformationType {
         true_aspect_ratio: f64,
         (x0, y0): (f64, f64),
         (x1, y1): (f64, f64),
+        remainder: TransformationRemainder,
         maintain_aspect_ratio: bool,
         clamp_translate: bool,
         clamp_scale: bool,
         clamp_rotate: bool,
-    ) -> (f64, f64) {
+    ) -> TransformationRemainder {
         let (width, height) = matrix_width_height(matrix);
 
         let inverse = matrix.try_invert().unwrap();
         let (dx, dy) = inverse.transform_distance(x1 - x0, y1 - y0);
+        let (dx, dy) = (dx + remainder.extra_translation.0, dy + remainder.extra_translation.1);
 
         let should_clamp = self.should_clamp(clamp_translate, clamp_scale, clamp_rotate);
 
         match self {
-            Self::Sterile => (0.0, 0.0),
+            Self::Sterile => TransformationRemainder::zero(),
             Self::Translate => {
                 if should_clamp {
                     let (rdx, rdy) = ((dx * width).floor() / width, (dy * height).floor() / height);
                     let (rx, ry) = (dx - rdx, dy - rdy);
                     matrix.translate(rdx, rdy);
-                    matrix.transform_distance(rx, ry)
+                    TransformationRemainder::just_translation((rx, ry))
                 } else {
                     matrix.translate(dx, dy);
-                    (0.0, 0.0)
+                    TransformationRemainder::zero()
                 }
             },
             Self::ScaleUpLeft => {
                 Self::do_scale(
                     matrix,
                     maintain_aspect_ratio, true_aspect_ratio, should_clamp,
-                    width, height, dx, dy,
+                    (width, height), (dx, dy), remainder.extra_scale,
                     1.0, 1.0,
                 )
             },
@@ -327,7 +365,7 @@ impl TransformationType {
                 Self::do_scale(
                     matrix,
                     maintain_aspect_ratio, true_aspect_ratio, should_clamp,
-                    width, height, dx, dy,
+                    (width, height), (dx, dy), remainder.extra_scale,
                     1.0, -1.0,
                 )
             }
@@ -335,7 +373,7 @@ impl TransformationType {
                Self::do_scale(
                     matrix,
                     maintain_aspect_ratio, true_aspect_ratio, should_clamp,
-                    width, height, dx, dy,
+                    (width, height), (dx, dy), remainder.extra_scale,
                     -1.0, 1.0,
                 )
             }
@@ -343,7 +381,7 @@ impl TransformationType {
                 Self::do_scale(
                     matrix,
                     maintain_aspect_ratio, true_aspect_ratio, should_clamp,
-                    width, height, dx, dy,
+                    (width, height), (dx, dy), remainder.extra_scale,
                     -1.0, -1.0,
                 )
             },
@@ -351,7 +389,7 @@ impl TransformationType {
                 Self::do_scale(
                     matrix,
                     maintain_aspect_ratio, true_aspect_ratio, should_clamp,
-                    width, height, dx, dy,
+                    (width, height), (dx, dy), remainder.extra_scale,
                     1.0, 0.0,
                 )
             }
@@ -359,7 +397,7 @@ impl TransformationType {
                 Self::do_scale(
                     matrix,
                     maintain_aspect_ratio, true_aspect_ratio, should_clamp,
-                    width, height, dx, dy,
+                    (width, height), (dx, dy), remainder.extra_scale,
                     -1.0, 0.0,
                 )
             }
@@ -367,7 +405,7 @@ impl TransformationType {
                 Self::do_scale(
                     matrix,
                     maintain_aspect_ratio, true_aspect_ratio, should_clamp,
-                    width, height, dx, dy,
+                    (width, height), (dx, dy), remainder.extra_scale,
                     0.0, 1.0,
                 )
             }
@@ -375,7 +413,7 @@ impl TransformationType {
                 Self::do_scale(
                     matrix,
                     maintain_aspect_ratio, true_aspect_ratio, should_clamp,
-                    width, height, dx, dy,
+                    (width, height), (dx, dy), remainder.extra_scale,
                     0.0, -1.0,
                 )
             }
@@ -430,14 +468,14 @@ impl TransformationType {
                     let ap = a + matrix_angle;
                     if let Some(angle)  = clamped_to_right_angle(ap) {
                         matrix.rotate(angle - matrix_angle);
-                        (dx, dy)
+                        TransformationRemainder::just_rotation(a - ap)
                     } else {
                         matrix.rotate(a);
-                        (0.0, 0.0)
+                        TransformationRemainder::zero()
                     }
                 } else {
                     matrix.rotate(a);
-                    (0.0, 0.0)
+                    TransformationRemainder::zero()
                 };
 
                 matrix.scale(1.0, height / width);
@@ -451,7 +489,7 @@ impl TransformationType {
 #[derive(Clone, Copy)]
 enum FreeTransformMouseState {
     Up,
-    Down(f64, f64, TransformationType, f64, f64), // x, y, type, extra_dx, extra_dy
+    Down(f64, f64, TransformationType, TransformationRemainder), // x, y, type, remainder
 }
 
 #[derive(Clone, Copy)]
@@ -462,7 +500,7 @@ pub struct FreeTransformState {
 impl FreeTransformState {
     pub fn from_coords(x: f64, y: f64) -> FreeTransformState {
         FreeTransformState {
-            mouse_state: FreeTransformMouseState::Down(x, y, TransformationType::ScaleDownRight, 0.0, 0.0),
+            mouse_state: FreeTransformMouseState::Down(x, y, TransformationType::ScaleDownRight, TransformationRemainder::zero()),
         }
     }
 
@@ -566,23 +604,24 @@ impl super::MouseModeState for FreeTransformState {
             let (x, y) = canvas.cursor_pos_pix_f();
             self.mouse_state = FreeTransformMouseState::Down(x, y,
                 TransformationType::from_matrix_and_point(&selection.matrix, (x, y), *canvas.zoom()),
-                0.0, 0.0,
+                TransformationRemainder::zero(),
             )
         }
     }
 
     fn handle_drag_update(&mut self, mod_keys: &gtk::gdk::ModifierType, canvas: &mut Canvas, toolbar: &mut Toolbar) {
         let should_update = if let Some(selection) = canvas.transformation_selection().borrow_mut().as_mut() {
-            if let FreeTransformMouseState::Down(x0, y0, transform_type, extra_x, extra_y) = self.mouse_state {
+            if let FreeTransformMouseState::Down(x0, y0, transform_type, transformation_remainder) = self.mouse_state {
                 let (x, y) = canvas.cursor_pos_pix_f();
 
                 let maintain_aspect_ratio = mod_keys.intersects(gtk::gdk::ModifierType::SHIFT_MASK);
 
-                let (extra_x, extra_y) = transform_type.update_matrix_with_point_diff(
+                let transformation_remainder = transform_type.update_matrix_with_point_diff(
                     &mut selection.matrix,
                     selection.true_aspect_ratio,
                     (x0, y0),
-                    (x + extra_x, y + extra_y),
+                    (x, y),
+                    transformation_remainder,
                     maintain_aspect_ratio,
                     toolbar.get_clamp_translate(),
                     toolbar.get_clamp_scale(),
@@ -596,7 +635,7 @@ impl super::MouseModeState for FreeTransformState {
                     h / w
                 };
 
-                self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type, extra_x, extra_y);
+                self.mouse_state = FreeTransformMouseState::Down(x, y, transform_type, transformation_remainder);
                 true
             } else {
                 false
