@@ -36,7 +36,6 @@ impl TransformationSelection {
 struct TransformationRemainder {
     extra_translation: (f64, f64),
     extra_scale: (f64, f64),
-    extra_rotation: f64,
 }
 
 impl TransformationRemainder {
@@ -44,7 +43,6 @@ impl TransformationRemainder {
         TransformationRemainder {
             extra_translation: (0.0, 0.0),
             extra_scale: (0.0, 0.0),
-            extra_rotation: 0.0,
         }
     }
 
@@ -52,7 +50,6 @@ impl TransformationRemainder {
         TransformationRemainder {
             extra_translation,
             extra_scale: (0.0, 0.0),
-            extra_rotation: 0.0,
         }
     }
 
@@ -60,7 +57,6 @@ impl TransformationRemainder {
         TransformationRemainder {
             extra_translation: (0.0, 0.0),
             extra_scale,
-            extra_rotation: 0.0,
         }
     }
 
@@ -68,7 +64,6 @@ impl TransformationRemainder {
         TransformationRemainder {
             extra_translation: (0.0, 0.0),
             extra_scale: (0.0, 0.0),
-            extra_rotation,
         }
     }
 }
@@ -480,7 +475,8 @@ impl TransformationType {
 
                 matrix.scale(1.0, height / width);
                 matrix.translate(-0.5, -0.5);
-                res
+                // rotation doesn't need remainder because it operates based on net distance (not net diff)
+                TransformationRemainder::zero()
             }
         }
     }
