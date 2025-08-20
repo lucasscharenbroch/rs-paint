@@ -4,6 +4,18 @@
 
 A lightweight image editor, written in Rust using GTK4.
 
+## Setup
+
+```sh
+# 1. Install gtk4
+sudo pacman -S gtk4 base-devel # Arch &c
+sudo apt install libgtk-4-dev build-essential # Debian &c
+sudo dnf install gtk4-devel gcc # Fedora &c
+
+# 2. build and run
+cargo run
+```
+
 ## Goals
 
 - Match the intuition and simplicity of MS-Paint
