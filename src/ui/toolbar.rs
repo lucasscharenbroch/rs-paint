@@ -118,7 +118,10 @@ impl Toolbar {
 
         toolbar_p.borrow_mut().mouse_mode_buttons = button_info.into_iter()
             .map(|(icon_texture, tooltip, mode_constructor, mode_constructor_default)| {
-                let icon_widget = gtk::Image::from_paintable(Some(&**icon_texture));
+                let icon_widget = gtk::Image::builder()
+                    .paintable(&**icon_texture)
+                    .pixel_size(64)
+                    .build();
 
                 let button = gtk::ToggleButton::builder()
                     .child(&icon_widget)
