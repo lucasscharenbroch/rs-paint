@@ -58,8 +58,8 @@ pub fn new_image_dialog<P: Fn(NewImageProps) + 'static>(
     parent: &impl IsA<gtk::Window>,
     callback: P
 ) {
-    const DEFAULT_IMAGE_WIDTH: usize = 512;
-    const DEFAULT_IMAGE_HEIGHT: usize = 512;
+    const DEFAULT_IMAGE_WIDTH: usize = 1920;
+    const DEFAULT_IMAGE_HEIGHT: usize = 1080;
     const DEFAULT_FILL_COLOR: RGBA = RGBA::new(0.0, 0.0, 0.0, 0.0);
 
     let height_width_gadget = AspectRatioGadget::new_p(

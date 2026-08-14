@@ -374,8 +374,8 @@ impl UiState {
             }
         } else {
             const DEFAULT_IMAGE_PROPS: NewImageProps = NewImageProps {
-                height: 512,
-                width: 512,
+                height: 1080,
+                width: 1920,
                 color: RGBA::new(0.0, 0.0, 0.0, 0.0),
             };
             let image = generate(DEFAULT_IMAGE_PROPS);
